@@ -289,16 +289,18 @@ class DevelopEditToolbar(EditToolbar):
         self._activity.editor.paste()
 
     def _search_entry_activated_cb(self, entry):
-        text = entry.props.text
+        text = self._search_entry.props.text
         if text:
             self._findnext_cb(None)       
 
     def _search_entry_changed_cb(self, entry):
-        text = entry.props.text
+        text = self._search_entry.props.text
         if not text:
             self._findprev.set_sensitive(False)
             self._findnext.set_sensitive(False)
         else:
+            self._findprev.set_sensitive(True)
+            self._findnext.set_sensitive(True)
             self._activity.editor.find_next(text)
             
     def _findprev_cb(self, button):

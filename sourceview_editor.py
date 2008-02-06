@@ -75,12 +75,12 @@ class GtkSourceview2Editor(notebook.Notebook):
     def copy(self):
         page = self._get_page()
         if page:
-            copy.undo()
+            page.copy()
 
     def paste(self):
         page = self._get_page()
         if page:
-            page.past()
+            page.paste()
 
     def find_next(self, text, stay=True):
         page = self._get_page()
