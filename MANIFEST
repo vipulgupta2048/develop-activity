@@ -1,5 +1,6 @@
 activity.py
 develop_app.py
+activity_model.py
 sourceview_editor.py
 new_activity.py
 welcome_dialog.py
