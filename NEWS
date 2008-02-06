@@ -1,0 +1,17 @@
+23
+new lazily loaded sidebar, can open an external file, create new activities
+
+22
+tabbed editor and added a file menu
+
+21
+support for jhbuild (thanks to Mike Fletcher) and is refactored a bit
+
+20
+undo/redo, and find
+
+19
+I don't remember
+
+18
+initial release, based on pippy

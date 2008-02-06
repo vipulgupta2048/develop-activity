@@ -1,0 +1,9 @@
+[Activity]
+name = Develop
+bundle_id = org.laptop.Develop
+service_name = org.laptop.Develop
+class = develop_app.DevelopActivity
+icon = activity-develop
+activity_version = 23
+mime_types = *
+show_launcher = yes

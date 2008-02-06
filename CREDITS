@@ -1,0 +1,6 @@
+This activity was based on Chris Ball's Pippy.
+
+The original rewrite was by Paul Swartz <paulswartz@gmail.com>
+
+Patches were submitted by:
+Mike C. Fletcher (support for jhbuild, newer gtksourceview)
