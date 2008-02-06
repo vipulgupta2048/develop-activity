@@ -24,6 +24,7 @@ def activity_info_template(name):
 name = %s
 bundle_id = %s
 service_name = %s
+icon = activity-default
 class = %s.%s
 activity_version = 1
 show_launcher = yes
@@ -74,9 +75,15 @@ def new_activity(name):
     
     _file = file(os.path.join(path, 'MANIFEST'), 'w')
     _file.write('''activity/activity.info
+activity/activity-default.svg
 %s.py
 NEWS
 MANIFEST''' % filen)
     _file.close()
-    return path
 
+    icon_path = os.path.join(os.path.dirname(__file__), 'activity',
+        'activity-default.svg')
+    import shutil
+    shutil.copy(icon_path, activityPath)
+
+    return path
