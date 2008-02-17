@@ -1,0 +1,235 @@
+#!/usr/bin/env python
+
+# Copyright (C) 2006-2007, Eduardo Silva <edsiper@gmail.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+
+import os
+import os.path
+import logging
+from gettext import gettext as _
+
+import gtk
+import dbus
+import pygtk
+import gobject
+import pango
+import gnomevfs
+
+from sugar import env
+
+import activity_model
+
+#does not import develop_app, but references internals from the activity,
+# as passed to init.
+#In other words, needs refactoring.
+
+def _get_filename_from_path(path):
+    return os.path.split(path)[-1]
+
+class LogMinder(gtk.VBox):
+    def __init__(self, activity, namefilter, path=None, extra_files=None):
+        self.activity = activity
+        self._openlogs = []
+        
+        self.activity._logger.info('creating MultiLogView')
+        if not path:
+            # Main path to watch: ~/.sugar/someuser/logs...
+            path = os.path.join(env.get_profile_path(), 'logs')
+
+        if not extra_files:
+            # extra files to watch in logviewer
+            extra_files = []
+            extra_files.append("/var/log/Xorg.0.log")
+            extra_files.append("/var/log/syslog")
+            extra_files.append("/var/log/messages")
+
+        self._logs_path = path
+        self._active_log = None
+        self._extra_files = extra_files
+        self._namefilter = namefilter
+
+        # Creating Main treeview with Actitivities list
+        self._tv_menu = gtk.TreeView()
+        self._tv_menu.connect('cursor-changed', self._load_log)
+        self._tv_menu.set_rules_hint(True)
+        cellrenderer = gtk.CellRendererText()
+        self.treecolumn = gtk.TreeViewColumn(_("Sugar logs"), cellrenderer, text=1)
+        self._tv_menu.append_column(self.treecolumn)
+        self._tv_menu.set_size_request(220, 900)
+        
+        # Create scrollbars around the tree view.
+        scrolled = gtk.ScrolledWindow()
+        scrolled.set_placement(gtk.CORNER_TOP_RIGHT)
+        scrolled.add(self._tv_menu)
+        
+        # the internals of the treeview    
+        model = self._model = activity_model.DirectoryAndExtraModel(path,extra_files,self._filter_by_name)
+        self._tv_menu.set_model(model)
+
+        self._add_column(self._tv_menu, 'Sugar logs', 0)
+        self._logs = {}
+
+        # Activities menu
+        self.activity.treenotebook.add_page(_("Log"),
+            scrolled)
+
+        self._configure_watcher()
+        
+        
+
+    def _configure_watcher(self):
+        # Setting where gnomeVFS will be watching
+        gnomevfs.monitor_add('file://' + self._logs_path,
+                             gnomevfs.MONITOR_DIRECTORY,
+                             self._log_file_changed_cb)
+
+        for f in self._extra_files:
+            gnomevfs.monitor_add('file://' + f,
+                             gnomevfs.MONITOR_FILE,
+                             self._log_file_changed_cb)
+
+    def _log_file_changed_cb(self, monitor_uri, info_uri, event):
+        path = info_uri.split('file://')[-1]
+        filename = _get_filename_from_path(path)
+
+        if event == gnomevfs.MONITOR_EVENT_CHANGED:
+            for log in self._openlogs:
+                if log.logpath == filename:
+                    log.update()
+        elif (event == gnomevfs.MONITOR_EVENT_DELETED 
+                or event == gnomevfs.MONITOR_EVENT_CREATED):
+            self._model.refresh()
+            #If the log is open, just leave it that way
+
+    # Load the log information in View (textview)
+    def _load_log(self, treeview):
+        path = activity_model.get_selected_file_path(self._tv_menu)
+        
+        # Set buffer and scroll down
+        if self.activity.editor.set_to_page_like(path):
+            return
+        newlogview = LogView(path,self)
+        self.activity.editor.add_page(newlogview.filename,newlogview)
+        self.activity.editor.set_current_page(-1)
+        newlogview.textview.scroll_to_mark(newlogview.get_insert(), 0)
+        self._active_log = act_log
+
+    def _filter_by_name(self,node):
+        return (self._namefilter in node.filename) or node.isDirectory
+        
+    # Add a new column to the main treeview, (code from Memphis)
+    def _add_column(self, treeview, column_name, index):
+        cell = gtk.CellRendererText()
+        col_tv = gtk.TreeViewColumn(column_name, cell, text=index)
+        col_tv.set_resizable(True)
+        col_tv.set_property('clickable', True)
+        
+        treeview.append_column(col_tv)
+        
+        # Set the last column index added
+        self.last_col_index = index
+
+    # Insert a Row in our TreeView
+    def _insert_row(self, store, parent, name):
+        iter = store.insert_before(parent, None)
+        index = 0
+        store.set_value(iter, index , name)
+            
+        return iter
+        
+    def _remove_logview(self,logview):
+        try:
+            self._openlogs.remove(logview)
+        except ValueError:
+            self.activity._logger.debug("_remove_logview failed")
+
+class LogBuffer(gtk.TextBuffer):
+    def __init__(self, logfile):
+        gtk.TextBuffer.__init__(self)
+
+        self._logfile = logfile
+        self._pos = 0
+        self.update()
+
+    def update(self):
+        try:
+            f = open(self._logfile, 'r')
+            init_pos = self._pos
+
+            f.seek(self._pos)
+            self.insert(self.get_end_iter(), f.read())
+            self._pos = f.tell()
+            f.close()
+
+            self._written = (self._pos - init_pos)
+        except:
+            self.insert(self.get_end_iter(), "Console error: can't open the file\n")
+            self._written = 0
+
+class LogView(gtk.ScrolledWindow):
+    def __init__(self,logpath,logminder):
+        gtk.ScrolledWindow.__init__(self)
+
+        self.logminder = logminder
+        self.logpath = logpath
+        self.logminder._openlogs.append(self)
+        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+
+        self.textview = gtk.TextView()
+        self.textview.set_wrap_mode(gtk.WRAP_WORD)
+        
+        newbuffer = self._create_log_buffer(logpath)
+        if newbuffer:
+            self.textview.set_buffer(newbuffer)
+        # Set background color
+        bgcolor = gtk.gdk.color_parse("#FFFFFF")
+        self.textview.modify_base(gtk.STATE_NORMAL, bgcolor)
+
+        self.textview.set_editable(False)
+
+        self.add(self.textview)
+        self.textview.show()
+        
+    def remove(self):
+        self.logminder._remove_logview(self)
+
+    def _create_log_buffer(self, path):
+        self._written = False
+        if os.path.isdir(path):
+            return False
+
+        if not os.path.exists(path):
+            self.logminder.activity._logger.error( "ERROR: %s don't exists" % path)
+            return False
+
+        if not os.access(path, os.R_OK): 
+            self.logminder.activity._logger.error( "ERROR: I can't read '%s' file" % path)
+            return False
+
+        self.filename = _get_filename_from_path(path)
+
+        self._logbuffer = logbuffer = LogBuffer(path)
+        
+        self._written = logbuffer._written
+        
+        return logbuffer
+
+    def __eq__(self,other):
+        return  other == self.logpath or other == self.filename 
+
+
+
