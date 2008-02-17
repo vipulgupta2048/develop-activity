@@ -21,32 +21,71 @@ unwantedPaths = [
     '.*', # hidden files
     '*~', # emacs backups
     '*.pyc', # compiled python
+    '*.bak', # SPE backup file
     'CVS', # CVS repository info
     ]
 
-def _filterNodes(nodes):
-    for node in nodes:
-        import fnmatch
-        matched = False
-        for path in unwantedPaths:
-            if fnmatch.fnmatch(node.filename, path):
-                matched = True
-                break
-        if not matched:
-            yield node
+def _nodefilter(node):
+    import fnmatch
+    notmatched = True
+    for path in unwantedPaths:
+        if fnmatch.fnmatch(node.filename, path):
+            notmatched = False
+            break
+    return notmatched
+    
+
+def get_selected_file(treeview):
+    selection = treeview.get_selection()
+    model, _iter = selection.get_selected()
+    if not _iter:
+        return
+    value = model.get_value(_iter, 0)
+    return value
+    
+def get_selected_file_path(treeview):
+    value = get_selected_file(treeview)
+    if value:
+        return value['path']
             
-class ActivityModel(gtk.GenericTreeModel):
+class DirectoryAndExtraModel(gtk.GenericTreeModel):
 
     columns = (gobject.TYPE_PYOBJECT, gobject.TYPE_STRING)
     
-    def __init__(self, root):
+    def __init__(self, root, extra_paths=None, nodefilter=_nodefilter):
         self.root = root
+        self.extra_paths = extra_paths
+        self.nodefilter = nodefilter
         self.refresh()
         gtk.GenericTreeModel.__init__(self)
     
     def refresh(self):
-        self.files = list(_filterNodes(ActivityNode(filename, self, None) for filename in sorted(os.listdir(self.root))))
+        self.files = filter(self.nodefilter,
+                            (ActivityNode(filename, self, None, self.nodefilter) for 
+                                filename in sorted(os.listdir(self.root))))
+        if self.extra_paths:
+            self.files.extend(ActivityNode(filename, self, None, self.nodefilter) for 
+                    filename in self.extra_paths)
 
+    def get_iter_from_filepath(self,filepath):
+        if filepath.startswith(self.root):
+            inpath = os.path.split(filepath[len(self.root):])[1:] 
+            #os.path.split gives empty first element
+        else:
+            inpath = os.path.split(filepath)
+        files = self.files
+        outpath = []
+        try:
+            for node in inpath:
+                nodeindex = files.index(node)
+                files = files[nodeindex]._files
+                outpath.append(nodeindex)
+        except ValueError:
+            print files
+            print filepath, inpath, outpath
+        tree_iter = self.get_iter(tuple(outpath))
+        return tree_iter
+        
     def on_get_flags(self):
         return 0
     
@@ -63,7 +102,7 @@ class ActivityModel(gtk.GenericTreeModel):
         return x
     
     def on_get_path(self, rowref):
-        return rowref.getPath()
+        return rowref.getTreePath()
     
     def on_get_value(self, rowref, n):
         if n == 0:
@@ -122,9 +161,10 @@ class ActivityModel(gtk.GenericTreeModel):
             
 class ActivityNode(object):
 
-    def __init__(self, filename, model, parent):
+    def __init__(self, filename, model, parent, nodefilter):
         self.filename = filename
         self.model = model
+        self.nodefilter = nodefilter
         if parent is not None:
             self.path = os.path.join(parent.path, filename)
         else:
@@ -138,13 +178,18 @@ class ActivityNode(object):
             return None
         if self._files is None:
             files = sorted(os.listdir(self.path))
-            self._files = list(_filterNodes(ActivityNode(filename, self.model, self) for filename in files))
+            self._files = filter(self.nodefilter,
+                                 (ActivityNode(filename, self.model, self, self.nodefilter) 
+                                    for filename in files))
         return self._files
     files = property(_get_files)
     
     def __eq__(self, other):
         if not isinstance(other, ActivityNode):
-            return False
+            if isinstance(other, str):
+                return self.filename == other
+            else:
+                return False
         return self.path == other.path
         
     def __len__(self):
@@ -156,10 +201,10 @@ class ActivityNode(object):
     def __getitem__(self, n):
         return self.files[n]
 
-    def getPath(self):
+    def getTreePath(self):
         if self.parent is None:
             return (self.model.files.index(self),)
-        parentPath = self.parent.getPath()
+        parentPath = self.parent.getTreePath()
         return parentPath + (self.parent.files.index(self),)
     
     def __hash__(self):
@@ -169,3 +214,6 @@ class ActivityNode(object):
         return '<ActivityNode %s>' % self.path
         
     __repr__ = __str__
+    
+    def __eq__(self,other):
+        return other == self.path or other == self.filename

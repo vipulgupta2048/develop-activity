@@ -29,8 +29,12 @@ from sugar.activity.activity import ActivityToolbox, \
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.menuitem import MenuItem
 from sugar.graphics.alert import ConfirmationAlert
-from sugar.graphics import iconentry
+from sugar.graphics import iconentry, notebook
 from sugar.datastore import datastore
+
+import logviewer
+import sourceview_editor
+import activity_model
 
 SERVICE = "org.laptop.Develop"
 IFACE = SERVICE
@@ -44,10 +48,9 @@ class DevelopActivity(ViewSourceActivity):
         ViewSourceActivity.__init__(self, handle)
 
         self._logger = logging.getLogger('develop-activity')
-        self._logger.setLevel(10)
+        self._logger.setLevel(0)
         self._logger.info(repr(handle.get_dict()))
         # Source buffer
-        import sourceview_editor
         self.editor = sourceview_editor.GtkSourceview2Editor(self)
 
         # Top toolbar with share and close buttons:
@@ -67,20 +70,27 @@ class DevelopActivity(ViewSourceActivity):
         hbox = gtk.HPaned()
         vbox = gtk.VBox()
 
-        # The sidebar.
+        
+        #The treeview and selected pane reflect each other.
+        self.numb = False
+        
+        # The sidebar
         sidebar = gtk.VBox()
-        self.treeview = gtk.TreeView()
+        self.treenotebook = notebook.Notebook(can_close_tabs=False)
+        sidebar.pack_start(self.treenotebook)
+        
+        self.model = gtk.TreeStore(gobject.TYPE_PYOBJECT, gobject.TYPE_STRING)
+        self.treeview = gtk.TreeView(self.model)
         cellrenderer = gtk.CellRendererText()
         self.treecolumn = gtk.TreeViewColumn(_("Activities"), cellrenderer, text=1)
         self.treeview.append_column(self.treecolumn)
         self.treeview.set_size_request(220, 900)
 
-        # Create scrollbars around the view.
+        # Create scrollbars around the tree view.
         scrolled = gtk.ScrolledWindow()
+        scrolled.set_placement(gtk.CORNER_TOP_RIGHT)
         scrolled.add(self.treeview)
-        self.treeview.show()
-        sidebar.pack_start(scrolled)
-        scrolled.show()
+        self.treenotebook.add_page(_("Activity"),scrolled)
         hbox.pack1(sidebar, resize=True, shrink=True)
         sidebar.show()
             
@@ -151,13 +161,15 @@ class DevelopActivity(ViewSourceActivity):
         self.treecolumn.set_title(name)
         self.metadata['title'] = name
         import activity_model
-        self.model = activity_model.ActivityModel(self.activity_dir)
+        self.model = activity_model.DirectoryAndExtraModel(self.activity_dir)
         self.treeview.set_model(self.model)
         self.treeview.get_selection().connect("changed", self.selection_cb)
+        self.logview = logviewer.LogMinder(self,name.split(".")[0])
+        self._logger.info('done opening %s' % activity_dir)
 
         
     def refresh_files(self):
-        self.model = activity_model.ActivityModel(self.activity_dir)
+        self.model = activity_model.DirectoryAndExtraModel(self.activity_dir)
         self.treeview.set_model(self.model)
 
     def load_file(self, fullPath):
@@ -183,24 +195,18 @@ class DevelopActivity(ViewSourceActivity):
             dso = objects[-1]
             dso.metadata['filename'] = dso.metadata['source'][len(self.activity_dir):]
         self.editor.load_object(dso)
-    
-    def get_selected_file(self):
-        selection = self.treeview.get_selection()
-        model, _iter = selection.get_selected()
-        if not _iter:
-            return
-        value = model.get_value(_iter, 0)
-        return value
 
     def selection_cb(self, column):
-        self.save()
-        value = self.get_selected_file()
-        if not value:
+        if self.numb:
+            #Choosing in the notebook selects in the list, and vice versa. Avoid infinite recursion.
             return
-        path = value['path']
+        self.save()
+        path = activity_model.get_selected_file_path(self.treeview)
         self._logger.debug("clicked! %s" % path)
-        if not os.path.isdir(path):
+        if path and not os.path.isdir(path):
+            self.numb = True
             self.load_file(path)
+            self.numb = False
     
     def write_file(self, file_path):
         if not self.activity_dir:
@@ -226,6 +232,20 @@ class DevelopActivity(ViewSourceActivity):
         for filename in file(file_path).read().split('\x00'):
             if filename:
                 self.load_file(filename)
+                
+    def update_sidebar_to_page(self, page):
+        if self.numb:
+            #avoid infinite recursion
+            return
+        if isinstance(page,sourceview_editor.GtkSourceview2Page):
+            source = page.object.metadata['source']
+            tree_iter = self.model.get_iter_from_filepath(source)
+            if tree_iter:
+                tree_selection = self.treeview.get_selection()
+                tree_selection.unselect_all()
+                self.numb = True
+                tree_selection.select_iter(tree_iter)
+                self.numb = False
   
 class DevelopEditToolbar(EditToolbar):
 
@@ -368,7 +388,8 @@ class DevelopFileToolbar(gtk.Toolbar):
         self.insert(open, -1)
         
     def _add_blank_cb(self, menu):
-        chooser = gtk.FileChooserDialog(_('Name your new file...'), self.activity, gtk.FILE_CHOOSER_ACTION_SAVE,
+        chooser = gtk.FileChooserDialog(_('Name your new file...'), 
+            self.activity, gtk.FILE_CHOOSER_ACTION_SAVE,
                 (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                     gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)
@@ -383,7 +404,8 @@ class DevelopFileToolbar(gtk.Toolbar):
         del chooser
     
     def _add_dir_cb(self,menu):
-        chooser = gtk.FileChooserDialog(_('Name your new directory...'), self.activity, gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER,
+        chooser = gtk.FileChooserDialog(_('Name your new directory...'), 
+            self.activity, gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER,
                 (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                     gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)
@@ -395,7 +417,8 @@ class DevelopFileToolbar(gtk.Toolbar):
         del chooser
 
     def _erase_file_cb(self, menu):
-        chooser = gtk.FileChooserDialog(_('Pick the file to erase...'), self.activity, gtk.FILE_CHOOSER_ACTION_OPEN,
+        chooser = gtk.FileChooserDialog(_('Pick the file to erase...'), 
+            self.activity, gtk.FILE_CHOOSER_ACTION_OPEN,
                 (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                     gtk.STOCK_DELETE, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)
@@ -409,7 +432,8 @@ class DevelopFileToolbar(gtk.Toolbar):
         del chooser
     
     def _erase_dir_cb(self, menu):
-        chooser = gtk.FileChooserDialog(_('Pick the directory to erase...'), self.activity, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
+        chooser = gtk.FileChooserDialog(_('Pick the directory to erase...'), 
+            self.activity, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
                 (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                     gtk.STOCK_DELETE, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)
@@ -437,7 +461,8 @@ class DevelopFileToolbar(gtk.Toolbar):
             self.activity.refresh_files()
 
     def _open_file_cb(self, button):
-        chooser = gtk.FileChooserDialog(_('Pick the file to open...'), self.activity, gtk.FILE_CHOOSER_ACTION_OPEN,
+        chooser = gtk.FileChooserDialog(_('Pick the file to open...'), self.activity, 
+            gtk.FILE_CHOOSER_ACTION_OPEN,
                 (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                     gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)

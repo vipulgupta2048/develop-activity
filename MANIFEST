@@ -11,3 +11,11 @@ icons/erase.svg
 CREDITS
 NEWS
 MANIFEST
+lib/libgtksourceview-2.0.la
+lib/libgtksourceview-2.0.so
+lib/LICENSE-INFO
+site-packages/LICENSE-INFO
+site-packages/gtksourceview2.la
+site-packages/gtksourceview2.so
+developrunner.sh
+logviewer.py

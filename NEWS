@@ -1,3 +1,7 @@
+24
+find selects ranges, selecting a tab selects it in the sidebar, sidebar scrollbar on left for Fitt's law.
+gtksourceview now bundled, allows running in arbitrary sugar-jhbuild.
+
 23
 new lazily loaded sidebar, can open an external file, create new activities
 

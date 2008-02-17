@@ -29,16 +29,25 @@ class GtkSourceview2Editor(notebook.Notebook):
         self.activity = activity
         self.set_size_request(900, 350)
         self.connect('page-removed', self._page_removed_cb)
+        self.connect('switch-page', self._switch_page_cb)
 
     def _page_removed_cb(self, notebook, page, n):
-        page.save()
+        page.remove()
     
-    def load_object(self, dsObject):
+    def _switch_page_cb(self, notebook, page_gptr, page_num):
+        self.activity.update_sidebar_to_page(self.get_nth_page(page_num))
+        
+    def set_to_page_like(self,eq_to_page):
         for n in range(self.get_n_pages()):
             page = self.get_nth_page(n)
-            if page.object.metadata['source'] == dsObject.metadata['source']:
+            if page == eq_to_page:
                 self.set_current_page(n)
-                return
+                return True
+        return False
+        
+    def load_object(self, dsObject):
+        if self.set_to_page_like(dsObject.metadata['source']):
+            return
         page = GtkSourceview2Page(dsObject)
         label = dsObject.metadata['filename']
         page.text_buffer.connect('changed', self._changed_cb)
@@ -95,14 +104,16 @@ class GtkSourceview2Editor(notebook.Notebook):
     def get_all_filenames(self):
         for i in range(self.get_n_pages()):
             page = self.get_nth_page(i)
-            yield page.object.metadata['source']
+            if isinstance(page,GtkSourceview2Page):
+                yield page.object.metadata['source']
 
     def save_all(self):
         self.activity._logger.info('save all %i' % self.get_n_pages())
         for i in range(self.get_n_pages()):
             page = self.get_nth_page(i)
-            self.activity._logger.info('%s' % page.object.metadata['filename'])
-            page.save()
+            if isinstance(page,GtkSourceview2Page):
+                self.activity._logger.info('%s' % page.object.metadata['filename'])
+                page.save()
 
 class GtkSourceview2Page(gtk.ScrolledWindow):
 
@@ -157,7 +168,7 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         _file.close()
         if offset is not None:
             self._scroll_to_offset(offset)
-        self.text_buffer.set_highlight(False)
+        self.text_buffer.set_highlight_syntax(False)
         mime_type = self.object.metadata.get('mime_type', '')
         if mime_type:
             lang_manager = gtksourceview2.language_manager_get_default()
@@ -177,6 +188,9 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         self.text_buffer.end_not_undoable_action()
         self.text_buffer.set_modified(False)
         self.text_view.grab_focus()
+   
+    def remove(self):
+        self.save()
    
     def save(self):
         #from sugar.datastore import datastore
@@ -248,7 +262,7 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         offset = self.get_offset()
         new_offset = self.get_text().find(text, offset + (not stay))
         if new_offset != -1:
-            self._scroll_to_offset(new_offset)
+            self._scroll_to_offset(new_offset,new_offset + len(text))
 
     def find_prev(self, text):
         """
@@ -257,9 +271,20 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         offset = self.get_offset()
         new_offset = self.get_text().rfind(text, 0, offset)
         if new_offset != -1:
-            self._scroll_to_offset(new_offset)
+            self._scroll_to_offset(new_offset,new_offset + len(text))
 
-    def _scroll_to_offset(self, offset):
+    def _scroll_to_offset(self, offset, bound):
         _iter = self.text_buffer.get_iter_at_offset(offset)
-        self.text_buffer.place_cursor(_iter)
+        _iter2 = self.text_buffer.get_iter_at_offset(bound)
+        self.text_buffer.select_range(_iter,_iter2)
         self.text_view.scroll_mark_onscreen(self.text_buffer.get_insert())
+        
+    def __eq__(self,other):
+        if isinstance(other,GtkSourceview2Page):
+            return self.object.metadata['source'] == other.object.metadata['source']
+        #elif isinstance(other,type(self.object)):
+        #    other = other.metadata['source']
+        if isinstance(other,basestring):
+            return other == self.object.metadata['source']
+        else:
+            return False
