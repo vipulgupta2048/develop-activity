@@ -2,7 +2,7 @@
 name = Develop
 bundle_id = org.laptop.Develop
 service_name = org.laptop.Develop
-exec = /home/chema/sugar-jhbuild/build/share/activities/Develop.activity/developrunner.sh
+exec = developrunner.sh
 icon = activity-develop
 activity_version = 30
 mime_types = *
