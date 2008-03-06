@@ -19,3 +19,4 @@ site-packages/gtksourceview2.la
 site-packages/gtksourceview2.so
 developrunner.sh
 logviewer.py
+bundlebuilder.py

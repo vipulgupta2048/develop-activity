@@ -17,35 +17,52 @@ import gtk
 import logging
 logging.getLogger().setLevel(0)
 import pango
-import os, os.path
+import os, os.path, shutil
 import gobject
+import zipfile
 
 from gettext import gettext as _
 
-from activity import ViewSourceActivity
+from activity import ViewSourceActivity, OPENFILE_SEPARATOR
 from sugar import profile
-from sugar.activity.activity import ActivityToolbox, \
-     EditToolbar
+from sugar.activity import activity as sugaractivity
+     #import ActivityToolbox, \
+    #     EditToolbar, get_bundle_name, get_bundle_path
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.menuitem import MenuItem
 from sugar.graphics.alert import ConfirmationAlert
 from sugar.graphics import iconentry, notebook
 from sugar.datastore import datastore
+try:
+    from sugar.activity.bundlebuilder import Bundlebuilder, extract_bundle
+except ImportError:
+    from bundlebuilder import Bundlebuilder, extract_bundle
 
 import logviewer
 import sourceview_editor
 import activity_model
 
+
+
 SERVICE = "org.laptop.Develop"
 IFACE = SERVICE
 PATH = "/org/laptop/Develop"
+WORKING_SOURCE_DIR = 'source'
+
+try:
+    sugaractivity.INSTANCE_DIR #if this attribute is set, bug is fixed
+    SUGARACTIVITY_CREATE_JOBJECT = False #...and we can use this feature
+except AttributeError:
+    sugaractivity.INSTANCE_DIR = 'instance' #fake attribute
+    SUGARACTIVITY_CREATE_JOBJECT = True #...and we must pass "true"
 
 class DevelopActivity(ViewSourceActivity):
     """Develop Activity as specified in activity.info"""
         
     def __init__(self, handle):
         """Set up the Develop activity."""
-        ViewSourceActivity.__init__(self, handle)
+        super(DevelopActivity,self).__init__(handle, 
+                    create_jobject=SUGARACTIVITY_CREATE_JOBJECT)
 
         self._logger = logging.getLogger('develop-activity')
         self._logger.setLevel(0)
@@ -54,11 +71,11 @@ class DevelopActivity(ViewSourceActivity):
         self.editor = sourceview_editor.GtkSourceview2Editor(self)
 
         # Top toolbar with share and close buttons:
-        toolbox = ActivityToolbox(self)
+        toolbox = sugaractivity.ActivityToolbox(self)
         self.set_toolbox(toolbox)
         toolbox.show()
         
-        self.edittoolbar = DevelopEditToolbar(self)
+        self.edittoolbar = DevelopEditToolbar(self,toolbox)
         toolbox.add_toolbar(_("Edit"), self.edittoolbar)
         self.edittoolbar.show()
 
@@ -73,6 +90,10 @@ class DevelopActivity(ViewSourceActivity):
         
         #The treeview and selected pane reflect each other.
         self.numb = False
+        
+        #Wait to save until first change, but save an unchanged
+        #backup copy when that happens.
+        self.save_unchanged = False
         
         # The sidebar
         sidebar = gtk.VBox()
@@ -149,6 +170,7 @@ class DevelopActivity(ViewSourceActivity):
             activity_dir = chooser.get_filename()
             chooser.destroy()
             self.open_activity(activity_dir)
+            self._foreign_dir = True
         else:
             chooser.destroy()
             self.destroy()
@@ -159,7 +181,7 @@ class DevelopActivity(ViewSourceActivity):
         self.activity_dir = activity_dir + '/'
         name = os.path.basename(activity_dir)
         self.treecolumn.set_title(name)
-        self.metadata['title'] = name
+        #self.metadata['title'] = name
         import activity_model
         self.model = activity_model.DirectoryAndExtraModel(self.activity_dir)
         self.treeview.set_model(self.model)
@@ -173,7 +195,11 @@ class DevelopActivity(ViewSourceActivity):
         self.treeview.set_model(self.model)
 
     def load_file(self, fullPath):
-        filename = fullPath[len(self.activity_dir):]
+        if fullPath.startswith(self.activity_dir):
+            filename = fullPath[len(self.activity_dir):]
+        else:
+            filename = fullPath
+            fullPath = os.path.join(self.activity_dir,fullPath)
         query = {'activity':SERVICE, 'source':fullPath}
         objects, count = datastore.find(query, sorting=['mtime'])
         if not count: # no objects found
@@ -200,38 +226,69 @@ class DevelopActivity(ViewSourceActivity):
         if self.numb:
             #Choosing in the notebook selects in the list, and vice versa. Avoid infinite recursion.
             return
-        self.save()
         path = activity_model.get_selected_file_path(self.treeview)
         self._logger.debug("clicked! %s" % path)
         if path and not os.path.isdir(path):
+            self.save()
             self.numb = True
             self.load_file(path)
             self.numb = False
     
     def write_file(self, file_path):
-        if not self.activity_dir:
-            raise NotImplementedError
-        self._logger.info('write file %s' % file_path)
-        self.editor.save_all()
-        filenames = '\x00'.join(self.editor.get_all_filenames())
+        self._logger.info(u'write file from %s to %s' % (self.activity_dir,file_path))
+        if not self.save_unchanged:
+            self.editor.save_all()
+        filenames = OPENFILE_SEPARATOR.join(self.editor.get_all_filenames())
+        
+        self._jobject = self.save_source_jobject(self.activity_dir, 
+                file_path, filenames)
         self.metadata['source'] = self.activity_dir[:-1]
-        f = file(file_path, 'w')
-        f.write(filenames)
-        f.close()
-        self._logger.info(repr(file(file_path).read()))
+        self._logger.info("Saved file at %s" % self._jobject.file_path)
+        self._logger.info(u'UNDIRTY')
+        self.dirty = False
+        
+    def get_workingdir(self):
+        return os.path.join(sugaractivity.get_activity_root(),sugaractivity.INSTANCE_DIR,WORKING_SOURCE_DIR)
     
     def read_file(self, file_path):
-        self._logger.info('read_file: %s' % file_path)
-        if not self.metadata['source']:
+        self._logger.info(u'read_file: %s' % file_path)
+        if not os.path.isfile(file_path):
             self._show_welcome()
             return
-        self.open_activity(self.metadata['source'])
-        if not os.path.exists(file_path):
-            self._logger.critical('tried to read %s but failed' % file_path)
-            return
-        for filename in file(file_path).read().split('\x00'):
+        workingdir = self.get_workingdir()
+        if os.path.isdir(workingdir):
+            shutil.rmtree(workingdir)
+            #raise IOError("working dir already exists...")
+        bundledir = extract_bundle(file_path,workingdir)
+        self.open_activity(os.path.join(bundledir))
+        self._logger.info(u'read_subfiles: %s' % self.metadata['open_filenames'])
+        for filename in self.metadata['open_filenames'].split(OPENFILE_SEPARATOR):
             if filename:
                 self.load_file(filename)
+        self._logger.info(u'UNDIRTY')
+        self.dirty = False
+        self._foreign_dir = False
+        
+    def set_dirty(self, dirty):
+        self.dirty = dirty
+        if dirty and self._foreign_dir:
+            self.save_unchanged = True
+            try:
+                self.save()
+            finally:
+                self.save_unchanged = False
+            self.change_base()
+            self.dirty = dirty
+    
+    def change_base(self):
+        self._logger.debug("Change base..............................")
+        targetdir = self.get_workingdir()
+        if os.path.isdir(targetdir):
+            shutil.rmtree(targetdir)
+        olddir = self.activity_dir
+        shutil.copytree(olddir, targetdir)
+        self.open_activity(targetdir)
+        self.editor.reroot(olddir, targetdir)
                 
     def update_sidebar_to_page(self, page):
         if self.numb:
@@ -247,11 +304,12 @@ class DevelopActivity(ViewSourceActivity):
                 tree_selection.select_iter(tree_iter)
                 self.numb = False
   
-class DevelopEditToolbar(EditToolbar):
+class DevelopEditToolbar(sugaractivity.EditToolbar):
 
-    def __init__(self, _activity):
-        EditToolbar.__init__(self)
+    def __init__(self, _activity, toolbox):
+        sugaractivity.EditToolbar.__init__(self)
 
+        self._toolbox = toolbox
         self._activity = _activity
         self._activity.editor.connect('changed', self._changed_cb)
         self._changed_cb(None)
@@ -332,6 +390,9 @@ class DevelopEditToolbar(EditToolbar):
         text = self._search_entry.props.text
         if text:
             self._activity.editor.find_next(text, False)
+            
+    def _goto_find_cb(self):
+        _toolbox.set_current_toolbar(TOOLBAR_TABLE)
             
     # bad paul! this function was copied from sugar's activity.py via Write
     def _add_widget(self, widget, expand=False):

@@ -18,6 +18,7 @@ import gtk, gobject
 import pango
 from sugar.graphics import notebook
 import gtksourceview2
+import os.path
 
 class GtkSourceview2Editor(notebook.Notebook):
     __gsignals__ = {
@@ -58,6 +59,8 @@ class GtkSourceview2Editor(notebook.Notebook):
     def _changed_cb(self, buffer):
         if not buffer.can_undo():
             buffer.set_modified(False)
+        elif not self.activity.dirty:
+            self.activity.set_dirty(True)
         self.emit('changed')
 
     def _get_page(self):
@@ -105,7 +108,7 @@ class GtkSourceview2Editor(notebook.Notebook):
         for i in range(self.get_n_pages()):
             page = self.get_nth_page(i)
             if isinstance(page,GtkSourceview2Page):
-                yield page.object.metadata['source']
+                yield page.object.metadata['filename']
 
     def save_all(self):
         self.activity._logger.info('save all %i' % self.get_n_pages())
@@ -114,6 +117,19 @@ class GtkSourceview2Editor(notebook.Notebook):
             if isinstance(page,GtkSourceview2Page):
                 self.activity._logger.info('%s' % page.object.metadata['filename'])
                 page.save()
+    
+    def reroot(self,olddir, newdir):
+        self.activity._logger.info('reroot from %s to %s' % (olddir,newdir))
+        for i in range(self.get_n_pages()):
+            page = self.get_nth_page(i)
+            if isinstance(page,GtkSourceview2Page):
+                if page.reroot(olddir, newdir): 
+                    self.activity._logger.info('rerooting page %s failed' % 
+                            page.object.file_path)
+                else:
+                    self.activity._logger.info('rerooting page %s succeeded' % 
+                            page.object.file_path)
+        
 
 class GtkSourceview2Page(gtk.ScrolledWindow):
 
@@ -168,7 +184,11 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         _file.close()
         if offset is not None:
             self._scroll_to_offset(offset)
-        self.text_buffer.set_highlight_syntax(False)
+        
+        if hasattr(self.text_buffer, 'set_highlight'):
+            self.text_buffer.set_highlight(False)
+        else:
+            self.text_buffer.set_highlight_syntax(False)
         mime_type = self.object.metadata.get('mime_type', '')
         if mime_type:
             lang_manager = gtksourceview2.language_manager_get_default()
@@ -194,7 +214,7 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
    
     def save(self):
         #from sugar.datastore import datastore
-        names = set((self.object.file_path, self.object.metadata['source']))
+        names = (self.object.file_path,)#, self.object.metadata['source']))
         text = self.get_text()
         for name in names:
             _file = file(name, 'w')
@@ -288,3 +308,12 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
             return other == self.object.metadata['source']
         else:
             return False
+
+    def reroot(self,olddir,newdir):
+        """Returns False if it works"""
+        oldpath = self.object.file_path
+        if oldpath.startswith(olddir):
+            self.object.file_path = os.path.join(newdir, oldpath[len(olddir):])
+            return False
+        else:
+            return True
