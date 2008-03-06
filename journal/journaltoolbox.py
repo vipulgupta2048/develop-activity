@@ -35,7 +35,11 @@ from sugar.graphics import style
 from sugar import activity
 from sugar import profile
 from sugar import mime
-from sugar.datastore import datastore
+try:
+    from sugar.datastore import DUMMY_START_ACTIVITY_INFO
+    from sugar.datastore import datastore
+except:
+    import datastore
 
 import volumesmanager
 import backup
@@ -252,7 +256,7 @@ class SearchToolbar(gtk.Toolbar):
         try:
             self._what_search_combo.remove_all()
             # TRANS: Item in a combo box that filters by entry type.
-            self._what_search_combo.append_item(self._ACTION_ANYTHING, _('Anything'))
+            self._what_search_combo.append_item(self._ACTION_ANYTHING, _('Anng'))
 
             appended_separator = False
             for service_name in datastore.get_unique_values('activity'):
@@ -332,7 +336,7 @@ class EntryToolbar(gtk.Toolbar):
         gtk.Toolbar.__init__(self)
 
         go_back_button = ToolButton('go-previous')
-        go_back_button.set_tooltip(_('Go back'))
+        go_back_button.set_tooltip(_('Gock'))
         go_back_button.connect('clicked', self._go_back_button_clicked_cb)
         self.add(go_back_button)
         go_back_button.show()
@@ -407,8 +411,13 @@ class EntryToolbar(gtk.Toolbar):
         return False
 
     def _resume_menu_item_activate_cb(self, menu_item, service_name):
+        
+        logging.debug("Resuming from menu....")
         if self._jobject:
-            self._jobject.resume(service_name)
+            if not service_name:
+                self._jobject.resume()
+            else:
+                self._jobject.resume(service_name)
 
     def _copy_menu_item_activate_cb(self, menu_item, volume):
         if self._jobject:
@@ -435,6 +444,7 @@ class EntryToolbar(gtk.Toolbar):
             menu_item.show()
         
     def _refresh_resume_palette(self):
+        logging.debug("Refreshing resume palette....")
         if self._jobject.metadata.get('activity_id', ''):
             # TRANS: Action label for resuming an activity.
             self._resume.set_tooltip(_('Resume'))
@@ -447,12 +457,14 @@ class EntryToolbar(gtk.Toolbar):
         for menu_item in palette.menu.get_children():
             palette.menu.remove(menu_item)
             menu_item.destroy()
-
-        if not self._jobject.is_activity_bundle():
-            for activity in self._jobject.get_activities():
-                menu_item = MenuItem(activity.name)
-                menu_item.set_image(Icon(file=activity.icon, icon_size=gtk.ICON_SIZE_MENU))
-                menu_item.connect('activate', self._resume_menu_item_activate_cb,
-                                  activity.bundle_id)
-                palette.menu.append(menu_item)
-                menu_item.show()
+            
+        activities = self._jobject.get_activities()
+        logging.debug("Refreshing resume palette with "+str(activities))
+        for activity in activities:
+            logging.debug("Refreshing resume palette with"+activity.name)
+            menu_item = MenuItem(activity.name)
+            menu_item.set_image(Icon(file=activity.icon, icon_size=gtk.ICON_SIZE_MENU))
+            menu_item.connect('activate', self._resume_menu_item_activate_cb,
+                              activity.bundle_id)
+            palette.menu.append(menu_item)
+            menu_item.show()

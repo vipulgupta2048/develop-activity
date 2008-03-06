@@ -19,16 +19,28 @@ import logging
 import time
 from datetime import datetime
 import os
+from gettext import gettext as _
 
 import gobject
 
 from sugar.datastore import dbus_helpers
+from sugar.activity.registry import ActivityInfo
 from sugar import activity
 from sugar.activity.activityhandle import ActivityHandle
 from sugar.bundle.contentbundle import ContentBundle
 from sugar.bundle.activitybundle import ActivityBundle
 from sugar.bundle.contentbundle import ContentBundle
 from sugar import mime
+
+DUMMY_START_ACTIVITY_INFO = {'name': _('Start'),
+                'icon': None,
+                'bundle_id': None,
+                'version': None,
+                'path': None,
+                'command': None,
+                'show_launcher': None}
+
+DUMMY_START_ACTIVITY = ActivityInfo(**DUMMY_START_ACTIVITY_INFO)
 
 class DSMetadata(gobject.GObject):
     __gsignals__ = {
@@ -133,7 +145,10 @@ class DSObject(object):
             activity_info = activity.get_registry().get_activity(bundle_id)
             if activity_info:
                 activities.append(activity_info)
-
+        
+        if self.is_activity_bundle():
+            activities.append(DUMMY_START_ACTIVITY)
+            
         mime_type = self.metadata.get('mime_type', '')
         if mime_type:
             activities_info = self._get_activities_for_mime(mime_type)
@@ -156,9 +171,7 @@ class DSObject(object):
     def resume(self, bundle_id=None):
         from sugar.activity import activityfactory
 
-        if self.is_activity_bundle():
-            if bundle_id is not None:
-                raise ValueError('Object is a bundle, cannot be resumed as an activity.')
+        if self.is_activity_bundle() and not bundle_id:
 
             logging.debug('Creating activity bundle')
             bundle = ActivityBundle(self.file_path)
