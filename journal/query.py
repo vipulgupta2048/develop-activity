@@ -19,11 +19,7 @@ import logging
 import dbus
 import gobject
 
-try:
-    from sugar.datastore import DUMMY_START_ACTIVITY_INFO
-    from sugar.datastore import datastore
-except:
-    import datastore
+from sugar.datastore import datastore
 
 DS_DBUS_SERVICE = 'org.laptop.sugar.DataStore'
 DS_DBUS_INTERFACE = 'org.laptop.sugar.DataStore'
