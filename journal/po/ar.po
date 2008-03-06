@@ -1,0 +1,241 @@
+# translation of journal-activity.po to Arabic
+# Khaled Hosny <khaledhosny@eglug.org>, 2007.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+msgid ""
+msgstr ""
+"Project-Id-Version: journal-activity\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-12-23 20:36+0000\n"
+"PO-Revision-Date: 2007-12-27 19:17+0000\n"
+"Last-Translator: Khaled Hosny <khaledhosny@eglug.org>\n"
+"Language-Team: Arabic <doc@arabeyes.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n>=3 && "
+"n<=10 ? 3 : n>=11 && n<=99 ? 4 : 5;\n"
+"X-Generator: Pootle 1.0.2\n"
+
+#: activity/activity.info:2 journalactivity.py:121 volumesmanager.py:58
+msgid "Journal"
+msgstr "اليوميات"
+
+#: collapsedentry.py:180 expandedentry.py:170
+msgid "Untitled"
+msgstr "بدون عنوان"
+
+#: collapsedentry.py:249 expandedentry.py:165
+msgid " Activity "
+msgstr " نشاط "
+
+#: expandedentry.py:214
+msgid "No preview"
+msgstr "لا توجد معاينة"
+
+#: expandedentry.py:238
+msgid "Description:"
+msgstr "الوصف:"
+
+#: expandedentry.py:255
+msgid "Tags:"
+msgstr "وسوم:"
+
+#: journaltoolbox.py:51
+msgid "Search"
+msgstr "ابحث"
+
+#: journaltoolbox.py:122
+msgid "Anytime"
+msgstr "أي وقت"
+
+#: journaltoolbox.py:124
+msgid "Today"
+msgstr "اليوم"
+
+#: journaltoolbox.py:126
+msgid "Since yesterday"
+msgstr "منذ أمس"
+
+#. TRANS: Filter entries modified during the last 7 days.
+#: journaltoolbox.py:128
+msgid "Past week"
+msgstr "الأسبوع الماضي"
+
+#. TRANS: Filter entries modified during the last 30 days.
+#: journaltoolbox.py:130
+msgid "Past month"
+msgstr "الشهر الماضي"
+
+#. TRANS: Filter entries modified during the last 356 days.
+#: journaltoolbox.py:132
+msgid "Past year"
+msgstr "العام الماضي"
+
+#: journaltoolbox.py:139
+msgid "Anyone"
+msgstr "أي شخص"
+
+#: journaltoolbox.py:141
+msgid "My friends"
+msgstr "أصدقائي"
+
+#: journaltoolbox.py:142
+msgid "My class"
+msgstr "فصلي"
+
+#. TRANS: Item in a combo box that filters by entry type.
+#: journaltoolbox.py:254
+msgid "Anything"
+msgstr "أي شيء"
+
+#: journaltoolbox.py:295
+msgid "Backup"
+msgstr "احفظ احتياطيا"
+
+#: journaltoolbox.py:327
+msgid "Go back"
+msgstr "عُد للخلف"
+
+#: journaltoolbox.py:339
+msgid "Erase"
+msgstr "امسح"
+
+#: journaltoolbox.py:354
+msgid "Copy to clipboard"
+msgstr "انسخ إلى لحافظة"
+
+#. TRANS: Action label for resuming or starting an entry.
+#. TRANS: Action label for resuming an activity.
+#: journaltoolbox.py:432
+msgid "Resume"
+msgstr "استكمل"
+
+#. TRANS: Relative dates (eg. 1 month and 5 days).
+#: misc.py:74
+#, python-format
+#, python-format
+msgid "%d year"
+msgstr "%d عام"
+
+#: misc.py:74
+#, python-format
+msgid "%d years"
+msgstr "%d أعوام"
+
+#: misc.py:75
+#, python-format
+#, python-format
+msgid "%d month"
+msgstr "%d شهر"
+
+#: misc.py:75
+#, python-format
+#, python-format
+msgid "%d months"
+msgstr "%d شهور"
+
+#: misc.py:76
+#, python-format
+#, python-format
+msgid "%d week"
+msgstr "%d أسبوع"
+
+#: misc.py:76
+#, python-format
+msgid "%d weeks"
+msgstr "%d أسابيع"
+
+#: misc.py:77
+#, python-format
+msgid "%d day"
+msgstr "%d يوم"
+
+#: misc.py:77
+#, python-format
+msgid "%d days"
+msgstr "%d أيام"
+
+#: misc.py:78
+#, python-format
+msgid "%d hour"
+msgstr "%d ساعة"
+
+#: misc.py:78
+#, python-format
+msgid "%d hours"
+msgstr "%d ساعات"
+
+#: misc.py:79
+#, python-format
+msgid "%d minute"
+msgstr "%d دقيقة"
+
+#: misc.py:79
+#, python-format
+msgid "%d minutes"
+msgstr "%d دقائق"
+
+#: misc.py:80
+#, python-format
+msgid "%d second"
+msgstr "%d ثانية"
+
+#: misc.py:80
+#, python-format
+msgid "%d seconds"
+msgstr "%d ثوان"
+
+#: misc.py:92
+msgid " and "
+msgstr " و "
+
+#: misc.py:93
+msgid ", "
+msgstr "، و "
+
+#: misc.py:94
+msgid "Right now"
+msgstr "الآن"
+
+#: misc.py:131
+msgid "No date"
+msgstr "لا تاريخ"
+
+#: volumestoolbar.py:74
+msgid "Unmount"
+msgstr "افصل"
+
+#~ msgid "Preview:"
+#~ msgstr "معاينة:"
+
+#~ msgid "I drew with:"
+#~ msgstr "أنا أرسم بـ :"
+
+#~ msgid "Share with:"
+#~ msgstr "شارك بـ :"
+
+#~ msgid "Pictures"
+#~ msgstr "صور"
+
+#~ msgid "Texts"
+#~ msgstr "نصوص"
+
+#~ msgid "Links"
+#~ msgstr "وصلات"
+
+#~ msgid "Everybody"
+#~ msgstr "أي شخص"
+
+#, python-format
+#~ msgid "Filter"
+#~ msgstr "مرشِّح"
+
+#: collapsedentry.py:262 expandedentry.py:172
+msgid " Activity"
+msgstr " نشاط"
+
+#. TRANS: Action label for starting an entry.
+#: journaltoolbox.py:435
+msgid "Start"
+msgstr "ابدأ"

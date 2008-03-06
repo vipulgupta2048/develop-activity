@@ -1,0 +1,178 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2008-02-09 14:37+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: activity/activity.info:2 journalactivity.py:121 volumesmanager.py:58
+msgid "Journal"
+msgstr ""
+
+#: collapsedentry.py:180 expandedentry.py:170
+msgid "Untitled"
+msgstr ""
+
+#: collapsedentry.py:262 expandedentry.py:172
+msgid " Activity"
+msgstr ""
+
+#: expandedentry.py:214
+msgid "No preview"
+msgstr ""
+
+#: expandedentry.py:238
+msgid "Description:"
+msgstr ""
+
+#: expandedentry.py:255
+msgid "Tags:"
+msgstr ""
+
+#: journaltoolbox.py:52
+msgid "Search"
+msgstr ""
+
+#: journaltoolbox.py:123
+msgid "Anytime"
+msgstr ""
+
+#: journaltoolbox.py:125
+msgid "Today"
+msgstr ""
+
+#: journaltoolbox.py:127
+msgid "Since yesterday"
+msgstr ""
+
+#. TRANS: Filter entries modified during the last 7 days.
+#: journaltoolbox.py:129
+msgid "Past week"
+msgstr ""
+
+#. TRANS: Filter entries modified during the last 30 days.
+#: journaltoolbox.py:131
+msgid "Past month"
+msgstr ""
+
+#. TRANS: Filter entries modified during the last 356 days.
+#: journaltoolbox.py:133
+msgid "Past year"
+msgstr ""
+
+#: journaltoolbox.py:140
+msgid "Anyone"
+msgstr ""
+
+#: journaltoolbox.py:142
+msgid "My friends"
+msgstr ""
+
+#: journaltoolbox.py:143
+msgid "My class"
+msgstr ""
+
+#. TRANS: Item in a combo box that filters by entry type.
+#: journaltoolbox.py:255
+msgid "Anything"
+msgstr ""
+
+#: journaltoolbox.py:303
+msgid "Backup"
+msgstr ""
+
+#: journaltoolbox.py:335
+msgid "Go back"
+msgstr ""
+
+#: journaltoolbox.py:347
+msgid "Erase"
+msgstr ""
+
+#: journaltoolbox.py:362
+msgid "Copy to clipboard"
+msgstr ""
+
+#. TRANS: Action label for resuming an activity.
+#: journaltoolbox.py:440
+msgid "Resume"
+msgstr ""
+
+#. TRANS: Action label for starting an entry.
+#: journaltoolbox.py:443
+msgid "Start"
+msgstr ""
+
+#: misc.py:94
+msgid " and "
+msgstr ""
+
+#: misc.py:95
+msgid ", "
+msgstr ""
+
+#: misc.py:96
+msgid "Right now"
+msgstr ""
+
+#: misc.py:107
+#, python-format
+msgid "%d year"
+msgid_plural "%d years"
+msgstr[0] ""
+msgstr[1] ""
+
+#: misc.py:108
+#, python-format
+msgid "%d month"
+msgid_plural "%d months"
+msgstr[0] ""
+msgstr[1] ""
+
+#: misc.py:109
+#, python-format
+msgid "%d week"
+msgid_plural "%d weeks"
+msgstr[0] ""
+msgstr[1] ""
+
+#: misc.py:110
+#, python-format
+msgid "%d day"
+msgid_plural "%d days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: misc.py:111
+#, python-format
+msgid "%d hour"
+msgid_plural "%d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#: misc.py:112
+#, python-format
+msgid "%d minute"
+msgid_plural "%d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: misc.py:154
+msgid "No date"
+msgstr ""
+
+#: volumestoolbar.py:74
+msgid "Unmount"
+msgstr ""

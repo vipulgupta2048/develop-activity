@@ -1,0 +1,7 @@
+[Activity]
+name = Journal
+activity_version = 79
+service_name = org.laptop.JournalActivity
+icon = activity-journal
+class = journalactivity.JournalActivity
+show_launcher = no

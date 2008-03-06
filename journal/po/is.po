@@ -1,0 +1,212 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-12-23 20:36+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Translate Toolkit 1.0.1\n"
+
+#: activity/activity.info:2 journalactivity.py:121 volumesmanager.py:58
+msgid "Journal"
+msgstr "Dagbók"
+
+#: collapsedentry.py:180 expandedentry.py:170
+msgid "Untitled"
+msgstr "Engin titill"
+
+#: collapsedentry.py:249 expandedentry.py:165
+msgid " Activity "
+msgstr " Verk "
+
+#: expandedentry.py:214
+msgid "No preview"
+msgstr "Engin forsýning"
+
+#: expandedentry.py:238
+msgid "Description:"
+msgstr "Lýsing:"
+
+#: expandedentry.py:255
+msgid "Tags:"
+msgstr "Merki:"
+
+#: journaltoolbox.py:51
+msgid "Search"
+msgstr "Leita"
+
+#: journaltoolbox.py:122
+msgid "Anytime"
+msgstr "Hvenær sem er"
+
+#: journaltoolbox.py:124
+msgid "Today"
+msgstr "Í dag"
+
+#: journaltoolbox.py:126
+msgid "Since yesterday"
+msgstr "Síðan í gær"
+
+#. TRANS: Filter entries modified during the last 7 days.
+#: journaltoolbox.py:128
+msgid "Past week"
+msgstr "Í seinustu viku"
+
+#. TRANS: Filter entries modified during the last 30 days.
+#: journaltoolbox.py:130
+msgid "Past month"
+msgstr "Í seinasta mánuði"
+
+#. TRANS: Filter entries modified during the last 356 days.
+#: journaltoolbox.py:132
+msgid "Past year"
+msgstr "Á seinasta ári"
+
+#: journaltoolbox.py:139
+msgid "Anyone"
+msgstr "Hver sem er"
+
+#: journaltoolbox.py:141
+msgid "My friends"
+msgstr "Mínir vinir"
+
+#: journaltoolbox.py:142
+msgid "My class"
+msgstr "Minn bekkur"
+
+#. TRANS: Item in a combo box that filters by entry type.
+#: journaltoolbox.py:254
+msgid "Anything"
+msgstr "Hvað sem er"
+
+#: journaltoolbox.py:295
+msgid "Backup"
+msgstr "Afrit"
+
+#: journaltoolbox.py:327
+msgid "Go back"
+msgstr "Fara aftur"
+
+#: journaltoolbox.py:339
+msgid "Erase"
+msgstr "Eyða"
+
+#: journaltoolbox.py:354
+msgid "Copy to clipboard"
+msgstr "Afrita á spjaldið"
+
+#. TRANS: Action label for resuming or starting an entry.
+#. TRANS: Action label for resuming an activity.
+#: journaltoolbox.py:432
+msgid "Resume"
+msgstr "Endurvekja"
+
+#. TRANS: Relative dates (eg. 1 month and 5 days).
+#: misc.py:74
+#, python-format
+msgid "%d year"
+msgstr "%d ár"
+
+#: misc.py:74
+#, python-format
+msgid "%d years"
+msgstr "%d ár"
+
+#: misc.py:75
+#, python-format
+msgid "%d month"
+msgstr "%d mánuður"
+
+#: misc.py:75
+#, python-format
+msgid "%d months"
+msgstr "%d mánuðir"
+
+#: misc.py:76
+#, python-format
+msgid "%d week"
+msgstr "%d vika"
+
+#: misc.py:76
+#, python-format
+msgid "%d weeks"
+msgstr "%d vikur"
+
+#: misc.py:77
+#, python-format
+msgid "%d day"
+msgstr "%d dagur"
+
+#: misc.py:77
+#, python-format
+msgid "%d days"
+msgstr "%d dagar"
+
+#: misc.py:78
+#, python-format
+msgid "%d hour"
+msgstr "%d klukkustund"
+
+#: misc.py:78
+#, python-format
+msgid "%d hours"
+msgstr "%d klukkustundir"
+
+#: misc.py:79
+#, python-format
+msgid "%d minute"
+msgstr "%d mínúnda"
+
+#: misc.py:79
+#, python-format
+msgid "%d minutes"
+msgstr "%d mínúndur"
+
+#: misc.py:80
+#, python-format
+msgid "%d second"
+msgstr "%d sekúnda"
+
+#: misc.py:80
+#, python-format
+msgid "%d seconds"
+msgstr "%d sekúndur"
+
+#: misc.py:92
+msgid " and "
+msgstr " og "
+
+#: misc.py:93
+msgid ", "
+msgstr ", "
+
+#: misc.py:94
+msgid "Right now"
+msgstr "Núna"
+
+#: misc.py:131
+msgid "No date"
+msgstr "Enginn dagsettning"
+
+#: volumestoolbar.py:74
+msgid "Unmount"
+msgstr "Aftengjast"
+
+#: collapsedentry.py:262 expandedentry.py:172
+#, fuzzy
+msgid " Activity"
+msgstr " Verk "
+
+#. TRANS: Action label for starting an entry.
+#: journaltoolbox.py:435
+msgid "Start"
+msgstr ""

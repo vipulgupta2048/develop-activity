@@ -1,0 +1,275 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-12-23 20:36+0000\n"
+"PO-Revision-Date: 2008-02-02 15:07-0500\n"
+"Last-Translator: Sayamindu Dasgupta <sayamindu@gmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Pootle 1.0.2\n"
+"X-Poedit-Language: Spanish\n"
+
+#: activity/activity.info:2 journalactivity.py:121 volumesmanager.py:58
+msgid "Journal"
+msgstr "Diario"
+
+#: collapsedentry.py:180 expandedentry.py:170
+msgid "Untitled"
+msgstr "Sin título"
+
+#: collapsedentry.py:249 expandedentry.py:165
+msgid " Activity "
+msgstr " Actividad "
+
+#: expandedentry.py:214
+msgid "No preview"
+msgstr "Sin vista previa"
+
+#: expandedentry.py:238
+msgid "Description:"
+msgstr "Descripción:"
+
+#: expandedentry.py:255
+msgid "Tags:"
+msgstr "Etiquetas:"
+
+#: journaltoolbox.py:51
+msgid "Search"
+msgstr "Buscar"
+
+#: journaltoolbox.py:122
+msgid "Anytime"
+msgstr "Cualquier momento"
+
+#: journaltoolbox.py:124
+msgid "Today"
+msgstr "Hoy"
+
+#: journaltoolbox.py:126
+msgid "Since yesterday"
+msgstr "Desde ayer"
+
+#. TRANS: Filter entries modified during the last 7 days.
+#: journaltoolbox.py:128
+msgid "Past week"
+msgstr "Última semana"
+
+#. TRANS: Filter entries modified during the last 30 days.
+#: journaltoolbox.py:130
+msgid "Past month"
+msgstr "Último mes"
+
+#. TRANS: Filter entries modified during the last 356 days.
+#: journaltoolbox.py:132
+msgid "Past year"
+msgstr "Último año"
+
+#: journaltoolbox.py:139
+msgid "Anyone"
+msgstr "Cualquiera"
+
+#: journaltoolbox.py:141
+msgid "My friends"
+msgstr "Mis amigos"
+
+#: journaltoolbox.py:142
+msgid "My class"
+msgstr "Mi clase"
+
+#. TRANS: Item in a combo box that filters by entry type.
+#: journaltoolbox.py:254
+msgid "Anything"
+msgstr "Cualquiera"
+
+#: journaltoolbox.py:295
+msgid "Backup"
+msgstr "Copia de respaldo"
+
+#: journaltoolbox.py:327
+msgid "Go back"
+msgstr "Volver"
+
+#: journaltoolbox.py:339
+msgid "Erase"
+msgstr "Borrar"
+
+#: journaltoolbox.py:354
+msgid "Copy to clipboard"
+msgstr "Copiar al portapapel"
+
+#. TRANS: Action label for resuming or starting an entry.
+#. TRANS: Action label for resuming an activity.
+#: journaltoolbox.py:432
+msgid "Resume"
+msgstr "Retomar"
+
+#. TRANS: Relative dates (eg. 1 month and 5 days).
+#: misc.py:74
+#, python-format
+#, python-format
+msgid "%d year"
+msgstr "%d año"
+
+#: misc.py:74
+#, python-format
+#, python-format
+msgid "%d years"
+msgstr "%d años"
+
+#: misc.py:75
+#, python-format
+#, python-format
+msgid "%d month"
+msgstr "%d mes"
+
+#: misc.py:75
+#, python-format
+#, python-format
+msgid "%d months"
+msgstr "%d meses"
+
+#: misc.py:76
+#, python-format
+#, python-format
+msgid "%d week"
+msgstr "%d semana"
+
+#: misc.py:76
+#, python-format
+#, python-format
+msgid "%d weeks"
+msgstr "%d semanas"
+
+#: misc.py:77
+#, python-format
+#, python-format
+msgid "%d day"
+msgstr "%d día"
+
+#: misc.py:77
+#, python-format
+msgid "%d days"
+msgstr "%d días"
+
+#: misc.py:78
+#, python-format
+msgid "%d hour"
+msgstr "%d hora"
+
+#: misc.py:78
+#, python-format
+msgid "%d hours"
+msgstr "%d horas"
+
+#: misc.py:79
+#, python-format
+#, python-format
+msgid "%d minute"
+msgstr "%d minuto"
+
+#: misc.py:79
+#, python-format
+#, python-format
+msgid "%d minutes"
+msgstr "%d minutos"
+
+#: misc.py:80
+#, python-format
+msgid "%d second"
+msgstr "%d segundo"
+
+#: misc.py:80
+#, python-format
+#, python-format
+msgid "%d seconds"
+msgstr "%d segundos"
+
+#: misc.py:92
+msgid " and "
+msgstr " y "
+
+#: misc.py:93
+msgid ", "
+msgstr ", "
+
+#: misc.py:94
+msgid "Right now"
+msgstr "Ahora"
+
+#: misc.py:131
+msgid "No date"
+msgstr "Sin fecha"
+
+#: volumestoolbar.py:74
+msgid "Unmount"
+msgstr "Desmontar"
+
+#: detailview.py:49
+msgid "Back"
+msgstr "Volver"
+
+#: expandedentry.py:138
+msgid "Preview:"
+msgstr "Vista previa:"
+
+#: expandedentry.py:181
+msgid "I drew with:"
+msgstr "Dibujado con:"
+
+#: expandedentry.py:228
+msgid "Share with:"
+msgstr "Compartir con:"
+
+# Fecha is more consistent with the usage of date.  See the translation for No date = Sin fecha.
+#: filtertoolbar.py:60
+msgid "Any date"
+msgstr "Cualquier fecha"
+
+#: filtertoolbar.py:65
+msgid "This week"
+msgstr "Esta semana"
+
+#: filtertoolbar.py:66
+msgid "This month"
+msgstr "Este mes"
+
+#: filtertoolbar.py:67
+msgid "This year"
+msgstr "Este año"
+
+#: filtertoolbar.py:85
+msgid "Pictures"
+msgstr "Dibujos"
+
+#: filtertoolbar.py:86
+msgid "Texts"
+msgstr "Textos"
+
+#: filtertoolbar.py:87
+msgid "Links"
+msgstr "Enlaces"
+
+#: filtertoolbar.py:102
+msgid "Everybody"
+msgstr "Todos"
+
+#: journalactivity.py:50
+msgid "Filter"
+msgstr "Filtrar"
+
+#: collapsedentry.py:262 expandedentry.py:172
+msgid " Activity"
+msgstr " Actividad"
+
+#. TRANS: Action label for starting an entry.
+#: journaltoolbox.py:435
+msgid "Start"
+msgstr "Comenzar"

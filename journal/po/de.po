@@ -1,0 +1,239 @@
+# This file is distributed under the same license as the PACKAGE package.
+# Fabian Affolter <fab@fedoraproject.org>, 2007.
+msgid ""
+msgstr ""
+"Project-Id-Version: journal\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-12-23 20:36+0000\n"
+"PO-Revision-Date: 2008-01-27 18:13-0500\n"
+"Last-Translator: Gerhard Steiner <gerhard.steiner@duichwir.at>\n"
+"Language-Team: German <fedora-trans-de@redhat.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Pootle 1.0.2\n"
+"X-Poedit-Language: German\n"
+
+#: activity/activity.info:2 journalactivity.py:121 volumesmanager.py:58
+msgid "Journal"
+msgstr "Journal"
+
+#: collapsedentry.py:180 expandedentry.py:170
+msgid "Untitled"
+msgstr "Ohne Titel"
+
+#: collapsedentry.py:249 expandedentry.py:165
+msgid " Activity "
+msgstr " Aktivität "
+
+#: expandedentry.py:214
+msgid "No preview"
+msgstr "Keine Vorschau"
+
+#: expandedentry.py:238
+msgid "Description:"
+msgstr "Beschreibung:"
+
+#: expandedentry.py:255
+msgid "Tags:"
+msgstr "Stichwörter:"
+
+#: journaltoolbox.py:51
+msgid "Search"
+msgstr "Suchen"
+
+#: journaltoolbox.py:122
+msgid "Anytime"
+msgstr "Beliebiges Datum"
+
+#: journaltoolbox.py:124
+msgid "Today"
+msgstr "Heute"
+
+#: journaltoolbox.py:126
+msgid "Since yesterday"
+msgstr "Seit gestern"
+
+#. TRANS: Filter entries modified during the last 7 days.
+#: journaltoolbox.py:128
+msgid "Past week"
+msgstr "Vergangene Woche"
+
+#. TRANS: Filter entries modified during the last 30 days.
+#: journaltoolbox.py:130
+msgid "Past month"
+msgstr "Vergangener Monat"
+
+#. TRANS: Filter entries modified during the last 356 days.
+#: journaltoolbox.py:132
+msgid "Past year"
+msgstr "Vergangenes Jahr"
+
+#: journaltoolbox.py:139
+msgid "Anyone"
+msgstr "Alle"
+
+#: journaltoolbox.py:141
+msgid "My friends"
+msgstr "Meine Freunde"
+
+#: journaltoolbox.py:142
+msgid "My class"
+msgstr "Meine Klasse"
+
+#. TRANS: Item in a combo box that filters by entry type.
+#: journaltoolbox.py:254
+msgid "Anything"
+msgstr "Alles"
+
+#: journaltoolbox.py:295
+msgid "Backup"
+msgstr "Datensicherung"
+
+#: journaltoolbox.py:327
+msgid "Go back"
+msgstr "Zurück gehen"
+
+#: journaltoolbox.py:339
+msgid "Erase"
+msgstr "Löschen"
+
+#: journaltoolbox.py:354
+msgid "Copy to clipboard"
+msgstr "In Zwischenablage kopieren"
+
+#. TRANS: Action label for resuming or starting an entry.
+#. TRANS: Action label for resuming an activity.
+#: journaltoolbox.py:432
+msgid "Resume"
+msgstr "Fortsetzen"
+
+#. TRANS: Relative dates (eg. 1 month and 5 days).
+#: misc.py:74
+#, python-format
+#, python-format
+msgid "%d year"
+msgstr "%d Jahr"
+
+#: misc.py:74
+#, python-format
+msgid "%d years"
+msgstr "%d Jahre"
+
+#: misc.py:75
+#, python-format
+#, python-format
+msgid "%d month"
+msgstr "%d Monat"
+
+#: misc.py:75
+#, python-format
+#, python-format
+msgid "%d months"
+msgstr "%d Monate"
+
+#: misc.py:76
+#, python-format
+#, python-format
+msgid "%d week"
+msgstr "%d Woche"
+
+#: misc.py:76
+#, python-format
+msgid "%d weeks"
+msgstr "%d Wochen"
+
+#: misc.py:77
+#, python-format
+msgid "%d day"
+msgstr "%d Tag"
+
+#: misc.py:77
+#, python-format
+msgid "%d days"
+msgstr "%d Tage"
+
+#: misc.py:78
+#, python-format
+msgid "%d hour"
+msgstr "%d Stunde"
+
+#: misc.py:78
+#, python-format
+msgid "%d hours"
+msgstr "%d Stunden"
+
+#: misc.py:79
+#, python-format
+msgid "%d minute"
+msgstr "%d Minute"
+
+#: misc.py:79
+#, python-format
+msgid "%d minutes"
+msgstr "%d Minuten"
+
+#: misc.py:80
+#, python-format
+msgid "%d second"
+msgstr "%d Sekunde"
+
+#: misc.py:80
+#, python-format
+msgid "%d seconds"
+msgstr "%d Sekunden"
+
+#: misc.py:92
+msgid " and "
+msgstr " und "
+
+#: misc.py:93
+msgid ", "
+msgstr ", "
+
+#: misc.py:94
+msgid "Right now"
+msgstr "Gerade eben"
+
+#: misc.py:131
+msgid "No date"
+msgstr "Kein Datum"
+
+#: volumestoolbar.py:74
+msgid "Unmount"
+msgstr "Einbindung lösen"
+
+#~ msgid "Preview:"
+#~ msgstr "Vorschau:"
+
+#~ msgid "I drew with:"
+#~ msgstr "Ich zeichnete mit:"
+
+#~ msgid "Share with:"
+#~ msgstr "Teile mit:"
+
+#~ msgid "Pictures"
+#~ msgstr "Bilder"
+
+#~ msgid "Texts"
+#~ msgstr "Texte"
+
+#~ msgid "Links"
+#~ msgstr "Links"
+
+#~ msgid "Everybody"
+#~ msgstr "Alle"
+
+#, python-format
+#~ msgid "Filter"
+#~ msgstr "Filter"
+
+#: collapsedentry.py:262 expandedentry.py:172
+msgid " Activity"
+msgstr " Aktivität"
+
+#. TRANS: Action label for starting an entry.
+#: journaltoolbox.py:435
+msgid "Start"
+msgstr "Start"

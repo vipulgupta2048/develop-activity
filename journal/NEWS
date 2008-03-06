@@ -1,0 +1,280 @@
+* #5017 Correctly expose some strings to gettext. (tomeu)
+* #6190 Don't crash when an activity has its icon missing. (tomeu)
+* #6029 Don't fail when the mount point is already occupied. (tomeu)
+
+83
+
+* #5863 Correctly invalidate icon cache. (tomeu)
+* #3092 Change the color of the preview box. (rwh)
+
+82
+
+* #2545 Correctly unmount the device from the DS when it is removed. (tomeu)
+* Implement ShowObject, #4909 (rwh)
+
+81
+
+* #5367 Cache icons extracted from bundles. (tomeu)
+* Allow use of gamekeys and home/end, #3960 (rwh)
+* Focus does not escape from listview, #3771 (rwh)
+* Change resume icon color, #4326 (rwh)
+* Use standard star icon, #4327 (rwh)
+
+80
+
+79
+
+* #5162 Don't take a screenshot when asked by the shell. (tomeu)
+* #5235 Don't try to extract an icon from a bundle entry without file. (tomeu)
+
+78
+
+* #5106: Implement an object chooser callable through dbus. (tomeu)
+
+77
+
+* #5088 Fix setting the description and tags fields. (tomeu)
+
+76
+
+75
+
+74
+
+* revert the dbus resume activity API #4909 (erikos)
+
+73
+
+* #4413 Make activity icons view resume the entry. (tomeu)
+* #3083 'Resume' is for activities and 'Start' for other objects. (tomeu)
+* #4020 Put borders to the text fields in the detailed view. (tomeu)
+* #5017 Do correctly the plural forms of the date strings. (tomeu)
+
+72
+
+* #4909 Add Resume method to the DBus service. (marco)
+
+71
+
+* #4414 Don't unfocus the search entry when the autosearch is fired. (tomeu)
+
+70
+
+* #4638 Update dates when the journal is displayed. (tomeu)
+* #4409 Fix showing malformed bundles. (tomeu)
+
+69
+
+* #4704 Fix mounting of removable devices. (tomeu)
+
+68
+
+67
+
+* #4380 Add downloaded entries from the school server to the journal. (tomeu)
+* #1941 Implement FocusSearch method for popping up the journal. (rwh)
+* #3498, #4558 Mount removable devices as utf8. (tomeu)
+* display standard icon when icon for mime type is not found (erikos)
+
+66
+
+* Fix the title. (marco)
+
+65
+
+* Better time filters. (tomeu)
+* #4097: Change date filters to relative ones. (tomeu)
+
+64
+
+* Implement cancelling of downloads. (tomeu)
+
+61
+
+* Reduce the cache size to 80. (marco)
+
+58
+
+* #2709 Fix tags field in the detail view. (tomeu)
+* #3999 Don't overwrite metadata properties when clicking on the 'keep' star
+  in the list view. (tomeu)
+* #3790 Refresh toolbar filters when an entry is created. (tomeu)
+* #3951 Don't requery the DataStore when going back from the detailed
+  view. (tomeu)
+* #3572 In case an error happens when displaying an entry, don't propagate it so
+  the rest of the UI remains functional. (tomeu)
+* #3780 Fix multiple resume (marco)
+
+57
+
+* Updated spanish translation
+
+56
+
+* Fix for wrongly deleted jobject when refreshing (erikos)
+
+55
+
+* #3538 Fix journal freezes. (marco)
+
+54
+
+* Add french translation. (GauthierAncelin)
+
+53
+
+* #2423 Simple partial matching (marco)
+
+52
+
+* #3345 Fix blank canvas when inserting an usb device (marco)
+* Distinguish installed bundles from other entries without batch #3082 (erikos)
+
+51
+
+* Fix for #3345 forcing refresh when usb-stick is inserted (erikos)
+
+50
+
+* Decreased memory usage and improved scrolling performance. (tomeu)
+
+49
+
+* Don't switch to the detailed view when clicking on the resume or keep
+  buttons.(tomeu)
+* #3254: Don't stop trying to mount removable devices even if any of them
+  raise any exception. (tomeu)
+
+48
+
+* #2856: initial support for content bundles (danw)
+
+47
+
+* #2555: Display progress of downloads and DataStore operations. (tomeu)
+* #2753, #2983: Display changes in the Journal more promptly. (tomeu)
+
+46
+
+* #2044: Use relative dates in the list view. (tomeu)
+
+45
+
+* #3082: Mark with a badge those entries that are bundles. (tomeu)
+
+43
+
+* Adapt to sugar API change. (marco)
+
+42
+
+* #2644: Submit a new search when the search field is cleared and auto submit
+  a new search after some time has passed since the last edit. (tomeu)
+* #2651: Added a palette for copying entries to other devices. (tomeu)
+* #2264: Colored copy icon. (tomeu)
+* Add a list of versions in the expanded view and adapt to API changes. (Tomeu)
+* Implement the new UI design for Trial-3. (tomeu)
+
+41
+
+* Display the buddies that partecipated to the activity. (tomeu)
+
+40
+
+* #1999: Colored volume icons. (tomeu)
+* #2167: Moved search icon inside the search entry. (tomeu)
+* #2854: mount removable devices with the 'noatime' option. (tomeu)
+
+39
+
+* Bump version because there was already a release 38 on the web
+
+38
+
+* #2685: Fix mounting of sd cards. (tomeu)
+* #2599, #2560, #2561: Scrolling fixes. (tomeu)
+
+37
+
+* Add greek translation. (simosx)
+
+36
+
+* Added temporary backup capability for Trial-2 (danw)
+
+35
+
+* Fix resume icon. (tomeu)
+
+34
+
+* #2285: Change title in the expanded view on focus out. (tomeu)
+* #2414: Use the stock-zoom-activity icon from the theme instead of the local
+  resume. (tomeu)
+
+33
+
+* #2380: Fix setting the correct entry when starting a drag. (tomeu)
+* #2379: Don't mount twice removable devices. (tomeu)
+* #2378: remove volume icon even if the volume was already unmounted in the
+  datastore. (tomeu)
+
+32
+
+* #2281 Make searches by title work. Only full word for now. (marco)
+* #2228 Implement lazy scrolling. (tomeu)
+
+31
+
+* #1971 Style fixes for the back bar. (marco)
+
+30
+
+* Add macedonian translation.
+
+29
+
+* Make dates work again. (tomeu)
+
+28
+
+* #2046 Esc key go back to main view. (marco)
+
+27
+
+* #2060 Make usb stick support more robust, specially plugging out the drive
+  before unmounting. (tomeu)
+
+26
+
+* #1998 Only show the volumes toolbar when there are devices mounted. (tomeu)
+* #2042 Fix labels in option menus. (tomeu)
+
+25
+
+* #1900: hide buddies filter. Will implement after trial2. (tomeu)
+* Update activity icon. (tomeu)
+
+24
+
+* Add some debug messages for measuring the time taken on
+  refreshing the list view. Please include this info in
+  any tickets about journal performance. (tomeu)
+* Add brazilian translation. (DiegoZacarao)
+
+23
+
+* Fix refresh issues. (tomeu)
+* Fix journal icon in the bottom bar. (tomeu)
+* Implement back bar in the detailed view. (tomeu)
+
+22
+
+* Filtering by activity.
+* Misc fixes.
+
+21
+
+* Button to copy objects to the clipboard.
+* Spanish and Arabian translations.
+* Palette positioning fix.

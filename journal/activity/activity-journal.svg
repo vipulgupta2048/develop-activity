@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 13.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 14948)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd" [
+
+	<!ENTITY stroke_color "#00FF00">
+ 	<!ENTITY fill_color "#0000FF">
+
+]>
+
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="55px"
+	 height="54.696px" viewBox="0 0 55 54.696" enable-background="new 0 0 55 54.696" xml:space="preserve">
+
+<g id="Icon">
+	<path fill="&fill_color;" stroke="&stroke_color;" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M41.074,24.17v19.639
+		c0,2.407-1.467,4.153-4.154,4.153H8.676V6.733H36.92c2.062,0,4.154,2.066,4.154,4.152v1.073"/>
+	
+		<line fill="none" stroke="&stroke_color;" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" x1="17.559" y1="6.848" x2="17.559" y2="47.848"/>
+	<path fill="&fill_color;" stroke="&stroke_color;" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M39.109,26.475
+		L51.988,9.862c0.027-0.027,0.178-0.236,0.178-0.236c0.109-0.193,0.178-0.41,0.178-0.658c0-0.07-0.004-0.143-0.014-0.215
+		c-0.104-0.896-0.848-1.992-1.947-2.857c-1.098-0.863-2.338-1.332-3.232-1.229c-0.389,0.045-0.938,0.447-0.938,0.447L33.504,22.042
+		l-2.479,3.225l-4.121,9.803c-0.049,0.125-0.018,0.268,0.082,0.354c0.105,0.086,0.254,0.098,0.365,0.023l9.285-5.975
+		c0.014-0.014,0.012-0.039,0.029-0.053c0.078-0.061,0.168-0.111,0.229-0.188c0.008-0.012,0.041-0.053,0.047-0.062L39.109,26.475z"/>
+	<path fill="none" stroke="&stroke_color;" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M4.177,14.848
+		c0,0,1.999,0.667,3.999,0.667s4.001-0.667,4.001-0.667"/>
+	<path fill="none" stroke="&stroke_color;" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M4.177,27.848
+		c0,0,1.833,0.667,4.166,0.667s3.834-0.667,3.834-0.667"/>
+	<path fill="none" stroke="&stroke_color;" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M4.177,40.514
+		c0,0,1.665,0.667,4.332,0.667s3.668-0.667,3.668-0.667"/>
+</g>
+
+</svg>

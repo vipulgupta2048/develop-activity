@@ -1,0 +1,213 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-12-23 20:36+0000\n"
+"PO-Revision-Date: 2008-01-12 19:42+0000\n"
+"Last-Translator: Luca Ferretti <elle.uca@libero.it>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Pootle 1.0.2\n"
+
+#: activity/activity.info:2 journalactivity.py:121 volumesmanager.py:58
+msgid "Journal"
+msgstr "Diario"
+
+#: collapsedentry.py:180 expandedentry.py:170
+msgid "Untitled"
+msgstr "Senza titolo"
+
+#: collapsedentry.py:249 expandedentry.py:165
+msgid " Activity "
+msgstr " Attività "
+
+#: expandedentry.py:214
+msgid "No preview"
+msgstr "Nessuna anteprima"
+
+#: expandedentry.py:238
+msgid "Description:"
+msgstr "Descrizione:"
+
+#: expandedentry.py:255
+msgid "Tags:"
+msgstr "Etichette:"
+
+#: journaltoolbox.py:51
+msgid "Search"
+msgstr "Cerca"
+
+#: journaltoolbox.py:122
+msgid "Anytime"
+msgstr "Sempre"
+
+#: journaltoolbox.py:124
+msgid "Today"
+msgstr "Oggi"
+
+#: journaltoolbox.py:126
+msgid "Since yesterday"
+msgstr "Da ieri"
+
+#. TRANS: Filter entries modified during the last 7 days.
+#: journaltoolbox.py:128
+msgid "Past week"
+msgstr "Settimana scorsa"
+
+#. TRANS: Filter entries modified during the last 30 days.
+#: journaltoolbox.py:130
+msgid "Past month"
+msgstr "Mese scorso"
+
+#. TRANS: Filter entries modified during the last 356 days.
+#: journaltoolbox.py:132
+msgid "Past year"
+msgstr "Anno scorso"
+
+#: journaltoolbox.py:139
+msgid "Anyone"
+msgstr "Tutti"
+
+#: journaltoolbox.py:141
+msgid "My friends"
+msgstr "I miei amici"
+
+#: journaltoolbox.py:142
+msgid "My class"
+msgstr "La mia classe"
+
+#. TRANS: Item in a combo box that filters by entry type.
+#: journaltoolbox.py:254
+msgid "Anything"
+msgstr "Qualsiasi"
+
+#: journaltoolbox.py:295
+msgid "Backup"
+msgstr "Backup"
+
+#: journaltoolbox.py:327
+msgid "Go back"
+msgstr "Indietro"
+
+#: journaltoolbox.py:339
+msgid "Erase"
+msgstr "Cancella"
+
+#: journaltoolbox.py:354
+msgid "Copy to clipboard"
+msgstr "Copia negli appunti"
+
+#. TRANS: Action label for resuming or starting an entry.
+#. TRANS: Action label for resuming an activity.
+#: journaltoolbox.py:432
+msgid "Resume"
+msgstr "Ricomincia"
+
+#. TRANS: Relative dates (eg. 1 month and 5 days).
+#: misc.py:74
+#, python-format
+msgid "%d year"
+msgstr "%d anno"
+
+#: misc.py:74
+#, python-format
+msgid "%d years"
+msgstr "%d anni"
+
+#: misc.py:75
+#, python-format
+msgid "%d month"
+msgstr "%d mese"
+
+#: misc.py:75
+#, python-format
+msgid "%d months"
+msgstr "%d mesi"
+
+#: misc.py:76
+#, python-format
+msgid "%d week"
+msgstr "%d settimana"
+
+#: misc.py:76
+#, python-format
+msgid "%d weeks"
+msgstr "%d settimane"
+
+#: misc.py:77
+#, python-format
+msgid "%d day"
+msgstr "%d giorno"
+
+#: misc.py:77
+#, python-format
+msgid "%d days"
+msgstr "%d giorni"
+
+#: misc.py:78
+#, python-format
+msgid "%d hour"
+msgstr "%d ora"
+
+#: misc.py:78
+#, python-format
+msgid "%d hours"
+msgstr "%d ore"
+
+#: misc.py:79
+#, python-format
+msgid "%d minute"
+msgstr "%d minuto"
+
+#: misc.py:79
+#, python-format
+msgid "%d minutes"
+msgstr "%d minuti"
+
+#: misc.py:80
+#, python-format
+msgid "%d second"
+msgstr "%d secondo"
+
+#: misc.py:80
+#, python-format
+msgid "%d seconds"
+msgstr "%d secondi"
+
+#: misc.py:92
+msgid " and "
+msgstr " e "
+
+#: misc.py:93
+msgid ", "
+msgstr ", "
+
+#: misc.py:94
+msgid "Right now"
+msgstr "Subito"
+
+#: misc.py:131
+msgid "No date"
+msgstr "Nessuna data"
+
+# letterale 
+# letterale
+#: volumestoolbar.py:74
+msgid "Unmount"
+msgstr "Smonta"
+
+#: collapsedentry.py:262 expandedentry.py:172
+msgid " Activity"
+msgstr " Attività"
+
+#. TRANS: Action label for starting an entry.
+#: journaltoolbox.py:435
+msgid "Start"
+msgstr "Inizia"
