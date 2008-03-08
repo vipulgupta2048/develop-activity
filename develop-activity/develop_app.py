@@ -23,9 +23,13 @@ import zipfile
 
 from gettext import gettext as _
 
-from activity import ViewSourceActivity, OPENFILE_SEPARATOR
+from developableactivity import ViewSourceActivity, OPENFILE_SEPARATOR
 from sugar import profile
-from sugar.activity import activity as sugaractivity
+try:
+    from sugar.activity import INSTANCE_DIR
+    from sugar.activity import activity
+except ImportError:
+    from activity import activity
      #import ActivityToolbox, \
     #     EditToolbar, get_bundle_name, get_bundle_path
 from sugar.graphics.toolbutton import ToolButton
@@ -49,20 +53,13 @@ IFACE = SERVICE
 PATH = "/org/laptop/Develop"
 WORKING_SOURCE_DIR = 'source'
 
-try:
-    sugaractivity.INSTANCE_DIR #if this attribute is set, bug is fixed
-    SUGARACTIVITY_CREATE_JOBJECT = False #...and we can use this feature
-except AttributeError:
-    sugaractivity.INSTANCE_DIR = 'instance' #fake attribute
-    SUGARACTIVITY_CREATE_JOBJECT = True #...and we must pass "true"
-
 class DevelopActivity(ViewSourceActivity):
     """Develop Activity as specified in activity.info"""
         
     def __init__(self, handle):
         """Set up the Develop activity."""
         super(DevelopActivity,self).__init__(handle, 
-                    create_jobject=SUGARACTIVITY_CREATE_JOBJECT)
+                    create_jobject=False)
 
         self._logger = logging.getLogger('develop-activity')
         self._logger.setLevel(0)
@@ -71,7 +68,7 @@ class DevelopActivity(ViewSourceActivity):
         self.editor = sourceview_editor.GtkSourceview2Editor(self)
 
         # Top toolbar with share and close buttons:
-        toolbox = sugaractivity.ActivityToolbox(self)
+        toolbox = activity.ActivityToolbox(self)
         self.set_toolbox(toolbox)
         toolbox.show()
         
@@ -248,7 +245,7 @@ class DevelopActivity(ViewSourceActivity):
         self.dirty = False
         
     def get_workingdir(self):
-        return os.path.join(sugaractivity.get_activity_root(),sugaractivity.INSTANCE_DIR,WORKING_SOURCE_DIR)
+        return os.path.join(activity.get_activity_root(),activity.INSTANCE_DIR,WORKING_SOURCE_DIR)
     
     def read_file(self, file_path):
         self._logger.info(u'read_file: %s' % file_path)
@@ -304,10 +301,10 @@ class DevelopActivity(ViewSourceActivity):
                 tree_selection.select_iter(tree_iter)
                 self.numb = False
   
-class DevelopEditToolbar(sugaractivity.EditToolbar):
+class DevelopEditToolbar(activity.EditToolbar):
 
     def __init__(self, _activity, toolbox):
-        sugaractivity.EditToolbar.__init__(self)
+        activity.EditToolbar.__init__(self)
 
         self._toolbox = toolbox
         self._activity = _activity
