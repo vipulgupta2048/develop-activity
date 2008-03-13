@@ -1,3 +1,5 @@
+31
+
 24
 find selects ranges, selecting a tab selects it in the sidebar, sidebar scrollbar on left for Fitt's law.
 gtksourceview now bundled, allows running in arbitrary sugar-jhbuild.
