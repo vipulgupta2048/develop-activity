@@ -304,7 +304,7 @@ class ActivityToolbox(Toolbox):
     def get_activity_toolbar(self):
         return self._activity_toolbar
 
-class Activity(Window, gtk.Container):
+class SActivity(Window, gtk.Container):
     """This is the base Activity class that all other Activities derive from. This is where your activity starts.
     
     To get a working Activity:

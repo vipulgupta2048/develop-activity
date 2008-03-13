@@ -1,6 +1,12 @@
 #
 
-from sugar.activity import activity
+try:
+    from sugar.activity.activity import INSTANCE_DIR
+    from sugar.activity.activity import Activity
+    from sugar.activity import activity
+except ImportError:
+    import activity.SActivity as Activity
+    import activity
 from sugar.datastore import datastore
 from sugar import profile
 from gettext import gettext as _
@@ -11,7 +17,7 @@ except ImportError:
 
 OPENFILE_SEPARATOR = u"@@"
 
-class ViewSourceActivity(activity.Activity):
+class ViewSourceActivity(Activity):
     """Activity subclass which handles the 'view source' key."""
     def __init__(self, handle, **kw):
         super(ViewSourceActivity, self).__init__(handle, **kw)

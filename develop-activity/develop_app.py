@@ -26,10 +26,12 @@ from gettext import gettext as _
 from developableactivity import ViewSourceActivity, OPENFILE_SEPARATOR
 from sugar import profile
 try:
-    from sugar.activity import INSTANCE_DIR
+    from sugar.activity.activity import INSTANCE_DIR
+    from sugar.activity.activity import Activity
     from sugar.activity import activity
 except ImportError:
-    from activity import activity
+    import activity.SActivity as Activity
+    import activity
      #import ActivityToolbox, \
     #     EditToolbar, get_bundle_name, get_bundle_path
 from sugar.graphics.toolbutton import ToolButton
