@@ -125,7 +125,6 @@ class LogMinder(gtk.VBox):
         newlogview = LogView(path,self)
         self.activity.editor.add_page(newlogview.filename,newlogview)
         self.activity.editor.set_current_page(-1)
-        newlogview.textview.scroll_to_mark(newlogview.get_insert(), 0)
         self._active_log = act_log
 
     def _filter_by_name(self,node):
