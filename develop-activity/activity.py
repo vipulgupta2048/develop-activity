@@ -21,7 +21,7 @@ For example the most minimal Activity:
 To get a real, working activity, you will at least have to implement:
     __init__(), read_file() and write_file()
 
-Aditionally, you will probably need a at least a Toolbar so you can have some
+ditionally, you will probably need a at least a Toolbar so you can have some
 interesting buttons for the user, like for example 'exit activity'
 
 See the methods of the Activity class below for more information on what you
@@ -304,7 +304,7 @@ class ActivityToolbox(Toolbox):
     def get_activity_toolbar(self):
         return self._activity_toolbar
 
-class SActivity(Window, gtk.Container):
+class Activity(Window, gtk.Container):
     """This is the base Activity class that all other Activities derive from. This is where your activity starts.
     
     To get a working Activity:
@@ -370,7 +370,7 @@ class SActivity(Window, gtk.Container):
     Hint: A good and simple Activity to learn from is the Read activity. To
     create your own activity, you may want to copy it and use it as a template.
     """
-    __gtype_name__ = 'SugarActivity'
+    __gtype_name__ = 'SugarActivity2'
 
     __gsignals__ = {
         'shared': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ([])),

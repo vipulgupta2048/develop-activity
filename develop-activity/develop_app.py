@@ -30,7 +30,7 @@ try:
     from sugar.activity.activity import Activity
     from sugar.activity import activity
 except ImportError:
-    import activity.SActivity as Activity
+    from activity import Activity
     import activity
      #import ActivityToolbox, \
     #     EditToolbar, get_bundle_name, get_bundle_path
