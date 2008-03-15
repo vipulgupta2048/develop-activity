@@ -1,7 +1,7 @@
 [Activity]
-name = Journal
+name = DJournal
 activity_version = 79
-service_name = org.laptop.JournalActivity
+service_name = org.laptop.DJournalActivity
 icon = activity-journal
-class = journalactivity.JournalActivity
+class = journalactivity.DJournalActivity
 show_launcher = no
