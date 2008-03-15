@@ -1,7 +1,0 @@
-[Activity]
-name = DJournal
-activity_version = 79
-service_name = org.laptop.DJournalActivity
-icon = activity-journal
-class = journalactivity.DJournalActivity
-show_launcher = yes
