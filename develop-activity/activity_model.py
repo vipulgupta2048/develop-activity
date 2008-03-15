@@ -17,6 +17,7 @@
 import gtk, gobject
 import os, os.path
 import logging
+from gettext import gettext as _
 unwantedPaths = [
     '.*', # hidden files
     '*~', # emacs backups
@@ -152,13 +153,13 @@ class DirectoryAndExtraModel(gtk.GenericTreeModel):
                  
     def on_iter_children(self, rowref):
         if rowref is not None:
-            if rowref.isDirectory:
+            if rowref.isDirectory and len(rowref):
                 return rowref[0]
             else:
                 return
         else:
             return self.files[0]
-            
+          
 class ActivityNode(object):
 
     def __init__(self, filename, model, parent, nodefilter):
@@ -181,8 +182,10 @@ class ActivityNode(object):
             self._files = filter(self.nodefilter,
                                  (ActivityNode(filename, self.model, self, self.nodefilter) 
                                     for filename in files))
+        if not self._files:
+            self._files = (DummyActivityNode(self),)
         return self._files
-    files = property(_get_files)
+    files = property(_get_files) #TODO: use a decorator
     
     def __eq__(self, other):
         if not isinstance(other, ActivityNode):
@@ -217,3 +220,12 @@ class ActivityNode(object):
     
     def __eq__(self,other):
         return other == self.path or other == self.filename
+
+class DummyActivityNode(ActivityNode):
+    files = ()
+    filename = _("<No visible files>")
+    path = ""
+    isDirectory = False
+    
+    def __init__(self,parent):
+        self.parent = parent

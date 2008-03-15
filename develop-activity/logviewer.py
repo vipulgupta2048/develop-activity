@@ -117,13 +117,24 @@ class LogMinder(gtk.VBox):
 
     # Load the log information in View (textview)
     def _load_log(self, treeview):
-        path = activity_model.get_selected_file_path(self._tv_menu)
+        node = activity_model.get_selected_file(self._tv_menu)
+        print node
+        path = node["path"]
+        
+        if os.path.isdir(path):
+            #do not try to open folders
+            self.activity._logger.debug("Cannot open a folder as text :)")
+            return
+        
+        if not path:
+            #DummyActivityNode
+            return
         
         # Set buffer and scroll down
         if self.activity.editor.set_to_page_like(path):
             return
         newlogview = LogView(path,self)
-        self.activity.editor.add_page(newlogview.filename,newlogview)
+        self.activity.editor.add_page(node["name"],newlogview)
         self.activity.editor.set_current_page(-1)
         self._active_log = act_log
 
