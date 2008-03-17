@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   version="1.0"
+   width="26.16"
+   height="26.16"
+   viewBox="0 0 22.156 22.156"
+   id="Layer_1"
+   xml:space="preserve"><defs
+   id="defs2279">
+	
+	
+
+	
+	
+</defs>
+
+<path
+   d="M 4.1155966,5.5522673 L 4.0877291,3.4558461 L 21.363755,3.4558461 L 21.363755,15.485356 L 0.81072368,15.485356 L 0.81072368,5.5445003 L 4.1155966,5.5522673 z "
+   style="fill:#ffffff;stroke:#4d4d4d;stroke-width:1.46495032;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+   id="rect3335" /><line
+   style="opacity:1;color:#000000;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:4.74423075;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+   id="line2276"
+   y2="20.342165"
+   x2="21.597151"
+   y1="13.571618"
+   x1="14.828717" /><path
+   d="M 4.3482584,9.7645669 C 4.3482584,13.451098 7.3350191,16.44054 11.022444,16.44054 C 14.705401,16.44054 17.694843,13.451098 17.694843,9.7645669 C 17.694843,6.0798229 14.705401,3.0921686 11.022444,3.0921686 C 7.3350191,3.0921686 4.3482584,6.0798229 4.3482584,9.7645669 z "
+   style="opacity:1;color:#000000;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:4.46852255;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+   id="path2274" /><g
+   transform="matrix(0.8469419,0,0,0.8469419,3.215287,1.9592438)"
+   id="g2272">
+	<path
+   d="M 1.75,9.216 C 1.75,13.341 5.092,16.686 9.218,16.686 C 13.339,16.686 16.684,13.341 16.684,9.216 C 16.684,5.093 13.339,1.75 9.218,1.75 C 5.092,1.75 1.75,5.093 1.75,9.216 z "
+   style="fill:none;stroke:#4c4d4f;stroke-width:3.5"
+   id="path10123" />
+	<line
+   x1="14.498"
+   y1="14.497"
+   x2="20.917999"
+   y2="20.919001"
+   id="line10125"
+   style="fill:none;stroke:#4c4d4f;stroke-width:3.5" />
+</g></svg>
