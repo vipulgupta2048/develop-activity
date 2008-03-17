@@ -55,8 +55,15 @@ IFACE = SERVICE
 PATH = "/org/laptop/Develop"
 WORKING_SOURCE_DIR = 'source'
 
+class Enum:
+    def __init__(self, **entries): self.__dict__.update(entries)
+
+class S_WHERE:
+    selection, file, multifile = range(3)
+
 class DevelopActivity(ViewSourceActivity):
     """Develop Activity as specified in activity.info"""
+    S_WHERE = S_WHERE
         
     def __init__(self, handle):
         """Set up the Develop activity."""
@@ -76,6 +83,10 @@ class DevelopActivity(ViewSourceActivity):
         
         self.edittoolbar = DevelopEditToolbar(self,toolbox)
         toolbox.add_toolbar(_("Edit"), self.edittoolbar)
+        self.edittoolbar.show()
+        
+        self.edittoolbar = DevelopSearchToolbar(self,toolbox)
+        toolbox.add_toolbar(_("Search"), self.edittoolbar)
         self.edittoolbar.show()
 
         filetoolbar = DevelopFileToolbar(self)
@@ -305,6 +316,7 @@ class DevelopActivity(ViewSourceActivity):
   
 class DevelopEditToolbar(activity.EditToolbar):
 
+
     def __init__(self, _activity, toolbox):
         activity.EditToolbar.__init__(self)
 
@@ -325,26 +337,6 @@ class DevelopEditToolbar(activity.EditToolbar):
         self.insert(separator, -1)
         separator.show()
 
-        # setup the search options
-        self._search_entry = iconentry.IconEntry()
-        self._search_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
-                                              'system-search')
-        self._search_entry.connect('activate', self._search_entry_activated_cb)
-        self._search_entry.connect('changed', self._search_entry_changed_cb)
-        self._search_entry.add_clear_button();
-        self._add_widget(self._search_entry, expand=True)
-
-        self._findprev = ToolButton('go-previous')
-        self._findprev.set_tooltip(_('Find previous'))
-        self.insert(self._findprev, -1)
-        self._findprev.show()
-        self._findprev.connect('clicked', self._findprev_cb);
-
-        self._findnext = ToolButton('go-next')
-        self._findnext.set_tooltip(_('Find next'))
-        self.insert(self._findnext, -1)
-        self._findnext.show()
-        self._findnext.connect('clicked', self._findnext_cb);
                                
     def _changed_cb(self, _buffer):
         can_undo, can_redo = self._activity.editor.can_undo_redo()
@@ -364,6 +356,86 @@ class DevelopEditToolbar(activity.EditToolbar):
 
     def _paste_cb(self, button):
         self._activity.editor.paste()
+            
+    # bad paul! this function was copied from sugar's activity.py via Write
+    def _add_widget(self, widget, expand=False):
+        tool_item = gtk.ToolItem()
+        tool_item.set_expand(expand)
+
+        tool_item.add(widget)
+        widget.show()
+
+        self.insert(tool_item, -1)
+        tool_item.show()
+        
+
+class DevelopSearchToolbar(gtk.Toolbar):       
+    
+    def __init__(self, _activity, toolbox):
+        gtk.Toolbar.__init__(self)
+
+        self._toolbox = toolbox
+        self._activity = _activity
+
+        # setup the search options
+        self._search_entry = iconentry.IconEntry()
+        self._search_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
+                                              'system-search')
+        self._search_entry.connect('activate', self._search_entry_activated_cb)
+        self._search_entry.connect('changed', self._search_entry_changed_cb)
+        self._search_entry.add_clear_button();
+        self._add_widget(self._search_entry, expand=True)
+        
+        self.s_where = S_WHERE.file
+        self.use_regex = False
+
+        self._findprev = ToolButton('go-previous')
+        self._findprev.set_tooltip(_('Find previous'))
+        self.insert(self._findprev, -1)
+        self._findprev.show()
+        self._findprev.connect('clicked', self._findprev_cb);
+
+        self._findnext = ToolButton('go-next')
+        self._findnext.set_tooltip(_('Find next'))
+        self.insert(self._findnext, -1)
+        self._findnext.show()
+        self._findnext.connect('clicked', self._findnext_cb);
+        
+        # make expanded non-drawn visible separator to make the replace stuff right-align
+        separator = gtk.SeparatorToolItem()
+        separator.props.draw = False
+        separator.set_expand(True)
+        self.insert(separator, -1)
+        separator.show()
+        
+        # replace entry
+        self._replace_entry = iconentry.IconEntry()
+        self._replace_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
+                                              'system-replace')
+        self._replace_entry.add_clear_button();
+        self._add_widget(self._replace_entry, expand=True)
+        
+        #replace button
+        self._replace_button = ToolButton('replace-and-find')
+        self.replace_all = False
+        self._replace_button.set_tooltip(_('Replace'))
+        self.insert(self._replace_button, -1)
+        self._replace_button.show()
+        self._replace_button.connect('clicked', self._replace_cb)
+        
+        
+        self._activity.editor.connect('changed', self._changed_cb)
+                                
+    def _changed_cb(self, _buffer):
+        self._replace_button.set_sensitive(False)
+        if self.s_where == S_WHERE.selection:
+            self._set_search_options(s_where=S_WHERE.normal)
+    
+    def _replace_cb(self, button):
+        ftext = self._search_entry.props.text
+        rtext = self._replace_entry.props.text
+        self._activity.editor.replace(ftext, rtext, self.s_where,
+                    self.use_regex, self.replace_all)
 
     def _search_entry_activated_cb(self, entry):
         text = self._search_entry.props.text
@@ -378,17 +450,23 @@ class DevelopEditToolbar(activity.EditToolbar):
         else:
             self._findprev.set_sensitive(True)
             self._findnext.set_sensitive(True)
-            self._activity.editor.find_next(text)
+            if self._activity.editor.find_next(text, True, self.s_where == S_WHERE.multifile, 
+                    self.s_where == S_WHERE.selection, self.use_regex):
+                self._replace_button.set_sensitive(True)
             
     def _findprev_cb(self, button):
         text = self._search_entry.props.text
         if text:
-            self._activity.editor.find_prev(text)
+            if self._activity.editor.find_prev(text, s_where=self.s_where, 
+                            use_regex=self.use_regex):
+                self._replace_button.set_sensitive(True)
                         
     def _findnext_cb(self, button):
         text = self._search_entry.props.text
         if text:
-            self._activity.editor.find_next(text, False)
+            if self._activity.editor.find_next(text, False, self.s_where == S_WHERE.multifile, 
+                    self.s_where == S_WHERE.selection, self.use_regex):
+                self._replace_button.set_sensitive(True)
             
     def _goto_find_cb(self):
         _toolbox.set_current_toolbar(TOOLBAR_TABLE)

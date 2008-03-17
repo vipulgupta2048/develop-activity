@@ -19,6 +19,7 @@ import pango
 from sugar.graphics import notebook
 import gtksourceview2
 import os.path
+import re
 
 class GtkSourceview2Editor(notebook.Notebook):
     __gsignals__ = {
@@ -94,15 +95,62 @@ class GtkSourceview2Editor(notebook.Notebook):
         if page:
             page.paste()
 
-    def find_next(self, text, stay=True):
+    def replace(self, ftext, rtext, s_where, use_regex, replace_all):
+        success = False
+        if use_regex and issubclass(type(ftext),basestring):
+            ftext = re.compile(ftext)
+        multifile = s_where == self.activity.S_WHERE.multifile
+        if multifile and replace_all:
+            for n in range(self.get_n_pages()):
+                page = self.get_nth_page(n)
+                success |= success or page.replace(self, ftext, rtext, 
+                                false, use_regex, replace_all)
+            return success
+        
         page = self._get_page()
         if page:
-            page.find_next(text, stay)
+            selection = s_where == self.activity.S_WHERE.selection
+            success = page.replace(self, ftext, rtext, selection, 
+                    use_regex, replace_all)
+            if replace_all:
+                return success
+            elif not selection:
+                self.find_next(ftext,stay=False,multifile=multifile, 
+                        selection=selection,use_regex=use_regex,page=page)
+                return success
+            else:
+                #for replace-in-selection, leave selection unmodified
+                return success
+        
+    def find_next(self, ftext, stay=True, multifile=False, selection=False, 
+                use_regex = False, page=None):
+        if page==None:
+            page = self._get_page()
+        if page:
+            if use_regex and issubclass(type(ftext),basestring):
+                ftext = re.compile(ftext)
+            if page.find_next(ftext,False,selection,use_regex,wrap=not multifile):
+                return true
+            else:
+                if multifile:
+                    current_page = self.get_current_page()
+                    n_pages = self.get_n_pages 
+                    for i in range(1,n_pages):
+                        page = self.get_nth_page((current_page + i) % n_pages)
+                        if isinstance(page,GtkSourceview2Page):
+                            if page.find_next(ftext,False,selection, use_regex,wrap = True):
+                                self.set_current_page((current_page + i) % n_pages)
+                                return True
+                    return False
+                else:
+                    return False #first file failed, not multifile
+        else:
+            return False #no open pages
 
     def find_prev(self, text):
         page = self._get_page()
         if page:
-            page.find_prev(text)
+            return page.find_prev(text)
 
     def get_all_filenames(self):
         for i in range(self.get_n_pages()):
@@ -273,16 +321,111 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         Redo the last change in the file.  If we can't do anything, ignore.
         """
         self.text_buffer.redo()
+        
+    def _getRtLmatchlist(buffertext,fpat,use_regex,offset):
+        if use_regex:
+            match = fpat.search(buffertext)
+            if match:
+                start,end = match.span()
+                return (self._getRtLmatchlist(buffertext[end:],fpat,use_regex,offset+end) + 
+                        [(start+offset,end+offset,match)]) 
+            else:
+                return []
+        else:
+            match = buffertext.rfind(fpat)
+            if match >= 0:
+                return ([(match+offset,match+offset+len(fpat),None)] + 
+                        self._getRtLmatchlist(buffertext[:match],fpat,use_regex,offset))
+            else:
+                return []
     
-    def find_next(self, text, stay=True):
+    def replace(self, ftext, rtext, selection, 
+                    use_regex, replace_all):
+        if replace_all:
+            result = False
+            self.text_buffer.begin_user_action()
+            if selection:
+                try:
+                    selstart, selend = self.text_buffer.get_selection_bounds()
+                except ValueError,TypeError:
+                    return False
+                offsetadd = selstart.getoffset()
+                buffertext = self.text_buffer.get_slice(start,end)
+            else:
+                offsetadd = 0
+                buffertext = self.get_text()
+            for start, end, match in self._getRtLmatchlist(buffertext,ftext,
+                                            use_regex,offsetadd):
+                start = self.text_buffer.get_iter_at_offset(start+offsetadd)
+                end = self.text_buffer.get_iter_at_offset(end+offsetadd)
+                self.text_buffer.delete(start,end)
+                self.text_buffer.insert(start, self.makereplace(rtext,match,use_regex))
+                result = True
+            self.text_buffer.end_user_action()
+            return result
+        else: #replace, the &find part handled by caller
+            try:
+                start,end = self.text_buffer.get_selection_bounds()
+            except TypeError:
+                return False
+            match = self._match(ftext,
+                        self.text_buffer.get_slice(start,end),
+                        use_regex)
+            if match:
+                self.text_buffer.delete(start, end)
+                rtext = self.makereplace(rtext,match,use_regex)
+                self.text_buffer.insert(start, rtext)
+                return self.text_buffer.set_modified
+                
+    def makereplace(self, rpat, match, use_regex):
+        if use_regex:
+            return match.expand(rpat)
+        else:
+            return rpat
+        
+    def _find_in(self, text, fpat, offset, use_regex, offset_add = 0):
+        if use_regex:
+            match = fpat.search(text[offset:])
+            if match:
+                start,end = match.span
+                return (start+offset, end+offset)
+            else:
+                return ()
+        else:
+            match = text.find(fpat,offset)
+            if match >= 0:
+                return (match, match + len(fpat))
+            else:
+                return ()
+            
+    def find_next(self, ftext, stay=True, selection=False,use_regex = False, wrap = True):
         """
         Scroll to the next place where the string text appears.
         If stay is True and text is found at the current position, stay where we are.
         """
-        offset = self.get_offset()
-        new_offset = self.get_text().find(text, offset + (not stay))
-        if new_offset != -1:
-            self._scroll_to_offset(new_offset,new_offset + len(text))
+        if selection:
+            try:
+                selstart, selend = self.text_buffer.get_selection_bounds()
+            except ValueError,TypeError:
+                return False
+            offsetadd = selstart.getoffset()
+            buffertext = self.text_buffer.get_slice(start,end)
+            return self._find_in(buffertext,ftext,0,use_regex,offsetadd)
+        else:
+            offset = self.get_offset() + (not stay) #add 1 if not stay.
+            text = self.get_text()
+            try:
+                start,end = self._find_in(text,ftext,offset,use_regex)
+            except ValueError,TypeError:
+                #find failed.
+                if wrap:
+                    try:
+                        start,end = self._find_in(text,ftext,offset,use_regex)
+                    except ValueError,TypeError:
+                        return False
+                else:
+                    return False
+            self._scroll_to_offset(start,end)
 
     def find_prev(self, text):
         """
