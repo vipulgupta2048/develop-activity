@@ -46,6 +46,7 @@ except ImportError:
 
 import logviewer
 import sourceview_editor
+S_WHERE = sourceview_editor.S_WHERE
 import activity_model
 
 
@@ -55,15 +56,8 @@ IFACE = SERVICE
 PATH = "/org/laptop/Develop"
 WORKING_SOURCE_DIR = 'source'
 
-class Enum:
-    def __init__(self, **entries): self.__dict__.update(entries)
-
-class S_WHERE:
-    selection, file, multifile = range(3)
-
 class DevelopActivity(ViewSourceActivity):
     """Develop Activity as specified in activity.info"""
-    S_WHERE = S_WHERE
         
     def __init__(self, handle):
         """Set up the Develop activity."""
@@ -401,6 +395,24 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._findnext.show()
         self._findnext.connect('clicked', self._findnext_cb);
         
+        # Search settings menu
+        # This menu should attach to something else beside findnext - location is temporary.
+        palette = self._findnext.get_palette()
+        sswo = self._set_where_options
+        ssho = self._set_how_options
+        for name, function, options, icon in (
+                (_('Search in selection'),sswo,S_WHERE.selection,"search-in-selection"),
+                (_('Search in current file'),sswo,S_WHERE.file,"system-search"),
+                (_('Search in all open files'),sswo,S_WHERE.multifile,"multi-search"),
+                (_('Simple search'),ssho,False,"system-search"),
+                (_('Advanced search'),ssho,True,"regex"),
+                ):
+            
+            menuitem = MenuItem(name,icon)
+            menuitem.connect('activate', function, options)
+            palette.menu.append(menuitem)
+            menuitem.show()
+        
         # make expanded non-drawn visible separator to make the replace stuff right-align
         separator = gtk.SeparatorToolItem()
         separator.props.draw = False
@@ -425,7 +437,15 @@ class DevelopSearchToolbar(gtk.Toolbar):
         
         
         self._activity.editor.connect('changed', self._changed_cb)
-                                
+                        
+    def _set_where_options(self,menu,option):
+        #TODO: reset icons....
+        self.s_where = option
+        
+    def _set_how_options(self,menu,option):
+        #TODO: reset icons....
+        self.use_regex = option
+        
     def _changed_cb(self, _buffer):
         self._replace_button.set_sensitive(False)
         if self.s_where == S_WHERE.selection:
@@ -450,9 +470,10 @@ class DevelopSearchToolbar(gtk.Toolbar):
         else:
             self._findprev.set_sensitive(True)
             self._findnext.set_sensitive(True)
-            if self._activity.editor.find_next(text, True, self.s_where == S_WHERE.multifile, 
-                    self.s_where == S_WHERE.selection, self.use_regex):
-                self._replace_button.set_sensitive(True)
+            if not self.use_regex: #do not do partial searches for regex
+                if self._activity.editor.find_next(text, True, self.s_where == S_WHERE.multifile, 
+                        self.s_where == S_WHERE.selection, self.use_regex):
+                    self._replace_button.set_sensitive(True)
             
     def _findprev_cb(self, button):
         text = self._search_entry.props.text

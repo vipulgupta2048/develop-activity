@@ -21,6 +21,9 @@ import gtksourceview2
 import os.path
 import re
 
+class S_WHERE:
+    selection, file, multifile = range(3) #an enum
+    
 class GtkSourceview2Editor(notebook.Notebook):
     __gsignals__ = {
         'changed': (gobject.SIGNAL_RUN_FIRST, None, [])
@@ -99,7 +102,7 @@ class GtkSourceview2Editor(notebook.Notebook):
         success = False
         if use_regex and issubclass(type(ftext),basestring):
             ftext = re.compile(ftext)
-        multifile = s_where == self.activity.S_WHERE.multifile
+        multifile = s_where == S_WHERE.multifile
         if multifile and replace_all:
             for n in range(self.get_n_pages()):
                 page = self.get_nth_page(n)
@@ -109,7 +112,7 @@ class GtkSourceview2Editor(notebook.Notebook):
         
         page = self._get_page()
         if page:
-            selection = s_where == self.activity.S_WHERE.selection
+            selection = s_where == S_WHERE.selection
             success = page.replace(self, ftext, rtext, selection, 
                     use_regex, replace_all)
             if replace_all:
@@ -134,8 +137,8 @@ class GtkSourceview2Editor(notebook.Notebook):
             else:
                 if multifile:
                     current_page = self.get_current_page()
-                    n_pages = self.get_n_pages 
-                    for i in range(1,n_pages):
+                    n_pages = self.get_n_pages() 
+                    for i in range(n_pages):
                         page = self.get_nth_page((current_page + i) % n_pages)
                         if isinstance(page,GtkSourceview2Page):
                             if page.find_next(ftext,False,selection, use_regex,wrap = True):
