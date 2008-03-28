@@ -4,6 +4,7 @@ find/replace done, with accelerators. Known bugs:
 -F8 doesn't work within text views (workaround: F5 first. problem with wm)
 -ignore-case half-implemented
 -WARNING WARNING WARNING - has been known to cause journal to empty. Don't panic - your old journal still exists in ~/.sugar/default/datastoreXYZXYZXX. Still, it is a royal pain in the ***. Have not understood what's happening yet.
+-Only "open" works in initial dialog (old code, needs cleanup)
 
 31
 uses .xo file format
