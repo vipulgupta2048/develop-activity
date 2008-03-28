@@ -1,9 +1,0 @@
-[Activity]
-name = Develop
-bundle_id = org.laptop.Develop
-service_name = org.laptop.Develop
-exec = developrunner.sh
-icon = activity-develop
-activity_version = 24.q
-mime_types = *
-show_launcher = yes

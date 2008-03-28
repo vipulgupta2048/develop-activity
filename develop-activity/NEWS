@@ -1,4 +1,12 @@
+32
+find/replace done, with accelerators. Known bugs:
+-Double log tab (understood, just haven't got around to fixing)
+-F8 doesn't work within text views (workaround: F5 first. problem with wm)
+-ignore-case half-implemented
+-WARNING WARNING WARNING - has been known to cause journal to empty. Don't panic - your old journal still exists in ~/.sugar/default/datastoreXYZXYZXX. Still, it is a royal pain in the ***. Have not understood what's happening yet.
+
 31
+uses .xo file format
 
 24
 find selects ranges, selecting a tab selects it in the sidebar, sidebar scrollbar on left for Fitt's law.

@@ -21,3 +21,12 @@ developrunner.sh
 logviewer.py
 bundlebuilder.py
 developableactivity.py
+icons/erase.svg
+icons/multi-regex.svg
+icons/multi-replace.svg
+icons/multi-search.svg
+icons/regex-in-selection.svg
+icons/regex.svg
+icons/replace-and-find.svg
+icons/search-in-selection.svg
+icons/system-replace.svg

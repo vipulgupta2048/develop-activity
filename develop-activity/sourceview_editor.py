@@ -20,6 +20,8 @@ from sugar.graphics import notebook
 import gtksourceview2
 import os.path
 import re
+import mimetypes
+from exceptions import *
 
 class S_WHERE:
     selection, file, multifile = range(3) #an enum
@@ -50,11 +52,11 @@ class GtkSourceview2Editor(notebook.Notebook):
                 return True
         return False
         
-    def load_object(self, dsObject):
-        if self.set_to_page_like(dsObject.metadata['source']):
+    def load_object(self, fullPath, filename):
+        if self.set_to_page_like(fullPath):
             return
-        page = GtkSourceview2Page(dsObject)
-        label = dsObject.metadata['filename']
+        page = GtkSourceview2Page(fullPath)
+        label = filename
         page.text_buffer.connect('changed', self._changed_cb)
         self.add_page(label, page)
         self.set_current_page(-1)
@@ -99,50 +101,52 @@ class GtkSourceview2Editor(notebook.Notebook):
             page.paste()
 
     def replace(self, ftext, rtext, s_where, use_regex, replace_all):
-        success = False
+        replaced = False
         if use_regex and issubclass(type(ftext),basestring):
             ftext = re.compile(ftext)
-        multifile = s_where == S_WHERE.multifile
+        multifile = (s_where == S_WHERE.multifile)
         if multifile and replace_all:
             for n in range(self.get_n_pages()):
                 page = self.get_nth_page(n)
-                success |= success or page.replace(self, ftext, rtext, 
-                                false, use_regex, replace_all)
-            return success
+                replaced = page.replace(ftext, rtext, 
+                                False, use_regex, replace_all) or replaced
+            return (replaced, False) #not found-again
         
         page = self._get_page()
         if page:
             selection = s_where == S_WHERE.selection
-            success = page.replace(self, ftext, rtext, selection, 
+            replaced = page.replace(ftext, rtext, selection, 
                     use_regex, replace_all)
             if replace_all:
-                return success
+                return (replaced, False)
             elif not selection:
-                self.find_next(ftext,stay=False,multifile=multifile, 
+                found = self.find_next(ftext,stay=False,multifile=multifile, 
                         selection=selection,use_regex=use_regex,page=page)
-                return success
+                return (replaced, found)
             else:
                 #for replace-in-selection, leave selection unmodified
-                return success
+                return (replaced, replaced)
         
     def find_next(self, ftext, stay=True, multifile=False, selection=False, 
-                use_regex = False, page=None):
+                use_regex = False, page=None, forward = True):
         if page==None:
             page = self._get_page()
         if page:
             if use_regex and issubclass(type(ftext),basestring):
                 ftext = re.compile(ftext)
-            if page.find_next(ftext,False,selection,use_regex,wrap=not multifile):
-                return true
+            if page.find_next(ftext,stay,selection,use_regex,wrap=not multifile,forward=forward):
+                return True
             else:
                 if multifile:
                     current_page = self.get_current_page()
                     n_pages = self.get_n_pages() 
-                    for i in range(n_pages):
+                    for i in range(1,n_pages):
                         page = self.get_nth_page((current_page + i) % n_pages)
-                        if isinstance(page,GtkSourceview2Page):
-                            if page.find_next(ftext,False,selection, use_regex,wrap = True):
-                                self.set_current_page((current_page + i) % n_pages)
+                        if isinstance(page,SearchablePage):
+                            if page.find_next(ftext,stay,selection, use_regex,
+                                        wrap = True,forward=forward):
+                                self.set_current_page((current_page + i) % 
+                                        n_pages)
                                 return True
                     return False
                 else:
@@ -150,23 +154,21 @@ class GtkSourceview2Editor(notebook.Notebook):
         else:
             return False #no open pages
 
-    def find_prev(self, text):
-        page = self._get_page()
-        if page:
-            return page.find_prev(text)
-
     def get_all_filenames(self):
         for i in range(self.get_n_pages()):
             page = self.get_nth_page(i)
             if isinstance(page,GtkSourceview2Page):
-                yield page.object.metadata['filename']
+                yield page.fullPath
 
     def save_all(self):
         self.activity._logger.info('save all %i' % self.get_n_pages())
+        if self.activity._foreign_dir:
+            self.activity._logger.info('save all aborting, still viewing in place')
+            return
         for i in range(self.get_n_pages()):
             page = self.get_nth_page(i)
             if isinstance(page,GtkSourceview2Page):
-                self.activity._logger.info('%s' % page.object.metadata['filename'])
+                self.activity._logger.info('%s' % page.fullPath)
                 page.save()
     
     def reroot(self,olddir, newdir):
@@ -176,21 +178,155 @@ class GtkSourceview2Editor(notebook.Notebook):
             if isinstance(page,GtkSourceview2Page):
                 if page.reroot(olddir, newdir): 
                     self.activity._logger.info('rerooting page %s failed' % 
-                            page.object.file_path)
+                            page.fullPath)
                 else:
                     self.activity._logger.info('rerooting page %s succeeded' % 
-                            page.object.file_path)
+                            page.fullPath)
         
+    def get_selected(self):
+        return self._get_page().get_selected()
 
-class GtkSourceview2Page(gtk.ScrolledWindow):
+class SearchablePage(gtk.ScrolledWindow):
+    def get_selected(self):
+        start,end = self.text_buffer.get_selection_bounds()
+        return self.text_buffer.get_slice(start,end)
+        
+    def get_text(self):
+        """
+        Return the text that's currently being edited.
+        """
+        start, end = self.text_buffer.get_bounds()
+        return self.text_buffer.get_text(start, end)
+        
+    def get_offset(self):
+        """
+        Return the current character position in the currnet file.
+        """
+        insert = self.text_buffer.get_insert()
+        _iter = self.text_buffer.get_iter_at_mark(insert)
+        return _iter.get_offset()
+    
+    def copy(self):
+        """
+        Copy the currently selected text to the clipboard.
+        """
+        self.text_buffer.copy_clipboard(gtk.Clipboard())
+    
+    def paste(self):
+        """
+        Paste from the clipboard into the current file.
+        """
+        self.text_buffer.paste_clipboard(gtk.Clipboard(), None, True)
+        
+    def _getMatches(self,buffertext,fpat,use_regex,offset):
+        if use_regex:
+            while True:
+                match = fpat.search(buffertext)
+                if match:
+                    start,end = match.span()
+                    yield (start+offset,end+offset,match)
+                else:
+                    return
+                buffertext, offset = buffertext[end:],offset+end
+        else:
+            while True:
+                match = buffertext.find(fpat)
+                if match >= 0:
+                    end = match+len(fpat)
+                    yield (offset+match,offset + end,None)
+                else:
+                    return
+                buffertext, offset = buffertext[end:], offset + end
 
-    def __init__(self, dsObject):
+    def _match(self, pattern, text, use_regex):
+        if use_regex:
+            return pattern.match(text)
+        else:
+            return pattern == text
+    
+    def _find_in(self, text, fpat, offset, use_regex, offset_add = 0, 
+            forward = True):
+        if forward:
+            matches = self._getMatches(text[offset:],fpat,use_regex,
+                    offset+offset_add)
+            try:
+                return matches.next()
+            except StopIteration:
+                return ()
+        else:
+            if offset != 0:
+                text = text[:offset]
+            matches = list(self._getMatches(text,fpat,use_regex,
+                    offset_add))
+            if matches:
+                return matches[-1]
+            else:
+                return ()
+            
+    def find_next(self, ftext, stay=True, selection=False, use_regex=False, 
+            wrap=True, forward=True):
+        """
+        Scroll to the next place where the string text appears.
+        If stay is True and text is found at the current position, stay where we are.
+        """
+        if selection:
+            print "find in selection"
+            try:
+                selstart, selend = self.text_buffer.get_selection_bounds()
+            except (ValueError,TypeError):
+                return False
+            offsetadd = selstart.get_offset()
+            buffertext = self.text_buffer.get_slice(selstart,selend)
+            print buffertext
+            try:
+                start, end, match = self._find_in(buffertext,ftext,0,use_regex,
+                        offsetadd,forward)
+            except (ValueError,TypeError):
+                return False
+        else:
+            offset = self.get_offset() + (not stay) #add 1 if not stay.
+            text = self.get_text()
+            try:
+                start,end,match = self._find_in(text,ftext,offset,
+                            use_regex,0,forward)
+            except (ValueError,TypeError):
+                #find failed.
+                if wrap:
+                    try:
+                        start,end,match = self._find_in(text,ftext,0,
+                                    use_regex,0,forward)
+                    except (ValueError,TypeError):
+                        return False
+                else:
+                    return False
+        self._scroll_to_offset(start,end)
+        return True
+
+    def _scroll_to_offset(self, offset, bound):
+        _iter = self.text_buffer.get_iter_at_offset(offset)
+        _iter2 = self.text_buffer.get_iter_at_offset(bound)
+        self.text_buffer.select_range(_iter,_iter2)
+        self.text_view.scroll_mark_onscreen(self.text_buffer.get_insert())
+        
+    def __eq__(self,other):
+        if isinstance(other,GtkSourceview2Page):
+            return self.fullPath == other.fullPath
+        #elif isinstance(other,type(self.fullPath)):
+        #    other = other.metadata['source']
+        if isinstance(other,basestring):
+            return other == self.fullPath
+        else:
+            return False
+
+class GtkSourceview2Page(SearchablePage):
+
+    def __init__(self, fullPath):
         """
         Do any initialization here.
         """
         gtk.ScrolledWindow.__init__(self)
 
-        self.object = dsObject
+        self.fullPath = fullPath
 
         self.text_buffer = gtksourceview2.Buffer()
         self.text_view = gtksourceview2.View(self.text_buffer)
@@ -221,16 +357,12 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         self.load_text()
         self.show()
 
-    def __del__(self):
-        self.object.destroy()
-        del self.object
-
     def load_text(self, offset=None):
         """
         Load the text, and optionally scroll to the given offset in the file.
         """
         self.text_buffer.begin_not_undoable_action()
-        _file = file(self.object.file_path)
+        _file = file(self.fullPath)
         self.text_buffer.set_text(_file.read())
         _file.close()
         if offset is not None:
@@ -240,7 +372,7 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
             self.text_buffer.set_highlight(False)
         else:
             self.text_buffer.set_highlight_syntax(False)
-        mime_type = self.object.metadata.get('mime_type', '')
+        mime_type = mimetypes.guess_type(self.fullPath)[0]
         if mime_type:
             lang_manager = gtksourceview2.language_manager_get_default()
             if hasattr(lang_manager, 'list_languages'):
@@ -264,49 +396,18 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         self.save()
    
     def save(self):
-        #from sugar.datastore import datastore
-        names = (self.object.file_path,)#, self.object.metadata['source']))
-        text = self.get_text()
-        for name in names:
-            _file = file(name, 'w')
+        if self.text_buffer.can_undo(): #only save if there's something to save
+            #note: the above is a hack. If activity._foreign_dir, we should not
+            #save. currently, the above is never true when that is. This hack
+            #is because we're not keeping a pointer to the activity here.
+            text = self.get_text()
+            _file = file(self.fullPath, 'w')
             try:
                 _file.write(text)
             except (IOError, OSError):
                 pass
             _file.close()
-        # I wanted to actually use datastore objects,
-        # but I couldn't think of how to do resuming
-        # properly without a hack in develop_app.  I
-        # still may do that hack, but not right now.    
-        #datastore.write(self.object, transfer_ownership=True)
 
-    def get_text(self):
-        """
-        Return the text that's currently being edited.
-        """
-        start, end = self.text_buffer.get_bounds()
-        return self.text_buffer.get_text(start, end)
-        
-    def get_offset(self):
-        """
-        Return the current character position in the currnet file.
-        """
-        insert = self.text_buffer.get_insert()
-        _iter = self.text_buffer.get_iter_at_mark(insert)
-        return _iter.get_offset()
-    
-    def copy(self):
-        """
-        Copy the currently selected text to the clipboard.
-        """
-        self.text_buffer.copy_clipboard(gtk.Clipboard())
-    
-    def paste(self):
-        """
-        Paste from the clipboard into the current file.
-        """
-        self.text_buffer.paste_clipboard(gtk.Clipboard(), None, True)
-        
     def can_undo_redo(self):
         """
         Returns a two-tuple (can_undo, can_redo) with Booleans of those abilities.
@@ -324,43 +425,33 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         Redo the last change in the file.  If we can't do anything, ignore.
         """
         self.text_buffer.redo()
-        
-    def _getRtLmatchlist(buffertext,fpat,use_regex,offset):
-        if use_regex:
-            match = fpat.search(buffertext)
-            if match:
-                start,end = match.span()
-                return (self._getRtLmatchlist(buffertext[end:],fpat,use_regex,offset+end) + 
-                        [(start+offset,end+offset,match)]) 
-            else:
-                return []
-        else:
-            match = buffertext.rfind(fpat)
-            if match >= 0:
-                return ([(match+offset,match+offset+len(fpat),None)] + 
-                        self._getRtLmatchlist(buffertext[:match],fpat,use_regex,offset))
-            else:
-                return []
-    
+            
     def replace(self, ftext, rtext, selection, 
                     use_regex, replace_all):
-        if replace_all:
+        """returns true if replaced (succeeded)"""
+        if replace_all or selection:
             result = False
-            self.text_buffer.begin_user_action()
             if selection:
                 try:
                     selstart, selend = self.text_buffer.get_selection_bounds()
-                except ValueError,TypeError:
+                except (ValueError,TypeError):
                     return False
-                offsetadd = selstart.getoffset()
-                buffertext = self.text_buffer.get_slice(start,end)
+                offsetadd = selstart.get_offset()
+                buffertext = self.text_buffer.get_slice(selstart,selend)
             else:
                 offsetadd = 0
                 buffertext = self.get_text()
-            for start, end, match in self._getRtLmatchlist(buffertext,ftext,
-                                            use_regex,offsetadd):
-                start = self.text_buffer.get_iter_at_offset(start+offsetadd)
-                end = self.text_buffer.get_iter_at_offset(end+offsetadd)
+            results = list(self._getMatches(buffertext,ftext,
+                                            use_regex,offsetadd))
+            if not replace_all:
+                results = [results[0]]
+            else:
+                results.reverse() #replace right-to-left so that 
+                                #unreplaced indexes remain valid.
+            self.text_buffer.begin_user_action()
+            for start, end, match in results:
+                start = self.text_buffer.get_iter_at_offset(start)
+                end = self.text_buffer.get_iter_at_offset(end)
                 self.text_buffer.delete(start,end)
                 self.text_buffer.insert(start, self.makereplace(rtext,match,use_regex))
                 result = True
@@ -378,7 +469,9 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
                 self.text_buffer.delete(start, end)
                 rtext = self.makereplace(rtext,match,use_regex)
                 self.text_buffer.insert(start, rtext)
-                return self.text_buffer.set_modified
+                return True
+            else:
+                return False
                 
     def makereplace(self, rpat, match, use_regex):
         if use_regex:
@@ -386,80 +479,11 @@ class GtkSourceview2Page(gtk.ScrolledWindow):
         else:
             return rpat
         
-    def _find_in(self, text, fpat, offset, use_regex, offset_add = 0):
-        if use_regex:
-            match = fpat.search(text[offset:])
-            if match:
-                start,end = match.span
-                return (start+offset, end+offset)
-            else:
-                return ()
-        else:
-            match = text.find(fpat,offset)
-            if match >= 0:
-                return (match, match + len(fpat))
-            else:
-                return ()
-            
-    def find_next(self, ftext, stay=True, selection=False,use_regex = False, wrap = True):
-        """
-        Scroll to the next place where the string text appears.
-        If stay is True and text is found at the current position, stay where we are.
-        """
-        if selection:
-            try:
-                selstart, selend = self.text_buffer.get_selection_bounds()
-            except ValueError,TypeError:
-                return False
-            offsetadd = selstart.getoffset()
-            buffertext = self.text_buffer.get_slice(start,end)
-            return self._find_in(buffertext,ftext,0,use_regex,offsetadd)
-        else:
-            offset = self.get_offset() + (not stay) #add 1 if not stay.
-            text = self.get_text()
-            try:
-                start,end = self._find_in(text,ftext,offset,use_regex)
-            except ValueError,TypeError:
-                #find failed.
-                if wrap:
-                    try:
-                        start,end = self._find_in(text,ftext,offset,use_regex)
-                    except ValueError,TypeError:
-                        return False
-                else:
-                    return False
-            self._scroll_to_offset(start,end)
-
-    def find_prev(self, text):
-        """
-        Scroll to the previous place where the string text appears.
-        """
-        offset = self.get_offset()
-        new_offset = self.get_text().rfind(text, 0, offset)
-        if new_offset != -1:
-            self._scroll_to_offset(new_offset,new_offset + len(text))
-
-    def _scroll_to_offset(self, offset, bound):
-        _iter = self.text_buffer.get_iter_at_offset(offset)
-        _iter2 = self.text_buffer.get_iter_at_offset(bound)
-        self.text_buffer.select_range(_iter,_iter2)
-        self.text_view.scroll_mark_onscreen(self.text_buffer.get_insert())
-        
-    def __eq__(self,other):
-        if isinstance(other,GtkSourceview2Page):
-            return self.object.metadata['source'] == other.object.metadata['source']
-        #elif isinstance(other,type(self.object)):
-        #    other = other.metadata['source']
-        if isinstance(other,basestring):
-            return other == self.object.metadata['source']
-        else:
-            return False
-
     def reroot(self,olddir,newdir):
         """Returns False if it works"""
-        oldpath = self.object.file_path
+        oldpath = self.fullPath
         if oldpath.startswith(olddir):
-            self.object.file_path = os.path.join(newdir, oldpath[len(olddir):])
+            self.fullPath = os.path.join(newdir, oldpath[len(olddir):])
             return False
         else:
             return True

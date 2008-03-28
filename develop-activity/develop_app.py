@@ -56,6 +56,21 @@ IFACE = SERVICE
 PATH = "/org/laptop/Develop"
 WORKING_SOURCE_DIR = 'source'
 
+SEARCH_ICONS = {False:{S_WHERE.selection:"search-in-selection",
+                        S_WHERE.file:"system-search",
+                        S_WHERE.multifile:"multi-search",
+                        },
+                True:{S_WHERE.selection:"regex-in-selection",
+                        S_WHERE.file:"regex",
+                        S_WHERE.multifile:"multi-regex",
+                        }}
+CAP_ICONS = {False:"use-caps",
+            True:"ignore-caps"}
+REPLACE_ICONS = {False:"replace-and-find",
+            True:"multi-replace"}
+
+TOOLBAR_SEARCH = 2
+
 class DevelopActivity(ViewSourceActivity):
     """Develop Activity as specified in activity.info"""
         
@@ -67,6 +82,7 @@ class DevelopActivity(ViewSourceActivity):
         self._logger = logging.getLogger('develop-activity')
         self._logger.setLevel(0)
         self._logger.info(repr(handle.get_dict()))
+        
         # Source buffer
         self.editor = sourceview_editor.GtkSourceview2Editor(self)
 
@@ -122,10 +138,8 @@ class DevelopActivity(ViewSourceActivity):
         self._logger.info('finished check')
         vbox.pack_start(self.editor)
         self.editor.show()
-        self._logger.info('editor')
         hbox.pack2(vbox, resize=True, shrink=True)
         vbox.show()
-        self._logger.info('vbox')
         self.set_canvas(hbox)
         hbox.show()
         self._logger.critical('finished initialization')
@@ -134,7 +148,9 @@ class DevelopActivity(ViewSourceActivity):
      
         if not handle.object_id or not self.metadata.get('source'):
             self._show_welcome()
-      
+            
+        self._foreign_dir = False
+ 
     def _show_welcome(self):
         import welcome_dialog
         dialog = welcome_dialog.WelcomeDialog(self)
@@ -191,7 +207,7 @@ class DevelopActivity(ViewSourceActivity):
         self.treeview.set_model(self.model)
         self.treeview.get_selection().connect("changed", self.selection_cb)
         self.logview = logviewer.LogMinder(self,name.split(".")[0])
-        self._logger.info('done opening %s' % activity_dir)
+        self.set_dirty(False)
 
         
     def refresh_files(self):
@@ -204,34 +220,13 @@ class DevelopActivity(ViewSourceActivity):
         else:
             filename = fullPath
             fullPath = os.path.join(self.activity_dir,fullPath)
-        query = {'activity':SERVICE, 'source':fullPath}
-        objects, count = datastore.find(query, sorting=['mtime'])
-        if not count: # no objects found
-            import mimetypes
-            mime_type = mimetypes.guess_type(filename)[0]
-            if mime_type is None:
-                mime_type = ''
-            dso = datastore.create()
-            dso.metadata['title'] = '%s: %s' % (self.metadata['title'], filename)
-            dso.metadata['activity'] = SERVICE
-            dso.metadata['mime_type'] = mime_type
-            dso.metadata['icon-color'] = profile.get_color().to_string()
-            dso.metadata['filename'] = filename
-            dso.metadata['source'] = fullPath
-            dso.file_path = fullPath
-        else:
-            for object in objects:
-                self._logger.info(str(object.metadata['mtime']))
-            dso = objects[-1]
-            dso.metadata['filename'] = dso.metadata['source'][len(self.activity_dir):]
-        self.editor.load_object(dso)
+        self.editor.load_object(fullPath,filename)
 
     def selection_cb(self, column):
         if self.numb:
             #Choosing in the notebook selects in the list, and vice versa. Avoid infinite recursion.
             return
         path = activity_model.get_selected_file_path(self.treeview)
-        self._logger.debug("clicked! %s" % path)
         if path and not os.path.isdir(path):
             self.save()
             self.numb = True
@@ -239,7 +234,8 @@ class DevelopActivity(ViewSourceActivity):
             self.numb = False
     
     def write_file(self, file_path):
-        self._logger.info(u'write file from %s to %s' % (self.activity_dir,file_path))
+        self._logger.info(u'write file from %s to %s; dirty is %s' % 
+                            (self.activity_dir,file_path,str(self.dirty)))
         if not self.save_unchanged:
             self.editor.save_all()
         filenames = OPENFILE_SEPARATOR.join(self.editor.get_all_filenames())
@@ -247,15 +243,12 @@ class DevelopActivity(ViewSourceActivity):
         self._jobject = self.save_source_jobject(self.activity_dir, 
                 file_path, filenames)
         self.metadata['source'] = self.activity_dir[:-1]
-        self._logger.info("Saved file at %s" % self._jobject.file_path)
-        self._logger.info(u'UNDIRTY')
-        self.dirty = False
+        self.set_dirty(False)
         
     def get_workingdir(self):
         return os.path.join(activity.get_activity_root(),activity.INSTANCE_DIR,WORKING_SOURCE_DIR)
     
     def read_file(self, file_path):
-        self._logger.info(u'read_file: %s' % file_path)
         if not os.path.isfile(file_path):
             self._show_welcome()
             return
@@ -265,20 +258,23 @@ class DevelopActivity(ViewSourceActivity):
             #raise IOError("working dir already exists...")
         bundledir = extract_bundle(file_path,workingdir)
         self.open_activity(os.path.join(bundledir))
-        self._logger.info(u'read_subfiles: %s' % self.metadata['open_filenames'])
+        self._logger.info(u'read_file. subfiles: %s' % self.metadata['open_filenames'])
         for filename in self.metadata['open_filenames'].split(OPENFILE_SEPARATOR):
             if filename:
                 self.load_file(filename)
-        self._logger.info(u'UNDIRTY')
-        self.dirty = False
+        self.set_dirty(False)
         self._foreign_dir = False
         
     def set_dirty(self, dirty):
+        self._logger.info("Setting dirty to %s; activity_dir is %s" %  
+                (str(dirty),str(self.activity_dir)))
         self.dirty = dirty
-        if dirty and self._foreign_dir:
+        if dirty and self.activity_dir and self._foreign_dir:
             self.save_unchanged = True
             try:
                 self.save()
+            except IOError:
+                pass
             finally:
                 self.save_unchanged = False
             self.change_base()
@@ -293,13 +289,14 @@ class DevelopActivity(ViewSourceActivity):
         shutil.copytree(olddir, targetdir)
         self.open_activity(targetdir)
         self.editor.reroot(olddir, targetdir)
+        self._foreign_dir = False
                 
     def update_sidebar_to_page(self, page):
         if self.numb:
             #avoid infinite recursion
             return
         if isinstance(page,sourceview_editor.GtkSourceview2Page):
-            source = page.object.metadata['source']
+            source = page.fullPath
             tree_iter = self.model.get_iter_from_filepath(source)
             if tree_iter:
                 tree_selection = self.treeview.get_selection()
@@ -372,16 +369,20 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._activity = _activity
 
         # setup the search options
+        self.s_where = S_WHERE.multifile
+        self.use_regex = False
+        self.ignore_caps = True
+        self.replace_all = False
+        self.safe_to_replace = False
+        
+        
         self._search_entry = iconentry.IconEntry()
         self._search_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
-                                              'system-search')
+                                    SEARCH_ICONS[self.use_regex][self.s_where])
         self._search_entry.connect('activate', self._search_entry_activated_cb)
         self._search_entry.connect('changed', self._search_entry_changed_cb)
         self._search_entry.add_clear_button();
         self._add_widget(self._search_entry, expand=True)
-        
-        self.s_where = S_WHERE.file
-        self.use_regex = False
 
         self._findprev = ToolButton('go-previous')
         self._findprev.set_tooltip(_('Find previous'))
@@ -395,21 +396,35 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._findnext.show()
         self._findnext.connect('clicked', self._findnext_cb);
         
+        self._settings = ToolButton(CAP_ICONS[self.ignore_caps])
+        self._settings.set_tooltip(_('Search settings'))
+        self.insert(self._settings, -1)
+        self._settings.show()
+        self._settings.connect('clicked', self._settings_cb);
+        
         # Search settings menu
         # This menu should attach to something else beside findnext - location is temporary.
-        palette = self._findnext.get_palette()
+        palette = self._settings.get_palette()
         sswo = self._set_where_options
         ssho = self._set_how_options
+        ssco = self._set_cap_options
+        #TODO: move data structure to a member and the logic to a function
         for name, function, options, icon in (
+                (_('Ignore capitalization'),ssco,True,"ignore-caps"),
+                (_('Match capitalization'),ssco,False,"use-caps"),
+                (None,None,None,None),
                 (_('Search in selection'),sswo,S_WHERE.selection,"search-in-selection"),
                 (_('Search in current file'),sswo,S_WHERE.file,"system-search"),
                 (_('Search in all open files'),sswo,S_WHERE.multifile,"multi-search"),
+                (None,None,None,None),
                 (_('Simple search'),ssho,False,"system-search"),
                 (_('Advanced search'),ssho,True,"regex"),
                 ):
-            
-            menuitem = MenuItem(name,icon)
-            menuitem.connect('activate', function, options)
+            if not name:
+                menuitem = gtk.SeparatorMenuItem()
+            else:
+                menuitem = MenuItem(name,icon)
+                menuitem.connect('activate', function, options)
             palette.menu.append(menuitem)
             menuitem.show()
         
@@ -424,38 +439,119 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._replace_entry = iconentry.IconEntry()
         self._replace_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
                                               'system-replace')
+        self._replace_entry.connect('changed', self._replace_entry_changed_cb)
         self._replace_entry.add_clear_button();
         self._add_widget(self._replace_entry, expand=True)
         
         #replace button
-        self._replace_button = ToolButton('replace-and-find')
-        self.replace_all = False
+        self._replace_button = ToolButton(REPLACE_ICONS[self.replace_all])
         self._replace_button.set_tooltip(_('Replace'))
         self.insert(self._replace_button, -1)
         self._replace_button.show()
         self._replace_button.connect('clicked', self._replace_cb)
         
+        palette = self._replace_button.get_palette()
+        ssro = self._set_replace_options
+        #TODO: move data structure to a member and the logic to a function
+        for name, function, options, icon in (
+                (_('Replace one'),ssro,False,"replace-and-find"),
+                (_('Replace all'),ssro,True,"multi-replace"),
+                ):
+            if not name:
+                menuitem = gtk.SeparatorMenuItem()
+            else:
+                menuitem = MenuItem(name,icon)
+                menuitem.connect('activate', function, options)
+            palette.menu.append(menuitem)
+            menuitem.show()
         
         self._activity.editor.connect('changed', self._changed_cb)
+        
+        self._activity.connect('key_press_event', self._on_key_press_event)
+      
+    def _on_key_press_event(self, widget, event):
+        keyname = gtk.gdk.keyval_name(event.keyval)
+        if  "F5" <= keyname and keyname <= "F8":
+            if keyname == "F5":
+                self._go_to_search_entry_cb()
+            elif keyname == "F6":
+                self._findprev_cb()
+            elif keyname == "F7":
+                self._findnext_cb()
+            elif keyname == "F8":
+                self._replace_or_go_to_replace_entry_cb()
+            return True
+                
+    def _go_to_search_entry_cb(self):
+        entry = self._search_entry
+        text = self._activity.editor.get_selected()
+        if text:
+            entry.delete_text(0,-1)
+            entry.insert_text(text)
+        entry.select_region(0,-1)
+        entry.grab_focus()
+        self.switch_to()
+        
+    def _replace_or_go_to_replace_entry_cb(self):
+        if self.safe_to_replace:
+            self._replace_cb()
+        else:
+            self._replace_entry.select_region(0,-1)
+            self._replace_entry.grab_focus()
+            self.switch_to()
+    
+    def switch_to(self):
+        self._toolbox.set_current_toolbar(TOOLBAR_SEARCH)
                         
+    def _reset_search_icons(self):
+        self._search_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
+                    SEARCH_ICONS[self.use_regex][self.s_where])
+        self._settings.set_icon(CAP_ICONS[self.ignore_caps])
+        self._replace_button.set_icon(REPLACE_ICONS[self.replace_all])
+        self._reset_replace_sensitivity()
+    
+    def _reset_replace_sensitivity(self):
+        self._replace_button.set_sensitive(self.s_where == S_WHERE.selection 
+                    or self.replace_all)
+    
     def _set_where_options(self,menu,option):
-        #TODO: reset icons....
         self.s_where = option
+        self._reset_search_icons()
         
     def _set_how_options(self,menu,option):
-        #TODO: reset icons....
         self.use_regex = option
+        self._reset_search_icons()
+        
+    def _set_cap_options(self,menu,option):
+        self.ignore_caps = option
+        self._reset_search_icons()
+        
+    def _set_cap_options(self,menu,option):
+        self.ignore_caps = option
+        self._reset_search_icons()
+        
+    def _set_replace_options(self,menu,option):
+        self.replace_all = option
+        if option and self.s_where == S_WHERE.multifile:
+            self.s_where = S_WHERE.file #for safety:
+                    #do not replace all in multifile except explicitly
+        self._reset_search_icons()
         
     def _changed_cb(self, _buffer):
-        self._replace_button.set_sensitive(False)
-        if self.s_where == S_WHERE.selection:
-            self._set_search_options(s_where=S_WHERE.normal)
+        self._reset_replace_sensitivity()
+        #if self.s_where == S_WHERE.selection:
+        #    self._set_where_options(None,S_WHERE.file)
     
-    def _replace_cb(self, button):
+    def _settings_cb(self,button):
+        self._set_cap_options(None,not self.ignore_caps)
+    
+    def _replace_cb(self, button=None):
         ftext = self._search_entry.props.text
         rtext = self._replace_entry.props.text
-        self._activity.editor.replace(ftext, rtext, self.s_where,
-                    self.use_regex, self.replace_all)
+        replaced, found = self._activity.editor.replace(ftext, rtext, 
+                    self.s_where, self.use_regex, self.replace_all)
+        if found:
+            self._replace_button.set_sensitive(True)
 
     def _search_entry_activated_cb(self, entry):
         text = self._search_entry.props.text
@@ -463,6 +559,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
             self._findnext_cb(None)       
 
     def _search_entry_changed_cb(self, entry):
+        self.safe_to_replace = False
         text = self._search_entry.props.text
         if not text:
             self._findprev.set_sensitive(False)
@@ -471,26 +568,31 @@ class DevelopSearchToolbar(gtk.Toolbar):
             self._findprev.set_sensitive(True)
             self._findnext.set_sensitive(True)
             if not self.use_regex: #do not do partial searches for regex
-                if self._activity.editor.find_next(text, True, self.s_where == S_WHERE.multifile, 
+                if self._activity.editor.find_next(text, True, False, #no multifile or focus gets grabbed 
                         self.s_where == S_WHERE.selection, self.use_regex):
                     self._replace_button.set_sensitive(True)
+                    
+    def _replace_entry_changed_cb(self, entry):
+        if self._replace_entry.props.text:
+            self.safe_to_replace = True
             
-    def _findprev_cb(self, button):
+    def _findprev_cb(self, button=None):
         text = self._search_entry.props.text
         if text:
-            if self._activity.editor.find_prev(text, s_where=self.s_where, 
-                            use_regex=self.use_regex):
+            if self._activity.editor.find_next(ftext = text, stay = False, 
+                    multifile = self.s_where == S_WHERE.multifile, 
+                    selection = self.s_where == S_WHERE.selection, 
+                    use_regex = self.use_regex, forward = False):
                 self._replace_button.set_sensitive(True)
                         
-    def _findnext_cb(self, button):
+    def _findnext_cb(self, button=None):
         text = self._search_entry.props.text
         if text:
-            if self._activity.editor.find_next(text, False, self.s_where == S_WHERE.multifile, 
-                    self.s_where == S_WHERE.selection, self.use_regex):
+            if self._activity.editor.find_next(ftext = text, stay = False, 
+                    multifile = self.s_where == S_WHERE.multifile, 
+                    selection = self.s_where == S_WHERE.selection, 
+                    use_regex = self.use_regex):
                 self._replace_button.set_sensitive(True)
-            
-    def _goto_find_cb(self):
-        _toolbox.set_current_toolbar(TOOLBAR_TABLE)
             
     # bad paul! this function was copied from sugar's activity.py via Write
     def _add_widget(self, widget, expand=False):

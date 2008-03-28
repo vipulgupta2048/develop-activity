@@ -33,6 +33,8 @@ from sugar import env
 
 import activity_model
 
+from sourceview_editor import SearchablePage
+
 #does not import develop_app, but references internals from the activity,
 # as passed to init.
 #In other words, needs refactoring.
@@ -115,7 +117,7 @@ class LogMinder(gtk.VBox):
             self._model.refresh()
             #If the log is open, just leave it that way
 
-    # Load the log information in View (textview)
+    # Load the log information in View (text_view)
     def _load_log(self, treeview):
         node = activity_model.get_selected_file(self._tv_menu)
         print node
@@ -190,7 +192,7 @@ class LogBuffer(gtk.TextBuffer):
             self.insert(self.get_end_iter(), "Console error: can't open the file\n")
             self._written = 0
 
-class LogView(gtk.ScrolledWindow):
+class LogView(SearchablePage):
     def __init__(self,logpath,logminder):
         gtk.ScrolledWindow.__init__(self)
 
@@ -199,20 +201,21 @@ class LogView(gtk.ScrolledWindow):
         self.logminder._openlogs.append(self)
         self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 
-        self.textview = gtk.TextView()
-        self.textview.set_wrap_mode(gtk.WRAP_WORD)
+        self.text_view = gtk.TextView()
+        self.text_view.set_wrap_mode(gtk.WRAP_WORD)
         
         newbuffer = self._create_log_buffer(logpath)
         if newbuffer:
-            self.textview.set_buffer(newbuffer)
+            self.text_view.set_buffer(newbuffer)
+            self.text_buffer = newbuffer
         # Set background color
         bgcolor = gtk.gdk.color_parse("#FFFFFF")
-        self.textview.modify_base(gtk.STATE_NORMAL, bgcolor)
+        self.text_view.modify_base(gtk.STATE_NORMAL, bgcolor)
 
-        self.textview.set_editable(False)
+        self.text_view.set_editable(False)
 
-        self.add(self.textview)
-        self.textview.show()
+        self.add(self.text_view)
+        self.text_view.show()
         
     def remove(self):
         self.logminder._remove_logview(self)
@@ -240,6 +243,9 @@ class LogView(gtk.ScrolledWindow):
 
     def __eq__(self,other):
         return  other == self.logpath or other == self.filename 
+    
+    def replace(self, *args, **kw):
+        return (False,False)
 
 
 

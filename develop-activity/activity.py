@@ -51,6 +51,7 @@ import time
 import tempfile
 from hashlib import sha1
 import traceback
+import warnings
 
 import gtk, gobject
 import dbus
