@@ -343,7 +343,7 @@ class GtkSourceview2Page(SearchablePage):
         self.text_view.set_auto_indent(True)
 
         self.text_view.set_wrap_mode(gtk.WRAP_CHAR)
-        self.text_view.modify_font(pango.FontDescription("Monospace 9"))
+        self.text_view.modify_font(pango.FontDescription("Monospace 6.5"))
 
         # We could change the color theme here, if we want to.
         #mgr = gtksourceview2.style_manager_get_default()
