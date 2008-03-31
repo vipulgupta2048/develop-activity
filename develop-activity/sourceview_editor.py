@@ -100,41 +100,39 @@ class GtkSourceview2Editor(notebook.Notebook):
         if page:
             page.paste()
 
-    def replace(self, ftext, rtext, s_where, use_regex, replace_all):
+    def replace(self, ftext, rtext, s_opts):
         replaced = False
-        if use_regex and issubclass(type(ftext),basestring):
+        if s_opts.use_regex and issubclass(type(ftext),basestring):
             ftext = re.compile(ftext)
-        multifile = (s_where == S_WHERE.multifile)
-        if multifile and replace_all:
+        multifile = (s_opts.where == S_WHERE.multifile)
+        if multifile and s_opts.replace_all:
             for n in range(self.get_n_pages()):
                 page = self.get_nth_page(n)
                 replaced = page.replace(ftext, rtext, 
-                                False, use_regex, replace_all) or replaced
+                                s_opts) or replaced
             return (replaced, False) #not found-again
         
         page = self._get_page()
         if page:
-            selection = s_where == S_WHERE.selection
-            replaced = page.replace(ftext, rtext, selection, 
-                    use_regex, replace_all)
-            if replace_all:
+            selection = s_opts.where == S_WHERE.selection
+            replaced = page.replace(ftext, rtext, s_opts)
+            if s_opts.replace_all:
                 return (replaced, False)
             elif not selection:
-                found = self.find_next(ftext,stay=False,multifile=multifile, 
-                        selection=selection,use_regex=use_regex,page=page)
+                found = self.find_next(ftext,s_opts,page)
                 return (replaced, found)
             else:
                 #for replace-in-selection, leave selection unmodified
                 return (replaced, replaced)
         
-    def find_next(self, ftext, stay=True, multifile=False, selection=False, 
-                use_regex = False, page=None, forward = True):
-        if page==None:
+    def find_next(self, ftext, s_opts, page=None):
+        if not page:
             page = self._get_page()
         if page:
-            if use_regex and issubclass(type(ftext),basestring):
+            if s_opts.use_regex and issubclass(type(ftext),basestring):
                 ftext = re.compile(ftext)
-            if page.find_next(ftext,stay,selection,use_regex,wrap=not multifile,forward=forward):
+            if page.find_next(ftext,s_opts,
+                                wrap=(s_opts.where != S_WHERE.multifile)):
                 return True
             else:
                 if multifile:
@@ -143,8 +141,8 @@ class GtkSourceview2Editor(notebook.Notebook):
                     for i in range(1,n_pages):
                         page = self.get_nth_page((current_page + i) % n_pages)
                         if isinstance(page,SearchablePage):
-                            if page.find_next(ftext,stay,selection, use_regex,
-                                        wrap = True,forward=forward):
+                            if page.find_next(ftext,s_opts,
+                                        wrap = True):
                                 self.set_current_page((current_page + i) % 
                                         n_pages)
                                 return True
@@ -218,10 +216,10 @@ class SearchablePage(gtk.ScrolledWindow):
         """
         self.text_buffer.paste_clipboard(gtk.Clipboard(), None, True)
         
-    def _getMatches(self,buffertext,fpat,use_regex,offset):
-        if use_regex:
+    def _getMatches(self,buffertext,fpat,s_opts,offset):
+        if s_opts.use_regex:
             while True:
-                match = fpat.search(buffertext)
+                match = fpat.search(buffertext,re.I if s_opts.ignore_caps else 0)
                 if match:
                     start,end = match.span()
                     yield (start+offset,end+offset,match)
@@ -230,6 +228,11 @@ class SearchablePage(gtk.ScrolledWindow):
                 buffertext, offset = buffertext[end:],offset+end
         else:
             while True:
+                if s_opts.ignore_caps:
+                    #possible optimization: turn fpat into a regex by escaping, 
+                    #then use re.i
+                    buffertext = buffertext.lower()
+                    fpat = fpat.lower()
                 match = buffertext.find(fpat)
                 if match >= 0:
                     end = match+len(fpat)
@@ -238,16 +241,18 @@ class SearchablePage(gtk.ScrolledWindow):
                     return
                 buffertext, offset = buffertext[end:], offset + end
 
-    def _match(self, pattern, text, use_regex):
-        if use_regex:
-            return pattern.match(text)
+    def _match(self, pattern, text, s_opts):
+        if s_opts.use_regex:
+            return pattern.match(text,re.I if s_opts.ignore_caps else 0)
         else:
+            if s_opts.ignore_caps:
+                pattern = pattern.lower()
+                text = text.lower()
             return pattern == text
     
-    def _find_in(self, text, fpat, offset, use_regex, offset_add = 0, 
-            forward = True):
-        if forward:
-            matches = self._getMatches(text[offset:],fpat,use_regex,
+    def _find_in(self, text, fpat, offset, s_opts, offset_add = 0):
+        if s_opts.forward:
+            matches = self._getMatches(text[offset:],fpat,s_opts,
                     offset+offset_add)
             try:
                 return matches.next()
@@ -256,21 +261,19 @@ class SearchablePage(gtk.ScrolledWindow):
         else:
             if offset != 0:
                 text = text[:offset]
-            matches = list(self._getMatches(text,fpat,use_regex,
+            matches = list(self._getMatches(text,fpat,s_opts,
                     offset_add))
             if matches:
                 return matches[-1]
             else:
                 return ()
             
-    def find_next(self, ftext, stay=True, selection=False, use_regex=False, 
-            wrap=True, forward=True):
+    def find_next(self, ftext, s_opts, wrap=True):
         """
         Scroll to the next place where the string text appears.
         If stay is True and text is found at the current position, stay where we are.
         """
-        if selection:
-            print "find in selection"
+        if s_opts.where == S_WHERE.selection:
             try:
                 selstart, selend = self.text_buffer.get_selection_bounds()
             except (ValueError,TypeError):
@@ -279,22 +282,22 @@ class SearchablePage(gtk.ScrolledWindow):
             buffertext = self.text_buffer.get_slice(selstart,selend)
             print buffertext
             try:
-                start, end, match = self._find_in(buffertext,ftext,0,use_regex,
-                        offsetadd,forward)
+                start, end, match = self._find_in(buffertext,ftext,0,s_opts,
+                        offsetadd)
             except (ValueError,TypeError):
                 return False
         else:
-            offset = self.get_offset() + (not stay) #add 1 if not stay.
+            offset = self.get_offset() + (not s_opts.stay) #add 1 if not stay.
             text = self.get_text()
             try:
                 start,end,match = self._find_in(text,ftext,offset,
-                            use_regex,0,forward)
+                            s_opts,0)
             except (ValueError,TypeError):
                 #find failed.
                 if wrap:
                     try:
                         start,end,match = self._find_in(text,ftext,0,
-                                    use_regex,0,forward)
+                                    s_opts,0)
                     except (ValueError,TypeError):
                         return False
                 else:
@@ -426,10 +429,10 @@ class GtkSourceview2Page(SearchablePage):
         """
         self.text_buffer.redo()
             
-    def replace(self, ftext, rtext, selection, 
-                    use_regex, replace_all):
+    def replace(self, ftext, rtext, s_opts):
         """returns true if replaced (succeeded)"""
-        if replace_all or selection:
+        selection = s_opts.where == S_WHERE.selection
+        if s_opts.replace_all or selection:
             result = False
             if selection:
                 try:
@@ -442,8 +445,8 @@ class GtkSourceview2Page(SearchablePage):
                 offsetadd = 0
                 buffertext = self.get_text()
             results = list(self._getMatches(buffertext,ftext,
-                                            use_regex,offsetadd))
-            if not replace_all:
+                                            s_opts,offsetadd))
+            if not s_opts.replace_all:
                 results = [results[0]]
             else:
                 results.reverse() #replace right-to-left so that 
@@ -453,7 +456,7 @@ class GtkSourceview2Page(SearchablePage):
                 start = self.text_buffer.get_iter_at_offset(start)
                 end = self.text_buffer.get_iter_at_offset(end)
                 self.text_buffer.delete(start,end)
-                self.text_buffer.insert(start, self.makereplace(rtext,match,use_regex))
+                self.text_buffer.insert(start, self.makereplace(rtext,match,s_opts.use_regex))
                 result = True
             self.text_buffer.end_user_action()
             return result
@@ -464,10 +467,10 @@ class GtkSourceview2Page(SearchablePage):
                 return False
             match = self._match(ftext,
                         self.text_buffer.get_slice(start,end),
-                        use_regex)
+                        s_opts)
             if match:
                 self.text_buffer.delete(start, end)
-                rtext = self.makereplace(rtext,match,use_regex)
+                rtext = self.makereplace(rtext,match,s_opts.use_regex)
                 self.text_buffer.insert(start, rtext)
                 return True
             else:

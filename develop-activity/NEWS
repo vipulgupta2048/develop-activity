@@ -1,3 +1,7 @@
+33
+fixed icons, fixed ignore-case, refactored search options (pass in 
+object rather than half-dozen options)
+
 32
 find/replace done, with accelerators. Known bugs:
 -Double log tab (understood, just haven't got around to fixing)

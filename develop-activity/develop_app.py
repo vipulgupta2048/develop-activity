@@ -71,6 +71,17 @@ REPLACE_ICONS = {False:"replace-and-find",
 
 TOOLBAR_SEARCH = 2
 
+class Options:
+    def __init__(self, template = None, **kw):
+        if template:
+            self.__dict__ = template.__dict__.copy()
+        else:
+            self.__dict__ = {}
+        self.__dict__.update(kw)
+
+class SearchOptions(Options):
+    pass
+    
 class DevelopActivity(ViewSourceActivity):
     """Develop Activity as specified in activity.info"""
         
@@ -369,16 +380,24 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._activity = _activity
 
         # setup the search options
-        self.s_where = S_WHERE.multifile
-        self.use_regex = False
-        self.ignore_caps = True
-        self.replace_all = False
+        self.s_opts = SearchOptions(where = S_WHERE.multifile,
+                                    use_regex = False,
+                                    ignore_caps = True,
+                                    replace_all = False,
+                                    
+                                    #defaults to avoid creating
+                                    #a new SearchOptions object for normal searches
+                                    #should never be changed, just make a copy like:
+                                    #SearchOptions(self.s_opts,forward=False)
+                                    forward = True, 
+                                    stay = False
+                                    )
         self.safe_to_replace = False
         
         
         self._search_entry = iconentry.IconEntry()
         self._search_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
-                                    SEARCH_ICONS[self.use_regex][self.s_where])
+                                    SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
         self._search_entry.connect('activate', self._search_entry_activated_cb)
         self._search_entry.connect('changed', self._search_entry_changed_cb)
         self._search_entry.add_clear_button();
@@ -396,7 +415,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._findnext.show()
         self._findnext.connect('clicked', self._findnext_cb);
         
-        self._settings = ToolButton(CAP_ICONS[self.ignore_caps])
+        self._settings = ToolButton(CAP_ICONS[self.s_opts.ignore_caps])
         self._settings.set_tooltip(_('Search settings'))
         self.insert(self._settings, -1)
         self._settings.show()
@@ -444,7 +463,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._add_widget(self._replace_entry, expand=True)
         
         #replace button
-        self._replace_button = ToolButton(REPLACE_ICONS[self.replace_all])
+        self._replace_button = ToolButton(REPLACE_ICONS[self.s_opts.replace_all])
         self._replace_button.set_tooltip(_('Replace'))
         self.insert(self._replace_button, -1)
         self._replace_button.show()
@@ -505,51 +524,47 @@ class DevelopSearchToolbar(gtk.Toolbar):
                         
     def _reset_search_icons(self):
         self._search_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
-                    SEARCH_ICONS[self.use_regex][self.s_where])
-        self._settings.set_icon(CAP_ICONS[self.ignore_caps])
-        self._replace_button.set_icon(REPLACE_ICONS[self.replace_all])
+                    SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
+        self._settings.set_icon(CAP_ICONS[self.s_opts.ignore_caps])
+        self._replace_button.set_icon(REPLACE_ICONS[self.s_opts.replace_all])
         self._reset_replace_sensitivity()
     
     def _reset_replace_sensitivity(self):
-        self._replace_button.set_sensitive(self.s_where == S_WHERE.selection 
-                    or self.replace_all)
+        self._replace_button.set_sensitive(self.s_opts.where == S_WHERE.selection 
+                    or self.s_opts.replace_all)
     
     def _set_where_options(self,menu,option):
-        self.s_where = option
+        self.s_opts.where = option
         self._reset_search_icons()
         
     def _set_how_options(self,menu,option):
-        self.use_regex = option
+        self.s_opts.use_regex = option
         self._reset_search_icons()
         
     def _set_cap_options(self,menu,option):
-        self.ignore_caps = option
-        self._reset_search_icons()
-        
-    def _set_cap_options(self,menu,option):
-        self.ignore_caps = option
+        self.s_opts.ignore_caps = option
         self._reset_search_icons()
         
     def _set_replace_options(self,menu,option):
-        self.replace_all = option
-        if option and self.s_where == S_WHERE.multifile:
-            self.s_where = S_WHERE.file #for safety:
+        self.s_opts.replace_all = option
+        if option and self.s_opts.where == S_WHERE.multifile:
+            self.s_opts.where = S_WHERE.file #for safety:
                     #do not replace all in multifile except explicitly
         self._reset_search_icons()
         
     def _changed_cb(self, _buffer):
         self._reset_replace_sensitivity()
-        #if self.s_where == S_WHERE.selection:
+        #if self.s_opts.where == S_WHERE.selection:
         #    self._set_where_options(None,S_WHERE.file)
     
     def _settings_cb(self,button):
-        self._set_cap_options(None,not self.ignore_caps)
+        self._set_cap_options(None,not self.s_opts.ignore_caps)
     
     def _replace_cb(self, button=None):
         ftext = self._search_entry.props.text
         rtext = self._replace_entry.props.text
         replaced, found = self._activity.editor.replace(ftext, rtext, 
-                    self.s_where, self.use_regex, self.replace_all)
+                    self.s_opts)
         if found:
             self._replace_button.set_sensitive(True)
 
@@ -567,9 +582,10 @@ class DevelopSearchToolbar(gtk.Toolbar):
         else:
             self._findprev.set_sensitive(True)
             self._findnext.set_sensitive(True)
-            if not self.use_regex: #do not do partial searches for regex
-                if self._activity.editor.find_next(text, True, False, #no multifile or focus gets grabbed 
-                        self.s_where == S_WHERE.selection, self.use_regex):
+            if not self.s_opts.use_regex: #do not do partial searches for regex
+                if self._activity.editor.find_next(text, SearchOptions(self.s_opts, stay=False, 
+                          where=(self.s_opts.where if self.s_opts.where != S_WHERE.multifile
+                                 else S_WHERE.file))):#no multifile or focus gets grabbed
                     self._replace_button.set_sensitive(True)
                     
     def _replace_entry_changed_cb(self, entry):
@@ -577,21 +593,15 @@ class DevelopSearchToolbar(gtk.Toolbar):
             self.safe_to_replace = True
             
     def _findprev_cb(self, button=None):
-        text = self._search_entry.props.text
-        if text:
-            if self._activity.editor.find_next(ftext = text, stay = False, 
-                    multifile = self.s_where == S_WHERE.multifile, 
-                    selection = self.s_where == S_WHERE.selection, 
-                    use_regex = self.use_regex, forward = False):
+        ftext = self._search_entry.props.text
+        if ftext:
+            if self._activity.editor.find_next(ftext, SearchOptions(self.s_opts,forward=False)):
                 self._replace_button.set_sensitive(True)
                         
     def _findnext_cb(self, button=None):
-        text = self._search_entry.props.text
-        if text:
-            if self._activity.editor.find_next(ftext = text, stay = False, 
-                    multifile = self.s_where == S_WHERE.multifile, 
-                    selection = self.s_where == S_WHERE.selection, 
-                    use_regex = self.use_regex):
+        ftext = self._search_entry.props.text
+        if ftext:
+            if self._activity.editor.find_next(ftext, self.s_opts):
                 self._replace_button.set_sensitive(True)
             
     # bad paul! this function was copied from sugar's activity.py via Write

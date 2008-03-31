@@ -18,18 +18,10 @@
 </defs>
 
 <path
-   d="M 4.1155966,5.5522673 L 4.0877291,3.4558461 L 21.363755,3.4558461 L 21.363755,15.485356 L 0.81072368,15.485356 L 0.81072368,5.5445003 L 4.1155966,5.5522673 z "
-   style="fill:#ffffff;stroke:#4d4d4d;stroke-width:1.46495032;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-   id="rect3335" /><line
-   style="opacity:1;color:#000000;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:4.74423075;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
-   id="line2276"
-   y2="20.342165"
-   x2="21.597151"
-   y1="13.571618"
-   x1="14.828717" /><path
-   d="M 4.3482584,9.7645669 C 4.3482584,13.451098 7.3350191,16.44054 11.022444,16.44054 C 14.705401,16.44054 17.694843,13.451098 17.694843,9.7645669 C 17.694843,6.0798229 14.705401,3.0921686 11.022444,3.0921686 C 7.3350191,3.0921686 4.3482584,6.0798229 4.3482584,9.7645669 z "
-   style="opacity:1;color:#000000;fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:4.46852255;stroke-linecap:butt;stroke-linejoin:miter;marker:none;marker-start:none;marker-mid:none;marker-end:none;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
-   id="path2274" /><g
+   d="M 3.9375,3.21875 L 3.9375,4.09375 L 4,5.6875 L 0.96875,5.6875 L 0.125,5.6875 L 0.125,6.53125 L 0.125,18.3125 L 0.125,19.15625 L 0.96875,19.15625 L 5.8125,19.15625 C 5.2625463,18.632963 4.7721311,18.035716 4.34375,17.40625 L 1.8125,17.40625 L 1.8125,7.40625 L 3.34375,7.40625 C 4.0538674,5.7487554 5.1865435,4.3136428 6.59375,3.21875 L 4.84375,3.21875 L 3.9375,3.21875 z M 19.4375,3.21875 C 20.082213,3.720254 20.673859,4.3027456 21.1875,4.9375 L 24.34375,4.9375 L 24.34375,17.40625 L 22.84375,17.40625 L 24.59375,19.15625 L 25.25,19.15625 L 26.09375,19.15625 L 26.09375,18.3125 L 26.09375,4.09375 L 26.09375,3.21875 L 25.25,3.21875 L 19.4375,3.21875 z "
+   transform="scale(0.8469419,0.8469419)"
+   style="fill:#4d4d4d;fill-opacity:1;stroke:none;stroke-width:1.46495032;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+   id="rect3335" /><g
    transform="matrix(0.8469419,0,0,0.8469419,3.215287,1.9592438)"
    id="g2272">
 	<path

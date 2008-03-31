@@ -4,6 +4,6 @@ bundle_id = org.laptop.Develop
 service_name = org.laptop.Develop
 exec = ./developrunner.sh
 icon = activity-develop
-activity_version = 32
+activity_version = 33
 mime_types = application/vnd.olpc-sugar;x/application/vnd.olpc-sugar;application/vnd.oasis.opendocument.text
 show_launcher = yes

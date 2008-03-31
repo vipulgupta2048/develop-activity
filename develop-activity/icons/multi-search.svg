@@ -1,86 +1,32 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Generator: Adobe Illustrator 13.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 14948)  -->
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://web.resource.org/cc/"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:svg="http://www.w3.org/2000/svg"
    xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    version="1.0"
-   id="Layer_1"
-   x="0px"
-   y="0px"
    width="26.16"
    height="26.16"
    viewBox="0 0 22.156 22.156"
-   enable-background="new 0 0 22.156 22.156"
-   xml:space="preserve"
-   sodipodi:version="0.32"
-   inkscape:version="0.45.1"
-   sodipodi:docname="multi-search.svg"
-   sodipodi:docbase="/home/chema/Activities/Develop.activity/icons"
-   inkscape:output_extension="org.inkscape.output.svg.inkscape"><metadata
-   id="metadata2281"><rdf:RDF><cc:Work
-       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
-         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><defs
+   id="Layer_1"
+   xml:space="preserve"><defs
    id="defs2279">
 	
 	
-</defs><sodipodi:namedview
-   inkscape:window-height="666"
-   inkscape:window-width="910"
-   inkscape:pageshadow="2"
-   inkscape:pageopacity="0.0"
-   guidetolerance="10.0"
-   gridtolerance="10.0"
-   objecttolerance="10.0"
-   borderopacity="1.0"
-   bordercolor="#666666"
-   pagecolor="#ffffff"
-   id="base"
-   showguides="true"
-   inkscape:guide-bbox="true"
-   width="26.16px"
-   height="26.16px"
-   inkscape:zoom="12.71875"
-   inkscape:cx="7.8353259"
-   inkscape:cy="9.8923381"
-   inkscape:window-x="0"
-   inkscape:window-y="25"
-   inkscape:current-layer="Layer_1" />
 
-<g
-   id="g3266"
-   transform="matrix(0.8469419,0,0,0.8469419,0.3557692,3.0316648)">
+	
+	
+</defs>
+
+<path
+   d="M 3.1495652,4.9493167 C 1.2920435,6.3802271 0.079400803,8.6048814 0.079400803,11.116112 C 0.079400873,15.410289 3.5916003,18.923858 7.8871464,18.923858 C 9.4967527,18.923857 11.00665,18.418862 12.254191,17.574044 L 12.280658,17.574044 L 16.753569,22.046956 L 18.315119,20.485407 L 13.842207,16.012495 L 13.81574,16.012495 C 12.568199,16.857313 11.058302,17.362309 9.4486956,17.362309 C 5.1531494,17.362309 1.64095,13.84874 1.6409499,9.5545633 C 1.6409499,7.8347084 2.1975272,6.243438 3.1495652,4.9493167 z "
+   style="fill:#4c4d4f;fill-opacity:1;stroke:none;stroke-width:2.96429658;stroke-opacity:1"
+   id="path3268" /><g
+   transform="matrix(0.8469419,0,0,0.8469419,3.2152869,0.26536)"
+   id="g2272">
 	<path
    d="M 1.75,9.216 C 1.75,13.341 5.092,16.686 9.218,16.686 C 13.339,16.686 16.684,13.341 16.684,9.216 C 16.684,5.093 13.339,1.75 9.218,1.75 C 5.092,1.75 1.75,5.093 1.75,9.216 z "
-   id="path3268"
-   style="fill:none;stroke:#4c4d4f;stroke-width:3.5" />
-	<line
-   x1="14.498"
-   y1="14.497"
-   x2="20.917999"
-   y2="20.919001"
-   id="line3270"
-   style="fill:none;stroke:#4c4d4f;stroke-width:3.5" />
-</g><path
-   style="fill:#ffffff;stroke:#ffffff;stroke-width:2.96429658"
-   id="path2290"
-   d="M 3.3694882,9.3721002 C 3.3694882,12.865737 6.1999679,15.698756 9.69445,15.698756 C 13.184696,15.698756 16.017717,12.865737 16.017717,9.3721002 C 16.017717,5.8801586 13.184696,3.0488328 9.69445,3.0488328 C 6.1999679,3.0488328 3.3694882,5.8801586 3.3694882,9.3721002 z " /><line
-   style="fill:#ffffff;stroke:#ffffff;stroke-width:2.96429658;stroke-opacity:1"
-   id="line2292"
-   y2="19.283865"
-   x2="19.603672"
-   y1="13.844799"
-   x1="14.166301" /><g
-   id="g2272"
-   transform="matrix(0.8469419,0,0,0.8469419,3.2152869,0.26536)">
-	<path
-   d="M 1.75,9.216 C 1.75,13.341 5.092,16.686 9.218,16.686 C 13.339,16.686 16.684,13.341 16.684,9.216 C 16.684,5.093 13.339,1.75 9.218,1.75 C 5.092,1.75 1.75,5.093 1.75,9.216 z "
-   id="path2274"
-   style="fill:none;stroke:#4c4d4f;stroke-width:3.5" />
+   style="fill:none;stroke:#4c4d4f;stroke-width:3.5"
+   id="path2274" />
 	<line
    x1="14.498"
    y1="14.497"
