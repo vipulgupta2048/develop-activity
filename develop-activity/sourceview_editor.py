@@ -135,7 +135,7 @@ class GtkSourceview2Editor(notebook.Notebook):
                                 wrap=(s_opts.where != S_WHERE.multifile)):
                 return True
             else:
-                if multifile:
+                if (s_opts.where == S_WHERE.multifile):
                     current_page = self.get_current_page()
                     n_pages = self.get_n_pages() 
                     for i in range(1,n_pages):
@@ -296,8 +296,7 @@ class SearchablePage(gtk.ScrolledWindow):
                 #find failed.
                 if wrap:
                     try:
-                        start,end,match = self._find_in(text,ftext,0,
-                                    s_opts,0)
+                        start,end,match = self._find_in(text,ftext,0,s_opts,0)
                     except (ValueError,TypeError):
                         return False
                 else:
