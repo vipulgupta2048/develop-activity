@@ -1,21 +1,22 @@
 #
+from gettext import gettext as _
+import os.path
 
-try:
-    from sugar.activity.activity import INSTANCE_DIR
-    from sugar.activity.activity import Activity
-    from sugar.activity import activity
-except ImportError:
-    from activity import Activity
-    import activity
+#TODO: get dirty, use sugar.activity.activity
+#from sugar.activity.activity import Activity
+#from sugar.activity import activity
+
+from activity import Activity
+import activity
+
 from sugar.datastore import datastore
 from sugar import profile
-from gettext import gettext as _
 try:
-    from sugar.activity.bundlebuilder import Bundlebuilder, extract_bundle
+    from sugar.activity.bundlebuilder import XOPackager, Config
 except ImportError:
-    from bundlebuilder import Bundlebuilder
+    from bundlebuilder import XOPackager
 
-OPENFILE_SEPARATOR = u"@@"
+OPENFILE_SEPARATOR = u"@ @"
 
 class ViewSourceActivity(Activity):
     """Activity subclass which handles the 'view source' key."""
@@ -34,11 +35,10 @@ class ViewSourceActivity(Activity):
         if not activity_dir:
             raise NotImplementedError
         
-        if not file_path:
-            file_path
         #create bundle
-        builder = Bundlebuilder(activity_dir)
-        name_version = builder.cmd_dist(storage_directory=file_path)
+        dist_dir, dist_name = os.path.split(file_path)
+        builder = XOPackager(Config(activity_dir, dist_dir, dist_name))
+        builder.package()
         
         #set up datastore object
         jobject = datastore.create()
@@ -48,9 +48,10 @@ class ViewSourceActivity(Activity):
             icon_color = profile.get_color().to_string()
 
         metadata = {
-            'title': _('%s Bundle') % builder._get_activity_name(),
+            'title': _('%s Bundle') % builder.config.activity_name,
             'title_set_by_user': '1',
-            'suggested_filename': name_version or (bundlename._get_activity_name() + '.xo'),
+            'suggested_filename': '%s-%d.xo' % (builder.config.bundle_name, 
+                                                builder.config.version),
             'icon-color': icon_color,
             'mime_type': 'application/vnd.olpc-sugar',
             'activity' : self.get_bundle_id(),
@@ -59,7 +60,7 @@ class ViewSourceActivity(Activity):
             'preview' : '',
             'source' : activity_dir,
             }
-        for k,v in metadata.items():
+        for k, v in metadata.items():
             jobject.metadata[k] = v # dict.update method is missing =(
         if filenames:
             jobject.metadata['open_filenames'] = filenames
@@ -72,9 +73,8 @@ class ViewSourceActivity(Activity):
         """Implement the 'view source' key by saving a .xo bundle to the
         datastore, and then telling the Journal to view it."""
         if self.__source_object_id is None:
-            from sugar.datastore import datastore
-            from sugar.activity.activity import get_activity_root, get_bundle_path
-            jobject = save_source_jobject(get_bundle_path(),get_activity_root())
+            jobject = self.save_source_jobject(activity.get_bundle_path(),
+                                          activity.get_activity_root())
             self.__source_object_id = jobject.object_id
             jobject.destroy()
         self.journal_show_object(self.__source_object_id)

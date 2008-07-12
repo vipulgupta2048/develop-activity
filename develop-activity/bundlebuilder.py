@@ -1,4 +1,4 @@
-# Copyright (C) 2006-2007 Red Hat, Inc.
+# Copyright (C) 2008 Red Hat, Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -14,449 +14,454 @@
 # License along with this library; if not, write to the
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
-"""bundlebuilder is a module. 
 
-bundlebuilder.Bundlebuilder is a class. Each instance performs functions
-on a given root activity directory, set in __init__.
-
-bundlebuilder.bundlebuilder is an instance, initialized to the current
-working directory when the module bundlebuilder was first loaded.
-
-In general, 
-bundlebuilder.function() 
-is equivalent to 
-bundlebuilder.bundlebuilder.function() #really a method here.
-
-bundlebuilder.bundlebuilder is callable. bundlebuilder.start just calls it
-using the arguments from sys.argv[]
-"""
-import sys
 import os
 import zipfile
+import tarfile
 import shutil
 import subprocess
 import re
+from fnmatch import fnmatchcase as fnmatch
 import gettext
+from optparse import OptionParser
 
 from sugar import env
 from sugar.bundle.activitybundle import ActivityBundle
 
-manifest = 'MANIFEST'
+DEFAULT_GITIGNORE = (
+"""*.xo
+*.pyc
+*.bak
+*~
+/.git/
+/.gitignore
+/dist/
+""")
 
-######### These four list classes use the current working directory 
-class _SvnFileList(list):
-    def __init__(self):
-        f = os.popen('svn list -R')
-        for line in f.readlines():
-            filename = line.strip()
-            if os.path.isfile(filename):
-                self.append(filename)
-        f.close()
+STRUCTURE_DIR = "STRUCTURE"
+MANIFEST_FILE = "MANIFEST"
+TRANSLATABLES_FILE = "TRANSLATABLES"
+HASHES_FILE = "HASHES"
+HASHES_DIR = "TRANSLATABLE_HASHES"
+SIGNATURES_DIR = "SIGNATURES"
+GITIGNORE_FILE = ".gitignore"
+SIG_EXT = ".sig"
+PUB_EXT = ".pub"
 
-class _GitFileList(list):
-    def __init__(self):
-        f = os.popen('git-ls-files')
-        for line in f.readlines():
-            filename = line.strip()
-            if not filename.startswith('.'):
-                self.append(filename)
-        f.close()
 
-class _DefaultFileList(list):
-    def __init__(self):
-        for name in os.listdir('activity'):
-            if name.endswith('.svg'):
-                self.append(os.path.join('activity', name))
+def fn_path_match(pattern_parts,path_parts):
+    if (path_parts[-1] = "" and pattern_parts[-1] != ""):
+        path_parts = path_parts[:-1] #foo*bar matches foobar/
+    if ( (pattern_parts[0] = "" and  #leading / in pattern...
+          len(path_parts) == len(pattern_parts) - 1) #...only matches from head
+        or 
+         (len(path_parts) >= len(pattern_parts))): #otherwise, pattern must final subset
+        commonlen = min(len(path_parts),len(pattern_parts))
+        for path_part,pattern_part in zip(path_parts[-commmonlen:],
+                                          pattern_parts[-commonlen:]):
+            #compare part by part, "right-aligned"
+            if not fnmatch(path_part,pattern_part):
+                return False 
+        return True #all patterns matched
+    return False #pattern longer than path
 
-        self.append('activity/activity.info')
-
-        if os.path.isfile(os.path.join(os.getcwd(),'NEWS')):
-            self.append('NEWS')
-
-class _ManifestFileList(_DefaultFileList):
-    def __init__(self):
-        _DefaultFileList.__init__(self)
-        self.append(manifest)
-
-        f = open(manifest,'r')
-        for line in f.readlines():
-            stripped_line = line.strip()
-            if stripped_line and not stripped_line in self:
-                self.append(stripped_line)
-        f.close()
-
-def extract_bundle(source_file, dest_dir):
-    dest_dir = (dest_dir if os.path.isabs(dest_dir) else 
-                    os.path.join(self.path,dest_dir))
-    if not os.path.exists(dest_dir):
-        os.mkdir(dest_dir)
-
-    if not os.path.isabs(source_file):
-        source_file = os.path.join(os.getcwd(),source_file)
-    zf = zipfile.ZipFile(source_file)
-
-    namelist = zf.namelist()
-    for name in namelist:
-        path = os.path.join(dest_dir, name)
+class Ignorer(object):
+    def __init__(self, gitignore):
+        patterns = [pat for pat in gitignore.splitlines()
+                         if (pat and not pat.startswith("#"))]
+        def is_ignore(pat):
+            "returns (ignore_bool,(...pattern parts...))"
+            if pat.startswith("!"):
+                return (True,pat[1:].split(os.sep))
+            else:
+                return (False,pat.split(os.sep))
+            
+        self.patterns = map(is_anti,patterns)
         
-        if not os.path.exists(os.path.dirname(path)):
-            os.makedirs(os.path.dirname(path))
+    
+    def ignore(self,filepath_start,more_filepath_parts=()):
+        #assumes blank lines and comments are filtered out of patterns already
+        ret = False
+        path_parts = filepath_start.split(os.sep) + more_filepath_parts
+        for yes_ignore,pattern_parts in self.patterns:
+            if fn_path_match(pattern_parts, path_parts):
+                ret = yes_ignore
+        return ret
+    
+    def list_files(self,base_dir):
+        for root, dirs, files in os.walk(base_dir):
+            rel_path = root[len(base_dir) + 1:]
+            empty = True
+            for f in files:
+                if not self.ignore(rel_path,(f,)):
+                    result.append(os.path.join(rel_path, f))
+                    empty = False
+            if empty: #include empty directories
+                result.append(os.path.join(rel_path, ""))
+            for dir in dirs:
+                if self.ignore(rel_path,(dir,"")):
+                    dirs.remove(dir) #prune ignored dirs from traverse
+        return result
 
-        outfile = open(path, 'wb')
-        outfile.write(zf.read(name))
-        outfile.flush()
-        outfile.close()
-    return os.path.join(dest_dir,os.path.commonprefix(namelist))
-        
-######### Main Bundlebuilder class
+STRUCTURE_IGNORER = Ignorer("""/STRUCTURE/MANIFEST
+/STRUCTURE/HASHES
+/STRUCTURE/TRANSLATABLES
+/STRUCTURE/TRANSLATABLES_HASHES/*
+/STRUCTURE/SIGNATURES/*/*.pub
+/STRUCTURE/SIGNATURES/*/*.sig
+""")
+    
+def list_files(base_dir, ignore_dirs=None, ignore_files=None):
+    result = []
 
-class Bundlebuilder:
-    def __init__(self,path):
-        if not os.path.isdir(path):
-            raise ValueError("Bundlebuilder: %s is not a valid path" % path)
-        self.path = path
+    for root, dirs, files in os.walk(base_dir):
+        if not files:
+            result.app
+        for f in files:
+            if ignore_files and f not in ignore_files:
+                rel_path = root[len(base_dir) + 1:]
+                result.append(os.path.join(rel_path, f))
+        if ignore_dirs and root == base_dir:
+            for ignore in ignore_dirs:
+                if ignore in dirs:
+                    dirs.remove(ignore)
 
-    def _get_source_path(self, extra_path=None):
-        if extra_path:
-            return os.path.join(self.path, extra_path)
+    return result
+
+class Config(object):
+    def __init__(self, bundle_name, source_dir=None, dist_dir=None):
+        if source_dir:
+            self.source_dir = source_dir
         else:
-            return self.path
+            self.source_dir = os.getcwd()
+            
+        if dist_dir:
+            self.dist_dir = dist_dir
+        else:
+            self.dist_dir = os.path.join(self.source_dir, 'dist')
 
-    def _get_bundle_dir(self):
-        bundle_name = os.path.basename(self._get_source_path())
-        return bundle_name + '.activity'    
+        bundle = ActivityBundle(self.source_dir)
+        version = bundle.get_activity_version()
 
-    def _get_install_dir(self, prefix):
-        return os.path.join(prefix, 'share/activities')
+        self.bundle_name = bundle_name
+        self.xo_name = '%s-%d.xo' % (self.bundle_name, version)
+        self.tarball_name = '%s-%d.tar.bz2' % (self.bundle_name, version)
+        self.bundle_id = bundle.get_bundle_id()
+        self.bundle_root_dir = self.bundle_name + '.activity'
+        self.tarball_root_dir = '%s-%d' % (self.bundle_name, version)
 
-    def _get_package_name(self, bundle_name = None):
-        bundle = ActivityBundle(self._get_source_path())
-        zipname = '%s-%d.xo' % (bundle_name or bundle.get_name(), bundle.get_activity_version())
-        return zipname
-
-    def _delete_backups(self, arg, dirname, names):
-        if not os.path.isabs(dirname):
-            dirname = os.path.join(self.path,dirname)
-        for name in names:
-            if name.endswith('~') or name.endswith('pyc'):
-                os.remove(os.path.join(dirname, name))
-
-    def _get_bundle_id(self):
-        bundle = ActivityBundle(self._get_source_path())
-        return bundle.get_bundle_id()
-
-    def cmd_help(self):
-        print 'Usage: \n\
-    setup.py dev                 - setup for development \n\
-    setup.py dist                - create a bundle package \n\
-    setup.py install   [dirname] - install the bundle \n\
-    setup.py uninstall [dirname] - uninstall the bundle \n\
-    setup.py genpot              - generate the gettext pot file \n\
-    setup.py genl10n             - generate localization files \n\
-    setup.py clean               - clean the directory \n\
-    setup.py release             - do a new release of the bundle \n\
-    setup.py help                - print this message \n\
-    '
-
-    def cmd_dev(self):
-        bundle_path = env.get_user_activities_path()
-        if not os.path.isdir(bundle_path):
-            os.mkdir(bundle_path)
-        bundle_path = os.path.join(bundle_path, self._get_bundle_dir())
-        try:
-            os.symlink(self._get_source_path(), bundle_path)
-        except OSError:
-            if os.path.islink(bundle_path):
-                print 'ERROR - The bundle has been already setup for development.'
-            else:
-                print 'ERROR - A bundle with the same name is already installed.'    
-
-    def _get_file_list(self):
-        #the various list commands fundamentally depend on being
-        # in the directory. Just go there and come back after.
-        #TODO: figure out if there are optional arguments to os.popen() to avoiod this
-        cwd = os.getcwd()
-        os.chdir(self.path)
-        try:
-            if os.path.isfile(manifest):
-                return _ManifestFileList()
-            elif os.path.isdir('.git'):
-                return _GitFileList()
-            elif os.path.isdir('.svn'):
-                return _SvnFileList()
-            else:
-                return _DefaultFileList()
-        finally:
-            os.chdir(cwd)
-
-    def _get_po_list(self):
-        file_list = {}
-
-        po_regex = re.compile("po/(.*)\.po$")
-        for file_name in self._get_file_list():
-            match = po_regex.match(file_name)
-            if match:
-                file_list[match.group(1)] = file_name
-
-        return file_list
-
-    def _get_l10n_list(self):
-        l10n_list = []
-
-        for lang in self._get_po_list().keys():
-            filename = self._get_bundle_id() + '.mo'
-            l10n_list.append(os.path.join('locale', lang, 'LC_MESSAGES', filename))
-            l10n_list.append(os.path.join('locale', lang, 'activity.linfo'))
-
-        return l10n_list
-
-    def _get_activity_name(self):
-        info_path = os.path.join(self._get_source_path(), 'activity', 'activity.info')
+        info_path = os.path.join(self.source_dir, 'activity', 'activity.info')
         f = open(info_path,'r')
         info = f.read()
         f.close()
         match = re.search('^name\s*=\s*(.*)$', info, flags = re.MULTILINE)
-        return match.group(1)
+        self.activity_name = match.group(1)
 
-    def cmd_dist(self, bundle_name = None, storage_directory = None):
-        if not bundle_name:
-            bundle = ActivityBundle(self._get_source_path())
-            bundle_name = bundle.get_name()
-            assert(bundle_name)
-        self.cmd_genl10n(bundle_name)
-        file_list = self._get_file_list()
+class Builder(object):
+    def __init__(self, config):
+        self.config = config
 
-        name_version = self._get_package_name(bundle_name)
-        if not storage_directory:
-            storage_directory = self.path
-        elif not os.path.isdir(storage_directory): #includes file name
-            zippath = storage_directory
-        else:
-            zippath = os.path.join(storage_directory,name_version)
-        bundle_zip = zipfile.ZipFile(zippath, 'w', zipfile.ZIP_DEFLATED)
-        base_dir = bundle_name + '.activity'
-        
-        for filename in file_list:
-            bundle_zip.write(os.path.join(self.path,filename), #real absolute path
-                os.path.join(base_dir, filename)) #path in zip file
+    def build(self):
+        self.build_locale()
 
-        for filename in self._get_l10n_list():
-            bundle_zip.write(os.path.join(self.path,filename), #real absolute path
-                os.path.join(base_dir, filename)) #path in zip file
+    def build_locale(self):
+        po_dir = os.path.join(self.config.source_dir, 'po')
 
-        bundle_zip.close()
-        return name_version
+        for f in os.listdir(po_dir):
+            if not f.endswith('.po'):
+                continue
 
-    def cmd_install(self, bundle_name, prefix):
-        self.cmd_dist(bundle_name)
-        self.cmd_uninstall(prefix)
+            file_name = os.path.join(po_dir, f)
+            lang = f[:-3]
 
-        extract_bundle(self._get_package_name(bundle_name),
-                        self._get_install_dir(prefix))
-
-    def cmd_uninstall(self, prefix):
-        path = os.path.join(self._get_install_dir(prefix), self._get_bundle_dir())
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-
-    def cmd_genpot(self, bundle_name):
-        po_path = os.path.join(self._get_source_path(), 'po')
-        if not os.path.isdir(po_path):
-            os.mkdir(po_path)
-
-        python_files = []
-        file_list = self._get_file_list()
-        for file_name in file_list:
-            if file_name.endswith('.py'):
-                python_files.append(file_name)
-
-        # First write out a stub .pot file containing just the translated
-        # activity name, then have xgettext merge the rest of the
-        # translations into that. (We can't just append the activity name
-        # to the end of the .pot file afterwards, because that might
-        # create a duplicate msgid.)
-        pot_file = os.path.join(self.path,'po', '%s.pot' % bundle_name)
-        activity_name = self._get_activity_name()
-        escaped_name = re.sub('([\\\\"])', '\\\\\\1', activity_name)
-        f = open(pot_file, 'w')
-        f.write('#: activity/activity.info:2\n')
-        f.write('msgid "%s"\n' % escaped_name)
-        f.write('msgstr ""\n')
-        f.close()
-
-        args = [ 'xgettext', '--join-existing', '--language=Python',
-                 '--keyword=_', '--add-comments=TRANS:', '--output=%s' % pot_file ]
-
-        args += python_files
-        cwd = os.getcwd()
-        os.chdir(self.path)
-        try:
-            retcode = subprocess.call(args)
-        finally:
-            os.chdir(cwd)
-        if retcode:
-            print 'ERROR - xgettext failed with return code %i.' % retcode
-
-
-    def cmd_genl10n(self, bundle_name):
-        source_path = self._get_source_path()
-        activity_name = self._get_activity_name()
-
-        po_list = self._get_po_list()
-        for lang in po_list.keys():
-            file_name = po_list[lang]
-
-            localedir = os.path.join(source_path, 'locale', lang)
+            localedir = os.path.join(self.config.source_dir, 'locale', lang)
             mo_path = os.path.join(localedir, 'LC_MESSAGES')
             if not os.path.isdir(mo_path):
                 os.makedirs(mo_path)
 
-            mo_file = os.path.join(mo_path, "%s.mo" % self._get_bundle_id())
+            mo_file = os.path.join(mo_path, "%s.mo" % self.config.bundle_id)
             args = ["msgfmt", "--output-file=%s" % mo_file, file_name]
             retcode = subprocess.call(args)
             if retcode:
                 print 'ERROR - msgfmt failed with return code %i.' % retcode
 
             cat = gettext.GNUTranslations(open(mo_file, 'r'))
-            translated_name = cat.gettext(activity_name)
+            translated_name = cat.gettext(self.config.activity_name)
             linfo_file = os.path.join(localedir, 'activity.linfo')
             f = open(linfo_file, 'w')
             f.write('[Activity]\nname = %s\n' % translated_name)
             f.close()
 
-    def cmd_release(self, bundle_name):
-        if not os.path.isdir(os.path.join(self.path,'.git')):
-            print 'ERROR - this command works only for git repositories'
+class Packager(object):
+    def __init__(self, config):
+        self.config = config
+        self.package_path = None
 
-        cwd = os.getcwd()
-        os.chdir(self.path)
-        try:
-            retcode = subprocess.call(['git', 'pull'])
-        finally:
-            os.chdir(cwd)
-        if retcode:
-            print 'ERROR - cannot pull from git'
+        if not os.path.exists(self.config.dist_dir):
+            os.mkdir(self.config.dist_dir)
+            
 
-        print 'Bumping activity version...'
+class BuildPackager(Packager):
+    def __init__(self, config):
+        Packager.__init__(self, config)
+        self.build_dir = self.config.source_dir
+        self.ignorer = None
 
-        info_path = os.path.join(self._get_source_path(), 'activity', 'activity.info')
-        f = open(info_path,'r')
-        info = f.read()
-        f.close()
+    def get_files(self,warn=True):
+        ret = []
+        for manifest in (os.path.join(self.build_dir,
+                                       STRUCTURE_DIR,
+                                       MANIFEST_FILE),
+                         os.path.join(self.build_dir,
+                                       MANIFEST_FILE)):
+            if os.path.isfile(manifest):
+                f = open(manifest,"rb")
+                try:
+                    manlines = f.readlines()
+                except:
+                    f.close()
+                    raise
+                ret = [x for x in manlines if (x and 
+                                               not x.startswith("#"))]
+                break
+        if warn:
+            self.get_ignorer()
+            should_be = self.ignorer.list_files(self.build_dir)
+            ret_set = set(ret)
+            should_set =
+            gitignore = os.path.join(self.build_dir,GITIGNORE_FILE)
+            if os.path.isfile(gitignore):
+                f = open(gitignore,"rb")
+                ignorer
+        return list_files(self.build_dir,
+                          ignore_dirs=['po', 'dist', '.git'],
+                          ignore_files=['.gitignore'])
+        
+    def get_manifest
 
-        exp = re.compile('activity_version\s?=\s?([0-9]*)')
-        match = re.search(exp, info)
-        version = int(match.group(1)) + 1
-        info = re.sub(exp, 'activity_version = %d' % version, info)
+class XOPackager(BuildPackager):
+    def __init__(self, config):
+        BuildPackager.__init__(self, config)
+        self.package_path = os.path.join(self.config.dist_dir, self.config.xo_name)
 
-        f = open(info_path, 'w')
-        f.write(info)
-        f.close()
+    def package(self):
+        bundle_zip = zipfile.ZipFile(self.package_path, 'w',
+                                     zipfile.ZIP_DEFLATED)
+        
+        for f in self.get_files():
+            bundle_zip.write(os.path.join(self.build_dir, f),
+                             os.path.join(self.config.bundle_root_dir, f))
 
-        news_path = os.path.join(self._get_source_path(), 'NEWS')
+        bundle_zip.close()
 
-        if os.environ.has_key('SUGAR_NEWS'):
-            print 'Update NEWS.sugar...'
+class SourcePackager(Packager):
+    def __init__(self, config):
+        Packager.__init__(self, config)
+        self.package_path = os.path.join(self.config.dist_dir,
+                                         self.config.tarball_name)
 
-            sugar_news_path = os.environ['SUGAR_NEWS']
-            if os.path.isfile(sugar_news_path):
-                f = open(sugar_news_path,'r')
-                sugar_news = f.read()
-                f.close()
-            else:
-                sugar_news = ''
+    def get_files(self):
+        return list_files(self.config.source_dir,
+                          ignore_dirs=['locale', 'dist', '.git'],
+                          ignore_files=['.gitignore'])
 
-            sugar_news += '%s - %d\n\n' % (bundle_name, version)
+    def package(self):
+        tar = tarfile.open(self.package_path, "w")
+        for f in self.get_files():
+            tar.add(os.path.join(self.config.source_dir, f),
+                    os.path.join(self.config.tarball_root_dir, f))
+        tar.close()
 
-            f = open(news_path,'r')
-            for line in f.readlines():
-                if len(line.strip()) > 0:
-                    sugar_news += line
-                else:
-                    break
+def cmd_help(config, options, args):
+    print 'Usage: \n\
+setup.py build               - build generated files \n\
+setup.py dev                 - setup for development \n\
+setup.py dist_xo             - create a xo bundle package \n\
+setup.py dist_source         - create a tar source package \n\
+setup.py install   [dirname] - install the bundle \n\
+setup.py uninstall [dirname] - uninstall the bundle \n\
+setup.py genpot              - generate the gettext pot file \n\
+setup.py release             - do a new release of the bundle \n\
+setup.py help                - print this message \n\
+'
+
+def cmd_dev(config, options, args):
+    bundle_path = env.get_user_activities_path()
+    if not os.path.isdir(bundle_path):
+        os.mkdir(bundle_path)
+    bundle_path = os.path.join(bundle_path, config.bundle_top_dir)
+    try:
+        os.symlink(config.source_dir, bundle_path)
+    except OSError:
+        if os.path.islink(bundle_path):
+            print 'ERROR - The bundle has been already setup for development.'
+        else:
+            print 'ERROR - A bundle with the same name is already installed.'
+
+def cmd_dist_xo(config, options, args):
+    builder = Builder(config)
+    builder.build()
+
+    packager = XOPackager(config)
+    packager.package()
+
+def cmd_dist_source(config, options, args):
+    packager = SourcePackager(config)
+    packager.package()
+
+def cmd_install(config, options, args):
+    path = args[0]
+
+    packager = XOPackager(config)
+    packager.package()
+
+    root_path = os.path.join(args[0], config.bundle_root_dir)
+    if os.path.isdir(root_path):
+        shutil.rmtree(root_path)
+
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+    zf = zipfile.ZipFile(packager.package_path)
+
+    for name in zf.namelist():
+        full_path = os.path.join(path, name)            
+        if not os.path.exists(os.path.dirname(full_path)):
+            os.makedirs(os.path.dirname(full_path))
+
+        outfile = open(full_path, 'wb')
+        outfile.write(zf.read(name))
+        outfile.flush()
+        outfile.close()
+
+def cmd_genpot(config, options, args):
+    po_path = os.path.join(config.source_dir, 'po')
+    if not os.path.isdir(po_path):
+        os.mkdir(po_path)
+
+    python_files = []
+    for root_dummy, dirs_dummy, files in os.walk(config.source_dir):
+        for file_name in files:
+            if file_name.endswith('.py'):
+                python_files.append(file_name)
+
+    # First write out a stub .pot file containing just the translated
+    # activity name, then have xgettext merge the rest of the
+    # translations into that. (We can't just append the activity name
+    # to the end of the .pot file afterwards, because that might
+    # create a duplicate msgid.)
+    pot_file = os.path.join('po', '%s.pot' % config.bundle_name)
+    escaped_name = re.sub('([\\\\"])', '\\\\\\1', config.activity_name)
+    f = open(pot_file, 'w')
+    f.write('#: activity/activity.info:2\n')
+    f.write('msgid "%s"\n' % escaped_name)
+    f.write('msgstr ""\n')
+    f.close()
+
+    args = [ 'xgettext', '--join-existing', '--language=Python',
+             '--keyword=_', '--add-comments=TRANS:', '--output=%s' % pot_file ]
+
+    args += python_files
+    retcode = subprocess.call(args)
+    if retcode:
+        print 'ERROR - xgettext failed with return code %i.' % retcode
+
+def cmd_release(config, options, args):
+    if not os.path.isdir('.git'):
+        print 'ERROR - this command works only for git repositories'
+
+    retcode = subprocess.call(['git', 'pull'])
+    if retcode:
+        print 'ERROR - cannot pull from git'
+
+    print 'Bumping activity version...'
+
+    info_path = os.path.join(config.source_dir, 'activity', 'activity.info')
+    f = open(info_path,'r')
+    info = f.read()
+    f.close()
+
+    exp = re.compile('activity_version\s?=\s?([0-9]*)')
+    match = re.search(exp, info)
+    version = int(match.group(1)) + 1
+    info = re.sub(exp, 'activity_version = %d' % version, info)
+
+    f = open(info_path, 'w')
+    f.write(info)
+    f.close()
+
+    news_path = os.path.join(config.source_dir, 'NEWS')
+
+    if os.environ.has_key('SUGAR_NEWS'):
+        print 'Update NEWS.sugar...'
+
+        sugar_news_path = os.environ['SUGAR_NEWS']
+        if os.path.isfile(sugar_news_path):
+            f = open(sugar_news_path,'r')
+            sugar_news = f.read()
             f.close()
+        else:
+            sugar_news = ''
 
-            sugar_news += '\n'
-
-            f = open(sugar_news_path, 'w')
-            f.write(sugar_news)
-            f.close()
-
-        print 'Update NEWS...'
+        sugar_news += '%s - %d\n\n' % (config.bundle_name, version)
 
         f = open(news_path,'r')
-        news = f.read()
+        for line in f.readlines():
+            if len(line.strip()) > 0:
+                sugar_news += line
+            else:
+                break
         f.close()
 
-        news = '%d\n\n' % version + news
+        sugar_news += '\n'
 
-        f = open(news_path, 'w')
-        f.write(news)
+        f = open(sugar_news_path, 'w')
+        f.write(sugar_news)
         f.close()
 
-        print 'Committing to git...'
+    print 'Update NEWS...'
 
-        changelog = 'Release version %d.' % version
-        retcode = subprocess.call(['git', 'commit', '-a', '-m % s' % changelog])
-        if retcode:
-            print 'ERROR - cannot commit to git'
+    f = open(news_path,'r')
+    news = f.read()
+    f.close()
 
-        retcode = subprocess.call(['git', 'push'])
-        if retcode:
-            print 'ERROR - cannot push to git'
+    news = '%d\n\n' % version + news
 
-        print 'Creating the bundle...'
-        self.cmd_dist(bundle_name)
+    f = open(news_path, 'w')
+    f.write(news)
+    f.close()
 
-        print 'Done.'
+    print 'Committing to git...'
 
-    def cmd_clean(self):
-        os.path.walk(self.path, _delete_backups, None)
+    changelog = 'Release version %d.' % version
+    retcode = subprocess.call(['git', 'commit', '-a', '-m % s' % changelog])
+    if retcode:
+        print 'ERROR - cannot commit to git'
 
-    def sanity_check(self):
-        if not os.path.isfile(self._get_source_path('NEWS')):
-            print 'WARNING: NEWS file is missing.'
+    retcode = subprocess.call(['git', 'push'])
+    if retcode:
+        print 'ERROR - cannot push to git'
 
+    print 'Creating the bundle...'
+    packager = XOPackager(config)
+    packager.package()
 
-    def __call__(self,bundle_name, arg1, arg2 = None):
-        self.sanity_check()
+    print 'Done.'
 
-        if arg1 == 'build':
-            pass
-        elif arg1 == 'dev':
-            self.cmd_dev()
-        elif arg1 == 'dist':
-            self.cmd_dist(bundle_name)
-        elif arg1 == 'install' and arg2:
-            self.cmd_install(bundle_name, arg2)
-        elif arg1 == 'uninstall' and arg2:
-            self.cmd_uninstall(arg2)
-        elif arg1 == 'genpot':
-            self.cmd_genpot(bundle_name)
-        elif arg1 == 'genl10n':
-            self.cmd_genl10n(bundle_name)
-        elif arg1 == 'clean':
-            self.cmd_clean()
-        elif arg1 == 'release':
-            self.cmd_release(bundle_name)
-        else:
-            self.cmd_help()
-            
-##### Create the default bundlebuilder instance
-bundlebuilder = Bundlebuilder(os.getcwd())
-
-#Export the bound methods of the default instance as module functions.
-for a in bundlebuilder.__dict__:
-    if callable(bundlebuilder.__dict__[a]) and isinstance(a,basestring):
-        exec("global "+a+"\n"+a + "=bundlebuilder."+a) #stuff it into module globals
-        
+def cmd_build(config, options, args):
+    builder = Builder(config)
+    builder.build()
 
 def start(bundle_name):
-    if len(sys.argv) < 2 or len(sys.argv) > 3:
-        cmd_help()
-    else:
-        bundlebuilder(bundle_name, sys.argv[1],
-            sys.argv[2] if len(sys.argv) == 3 else None)
-        
+    parser = OptionParser()
+    (options, args) = parser.parse_args()
+
+    config = Config(bundle_name)
+
+    try:
+        globals()['cmd_' + args[0]](config, options, args[1:])
+    except (KeyError, IndexError):
+        cmd_help(config, options, args)
+
 if __name__ == '__main__':
-    start("UNNAMED")
+    start()

@@ -160,7 +160,7 @@ class GtkSourceview2Editor(notebook.Notebook):
 
     def save_all(self):
         self.activity._logger.info('save all %i' % self.get_n_pages())
-        if self.activity._foreign_dir:
+        if self.activity.is_foreign_dir:
             self.activity._logger.info('save all aborting, still viewing in place')
             return
         for i in range(self.get_n_pages()):
@@ -186,8 +186,11 @@ class GtkSourceview2Editor(notebook.Notebook):
 
 class SearchablePage(gtk.ScrolledWindow):
     def get_selected(self):
-        start,end = self.text_buffer.get_selection_bounds()
-        return self.text_buffer.get_slice(start,end)
+        try:
+            start,end = self.text_buffer.get_selection_bounds()
+            return self.text_buffer.get_slice(start,end)
+        except ValueError:
+            return 0
         
     def get_text(self):
         """
@@ -399,7 +402,7 @@ class GtkSourceview2Page(SearchablePage):
    
     def save(self):
         if self.text_buffer.can_undo(): #only save if there's something to save
-            #note: the above is a hack. If activity._foreign_dir, we should not
+            #note: the above is a hack. If activity.is_foreign_dir(), we should not
             #save. currently, the above is never true when that is. This hack
             #is because we're not keeping a pointer to the activity here.
             text = self.get_text()
