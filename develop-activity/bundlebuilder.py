@@ -21,106 +21,27 @@ import tarfile
 import shutil
 import subprocess
 import re
-from fnmatch import fnmatchcase as fnmatch
 import gettext
 from optparse import OptionParser
+import logging
+from fnmatch import fnmatch
 
 from sugar import env
-from sugar.bundle.activitybundle import ActivityBundle
+#from sugar.bundle.activitybundle import ActivityBundle
+from activitybundle import ActivityBundle
 
-DEFAULT_GITIGNORE = (
-"""*.xo
-*.pyc
-*.bak
-*~
-/.git/
-/.gitignore
-/dist/
-""")
-
-STRUCTURE_DIR = "STRUCTURE"
-MANIFEST_FILE = "MANIFEST"
-TRANSLATABLES_FILE = "TRANSLATABLES"
-HASHES_FILE = "HASHES"
-HASHES_DIR = "TRANSLATABLE_HASHES"
-SIGNATURES_DIR = "SIGNATURES"
-GITIGNORE_FILE = ".gitignore"
-SIG_EXT = ".sig"
-PUB_EXT = ".pub"
-
-
-def fn_path_match(pattern_parts,path_parts):
-    if (path_parts[-1] = "" and pattern_parts[-1] != ""):
-        path_parts = path_parts[:-1] #foo*bar matches foobar/
-    if ( (pattern_parts[0] = "" and  #leading / in pattern...
-          len(path_parts) == len(pattern_parts) - 1) #...only matches from head
-        or 
-         (len(path_parts) >= len(pattern_parts))): #otherwise, pattern must final subset
-        commonlen = min(len(path_parts),len(pattern_parts))
-        for path_part,pattern_part in zip(path_parts[-commmonlen:],
-                                          pattern_parts[-commonlen:]):
-            #compare part by part, "right-aligned"
-            if not fnmatch(path_part,pattern_part):
-                return False 
-        return True #all patterns matched
-    return False #pattern longer than path
-
-class Ignorer(object):
-    def __init__(self, gitignore):
-        patterns = [pat for pat in gitignore.splitlines()
-                         if (pat and not pat.startswith("#"))]
-        def is_ignore(pat):
-            "returns (ignore_bool,(...pattern parts...))"
-            if pat.startswith("!"):
-                return (True,pat[1:].split(os.sep))
-            else:
-                return (False,pat.split(os.sep))
-            
-        self.patterns = map(is_anti,patterns)
-        
-    
-    def ignore(self,filepath_start,more_filepath_parts=()):
-        #assumes blank lines and comments are filtered out of patterns already
-        ret = False
-        path_parts = filepath_start.split(os.sep) + more_filepath_parts
-        for yes_ignore,pattern_parts in self.patterns:
-            if fn_path_match(pattern_parts, path_parts):
-                ret = yes_ignore
-        return ret
-    
-    def list_files(self,base_dir):
-        for root, dirs, files in os.walk(base_dir):
-            rel_path = root[len(base_dir) + 1:]
-            empty = True
-            for f in files:
-                if not self.ignore(rel_path,(f,)):
-                    result.append(os.path.join(rel_path, f))
-                    empty = False
-            if empty: #include empty directories
-                result.append(os.path.join(rel_path, ""))
-            for dir in dirs:
-                if self.ignore(rel_path,(dir,"")):
-                    dirs.remove(dir) #prune ignored dirs from traverse
-        return result
-
-STRUCTURE_IGNORER = Ignorer("""/STRUCTURE/MANIFEST
-/STRUCTURE/HASHES
-/STRUCTURE/TRANSLATABLES
-/STRUCTURE/TRANSLATABLES_HASHES/*
-/STRUCTURE/SIGNATURES/*/*.pub
-/STRUCTURE/SIGNATURES/*/*.sig
-""")
-    
 def list_files(base_dir, ignore_dirs=None, ignore_files=None):
     result = []
 
     for root, dirs, files in os.walk(base_dir):
-        if not files:
-            result.app
+        if ignore_files:
+            for pattern in ignore_files:
+                files = [f for f in files if not fnmatch(f, pattern)]
+                
+        rel_path = root[len(base_dir) + 1:]
         for f in files:
-            if ignore_files and f not in ignore_files:
-                rel_path = root[len(base_dir) + 1:]
-                result.append(os.path.join(rel_path, f))
+            result.append(os.path.join(rel_path, f))
+
         if ignore_dirs and root == base_dir:
             for ignore in ignore_dirs:
                 if ignore in dirs:
@@ -129,33 +50,27 @@ def list_files(base_dir, ignore_dirs=None, ignore_files=None):
     return result
 
 class Config(object):
-    def __init__(self, bundle_name, source_dir=None, dist_dir=None):
-        if source_dir:
-            self.source_dir = source_dir
-        else:
-            self.source_dir = os.getcwd()
+    def __init__(self, source_dir=None, dist_dir = None, dist_name = None):
+        self.source_dir = source_dir or os.getcwd()
             
+        self.bundle = bundle = ActivityBundle(self.source_dir)
+        self.version = bundle.get_activity_version()
+        self.activity_name = bundle.get_name()
+        self.bundle_id = bundle.get_bundle_id()
+        self.bundle_name = reduce(lambda x, y:x+y, self.activity_name.split())
+        self.bundle_root_dir = self.bundle_name + '.activity'
+        self.tar_root_dir = '%s-%d' % (self.bundle_name, self.version)
+
         if dist_dir:
             self.dist_dir = dist_dir
         else:
             self.dist_dir = os.path.join(self.source_dir, 'dist')
-
-        bundle = ActivityBundle(self.source_dir)
-        version = bundle.get_activity_version()
-
-        self.bundle_name = bundle_name
-        self.xo_name = '%s-%d.xo' % (self.bundle_name, version)
-        self.tarball_name = '%s-%d.tar.bz2' % (self.bundle_name, version)
-        self.bundle_id = bundle.get_bundle_id()
-        self.bundle_root_dir = self.bundle_name + '.activity'
-        self.tarball_root_dir = '%s-%d' % (self.bundle_name, version)
-
-        info_path = os.path.join(self.source_dir, 'activity', 'activity.info')
-        f = open(info_path,'r')
-        info = f.read()
-        f.close()
-        match = re.search('^name\s*=\s*(.*)$', info, flags = re.MULTILINE)
-        self.activity_name = match.group(1)
+            
+        if dist_name:
+            self.xo_name = self.tar_name = dist_name
+        else:
+            self.xo_name = '%s-%d.xo' % (self.bundle_name, self.version)
+            self.tar_name = '%s-%d.tar.bz2' % (self.bundle_name, self.version)
 
 class Builder(object):
     def __init__(self, config):
@@ -167,6 +82,10 @@ class Builder(object):
     def build_locale(self):
         po_dir = os.path.join(self.config.source_dir, 'po')
 
+        if not self.config.bundle.is_dir(po_dir):
+            logging.warn("Missing po/ dir, cannot build_locale")
+            return
+        
         for f in os.listdir(po_dir):
             if not f.endswith('.po'):
                 continue
@@ -199,77 +118,72 @@ class Packager(object):
 
         if not os.path.exists(self.config.dist_dir):
             os.mkdir(self.config.dist_dir)
-            
 
 class BuildPackager(Packager):
-    def __init__(self, config):
-        Packager.__init__(self, config)
-        self.build_dir = self.config.source_dir
-        self.ignorer = None
+    def get_files(self):
+        files = self.config.bundle.get_files()
 
-    def get_files(self,warn=True):
-        ret = []
-        for manifest in (os.path.join(self.build_dir,
-                                       STRUCTURE_DIR,
-                                       MANIFEST_FILE),
-                         os.path.join(self.build_dir,
-                                       MANIFEST_FILE)):
-            if os.path.isfile(manifest):
-                f = open(manifest,"rb")
-                try:
-                    manlines = f.readlines()
-                except:
-                    f.close()
-                    raise
-                ret = [x for x in manlines if (x and 
-                                               not x.startswith("#"))]
-                break
-        if warn:
-            self.get_ignorer()
-            should_be = self.ignorer.list_files(self.build_dir)
-            ret_set = set(ret)
-            should_set =
-            gitignore = os.path.join(self.build_dir,GITIGNORE_FILE)
-            if os.path.isfile(gitignore):
-                f = open(gitignore,"rb")
-                ignorer
-        return list_files(self.build_dir,
-                          ignore_dirs=['po', 'dist', '.git'],
-                          ignore_files=['.gitignore'])
+        if not files:
+            logging.error('No files found, fixing the MANIFEST.')
+            self.fix_manifest()
+            files = self.config.bundle.get_files()
+
+        return files
+    
+    def _list_useful_files(self):
+        ignore_dirs = ['dist', '.git']
+        ignore_files = ['.gitignore', 'MANIFEST', '*.pyc', '*~', '*.bak']
         
-    def get_manifest
+        return list_files(self.config.source_dir, ignore_dirs, ignore_files)
+        
+    def fix_manifest(self):
+        manifest = self.config.bundle.manifest
+        
+        allfiles = self._list_useful_files()        
+        for path in allfiles:
+            if path not in manifest:
+                manifest.append(path)
+        
+        f = open(os.path.join(self.config.source_dir, "MANIFEST"), "wb")
+        for line in manifest:
+            f.write(line + "\n")
 
 class XOPackager(BuildPackager):
     def __init__(self, config):
         BuildPackager.__init__(self, config)
-        self.package_path = os.path.join(self.config.dist_dir, self.config.xo_name)
+        self.package_path = os.path.join(self.config.dist_dir,
+                                         self.config.xo_name)
 
     def package(self):
         bundle_zip = zipfile.ZipFile(self.package_path, 'w',
                                      zipfile.ZIP_DEFLATED)
         
         for f in self.get_files():
-            bundle_zip.write(os.path.join(self.build_dir, f),
+            bundle_zip.write(os.path.join(self.config.source_dir, f),
                              os.path.join(self.config.bundle_root_dir, f))
 
         bundle_zip.close()
 
-class SourcePackager(Packager):
+class SourcePackager(BuildPackager):
     def __init__(self, config):
-        Packager.__init__(self, config)
+        BuildPackager.__init__(self, config)
         self.package_path = os.path.join(self.config.dist_dir,
-                                         self.config.tarball_name)
+                                         self.config.tar_name)
 
     def get_files(self):
-        return list_files(self.config.source_dir,
-                          ignore_dirs=['locale', 'dist', '.git'],
-                          ignore_files=['.gitignore'])
+        git_ls = subprocess.Popen('git-ls-files', stdout=subprocess.PIPE, 
+                                  cwd=self.config.source_dir)
+        if git_ls.wait():
+            # Fall back to filtered list
+            return self._list_useful_files()
+        
+        return [path.strip() for path in git_ls.stdout.readlines()]
 
     def package(self):
-        tar = tarfile.open(self.package_path, "w")
+        tar = tarfile.open(self.package_path, 'w:bz2')
         for f in self.get_files():
             tar.add(os.path.join(self.config.source_dir, f),
-                    os.path.join(self.config.tarball_root_dir, f))
+                    os.path.join(self.config.tar_root_dir, f))
         tar.close()
 
 def cmd_help(config, options, args):
@@ -283,13 +197,15 @@ setup.py uninstall [dirname] - uninstall the bundle \n\
 setup.py genpot              - generate the gettext pot file \n\
 setup.py release             - do a new release of the bundle \n\
 setup.py help                - print this message \n\
+setup.py fix_manifest        - fix the MANIFEST file to list all files in directory \n\
+                             except dist/* .git/* .gitignore MANIFEST *.pyc *~ *.bak \n\
 '
 
 def cmd_dev(config, options, args):
     bundle_path = env.get_user_activities_path()
     if not os.path.isdir(bundle_path):
         os.mkdir(bundle_path)
-    bundle_path = os.path.join(bundle_path, config.bundle_top_dir)
+    bundle_path = os.path.join(bundle_path, config.bundle_root_dir)
     try:
         os.symlink(config.source_dir, bundle_path)
     except OSError:
@@ -304,6 +220,10 @@ def cmd_dist_xo(config, options, args):
 
     packager = XOPackager(config)
     packager.package()
+
+def cmd_dist(config, options, args):
+    logging.warn("dist deprecated, use dist_xo.")
+    cmd_dist_xo(config, options, args)
 
 def cmd_dist_source(config, options, args):
     packager = SourcePackager(config)
@@ -452,11 +372,17 @@ def cmd_build(config, options, args):
     builder = Builder(config)
     builder.build()
 
-def start(bundle_name):
+def cmd_fix_manifest(config, options, args):
+    buildpackager = BuildPackager(config)
+    buildpackager.fix_manifest()
+
+def start(bundle_name=None):
+    if bundle_name:
+        logging.warn("bundle_name deprecated, now comes from activity.info")
     parser = OptionParser()
     (options, args) = parser.parse_args()
 
-    config = Config(bundle_name)
+    config = Config()
 
     try:
         globals()['cmd_' + args[0]](config, options, args[1:])
