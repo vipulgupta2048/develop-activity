@@ -77,6 +77,7 @@ class SearchOptions(Options):
 
 class DevelopActivity(ViewSourceActivity):
     """Develop Activity as specified in activity.info"""
+    external_working_dir = False
         
     def __init__(self, handle):
         """Set up the Develop activity."""
@@ -155,8 +156,9 @@ class DevelopActivity(ViewSourceActivity):
             self._show_welcome()
             
     def is_foreign_dir(self):
-        return not (not self.activity_dir or
-                    self.activity_dir.startswith(self.get_workingdir()))
+        return not (self.external_working_dir
+                    or not self.activity_dir 
+                    or self.activity_dir.startswith(self.get_workingdir()))
 
     def debug_msg(self, text, title = _("debug alert"), level=0):
         self._logger.debug(text)
@@ -167,8 +169,6 @@ class DevelopActivity(ViewSourceActivity):
             alert.connect('response', self.alert_cb)
             self.add_alert(alert)
             alert.show()
-        else:
-            self._logger.debug(text)
         
     def alert_cb(self, alert, response_id):
         self.remove_alert(alert)
@@ -299,20 +299,28 @@ class DevelopActivity(ViewSourceActivity):
                 (str(dirty), str(self.activity_dir)))
         self.dirty = dirty
         if dirty and self.activity_dir and self.is_foreign_dir():
-            self.debug_msg("about to save with save_unchanged")
+            self.change_base()
             self.save_unchanged = True
             try:
                 self.save()
             finally:
                 self.save_unchanged = False
-                self.debug_msg("about to change_base")
-                self.change_base()
-                self.debug_msg("about to re-set dirty flag")
                 self.dirty = dirty
     
     def change_base(self):
-        self.debug_msg("Change base..............................")
         targetdir = self.get_workingdir()
+        
+        #if in an editable directory outside ~/Activities, edit in place
+        if (not self.activity_dir.startswith(
+                                    os.path.join(os.path.expanduser("~"),
+                                                 "Activities"))
+                            and os.access(targetdir, os.W_OK)):
+            self.debug_msg("Editing files in place: "+self.activity_dir)
+            self.external_working_dir = True
+            return
+        
+        #otherwise, copy for editing
+        self.debug_msg("Copying files for editing")
         if os.path.isdir(targetdir):
             shutil.rmtree(targetdir)
         olddir = self.activity_dir

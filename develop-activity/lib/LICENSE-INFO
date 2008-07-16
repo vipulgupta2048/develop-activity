@@ -1,7 +1,0 @@
-GTKsourceview is distributed under the GPLv3 - essentially, you are free to modify it for your own use or redistribute it using the same license. Pursuant to clause 6c, http://www.gnu.org/licenses/gpl-3.0.html, understood to refer to 6b(2) of the same license:
-
-The source code for building this library is available at the following locations:
-ftp://ftp.gnome.org/pub/gnome/sources/gtksourceview/2.1/gtksourceview-2.1.0.tar.bz2
-ftp://ftp.gnome.org/pub/gnome/desktop/2.21/2.21.5/sources/gtksourceview-2.1.0.tar.bz2
-
-Note that the above source code, identical to the current copy, is available under the slightly-more-permissive LGPL v2 or later. All you have to do to make use of the broader permissions is download the source.
