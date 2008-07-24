@@ -1,3 +1,7 @@
+34
+uses new bundlebuilder, save and MANIFEST radically more stable
+many fixes
+
 33
 fixed icons, fixed ignore-case, refactored search options (pass in 
 object rather than half-dozen options)

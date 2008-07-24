@@ -79,8 +79,8 @@ class LogMinder(gtk.VBox):
         scrolled.add(self._tv_menu)
         
         # the internals of the treeview    
-        model = self._model = activity_model.DirectoryAndExtraModel(path,extra_files,self._filter_by_name)
-        self._tv_menu.set_model(model)
+        self._model = activity_model.DirectoryAndExtraModel(path, extra_files, self._filter_by_name)
+        self._tv_menu.set_model(self._model)
 
         self._add_column(self._tv_menu, 'Sugar logs', 0)
         self._logs = {}

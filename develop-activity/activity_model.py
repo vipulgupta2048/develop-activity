@@ -35,6 +35,16 @@ def _nodefilter(node):
             break
     return notmatched
     
+def inmanifestfn(bundle):
+    allfiles = bundle.get_files()
+    def nodefilterfn(node):
+        if os.path.isdir(node.path):
+            return True
+        for innerpath in allfiles[:-1]: #truncate MANIFEST
+            if os.path.join(node.model.root,innerpath) == node.path:
+                return True
+        return False
+    return nodefilterfn
 
 def get_selected_file(treeview):
     selection = treeview.get_selection()
@@ -61,9 +71,10 @@ class DirectoryAndExtraModel(gtk.GenericTreeModel):
         gtk.GenericTreeModel.__init__(self)
     
     def refresh(self):
-        self.files = filter(self.nodefilter,
-                            (ActivityNode(filename, self, None, self.nodefilter) for 
-                                filename in sorted(os.listdir(self.root))))
+        self.files = list(n for n in 
+                            (ActivityNode(filename, self, None, self.nodefilter) 
+                             for filename in sorted(os.listdir(self.root)))
+                          if self.nodefilter(n))
         if self.extra_paths:
             self.files.extend(ActivityNode(filename, self, None, self.nodefilter) for 
                     filename in self.extra_paths)

@@ -13,6 +13,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  
 """Develop Activity: A programming activity."""
+from __future__ import with_statement
 import gtk
 import logging
 logging.getLogger().setLevel(0)
@@ -35,7 +36,8 @@ from sugar.graphics.menuitem import MenuItem
 from sugar.graphics.alert import ConfirmationAlert, TimeoutAlert
 from sugar.graphics import iconentry, notebook
 from sugar.datastore import datastore
-from sugar.bundle.activitybundle import ActivityBundle
+#from sugar.bundle.activitybundle import ActivityBundle
+from activitybundle import ActivityBundle
 import logviewer
 import sourceview_editor
 S_WHERE = sourceview_editor.S_WHERE
@@ -160,15 +162,18 @@ class DevelopActivity(ViewSourceActivity):
                     or not self.activity_dir 
                     or self.activity_dir.startswith(self.get_workingdir()))
 
+    def show_msg(self, text, title = ""):
+        alert = ConfirmationAlert()
+        alert.props.title = title
+        alert.props.msg = text 
+        alert.connect('response', self.alert_cb)
+        self.add_alert(alert)
+        alert.show()
+    
     def debug_msg(self, text, title = _("debug alert"), level=0):
         self._logger.debug(text)
         if level >= DEBUG_FILTER_LEVEL:
-            alert = ConfirmationAlert()
-            alert.props.title = title
-            alert.props.msg = text 
-            alert.connect('response', self.alert_cb)
-            self.add_alert(alert)
-            alert.show()
+            self.show_msg(text, title)
         
     def alert_cb(self, alert, response_id):
         self.remove_alert(alert)
@@ -197,7 +202,7 @@ class DevelopActivity(ViewSourceActivity):
         if dialog.run() == gtk.RESPONSE_OK:
             import new_activity
             activityDir = new_activity.new_activity(entry.get_text().strip())
-            self.open_activity(activityDir)
+            self.first_open_activity(activityDir)
             dialog.destroy()
         else:
             dialog.destroy()
@@ -213,11 +218,12 @@ class DevelopActivity(ViewSourceActivity):
         if chooser.run() ==  gtk.RESPONSE_OK:
             activity_dir = chooser.get_filename()
             chooser.destroy()
-            self.open_activity(activity_dir)
+            self.first_open_activity(activity_dir)
         else:
             chooser.destroy()
             self.destroy()
         del chooser
+ 
  
     def open_activity(self, activity_dir):
         self._logger.info('opening %s' % activity_dir)
@@ -225,17 +231,24 @@ class DevelopActivity(ViewSourceActivity):
         name = os.path.basename(activity_dir)
         self.treecolumn.set_title(name)
         #self.metadata['title'] = name
-        import activity_model
-        self.model = activity_model.DirectoryAndExtraModel(self.activity_dir)
-        self.treeview.set_model(self.model)
+        self.refresh_files()
         self.treeview.get_selection().connect("changed", self.selection_cb)
+        return name
+
+    def first_open_activity(self,activity_dir):
+        name = self.open_activity(activity_dir)
         self.logview = logviewer.LogMinder(self, name.split(".")[0])
         self.set_dirty(False)
-
+        
         
     def refresh_files(self):
-        self.model = activity_model.DirectoryAndExtraModel(self.activity_dir)
+        import activity_model
+        self.bundle = ActivityBundle(self.activity_dir)
+        self.model = activity_model.DirectoryAndExtraModel(self.activity_dir, 
+                           nodefilter = activity_model.inmanifestfn(self.bundle))
         self.treeview.set_model(self.model)
+        #self.treeview.redraw()
+        #self.show_msg("refresh_files")
 
     def load_file(self, fullPath):
         if fullPath.startswith(self.activity_dir):
@@ -285,7 +298,7 @@ class DevelopActivity(ViewSourceActivity):
             shutil.rmtree(workingdir)
             #raise IOError("working dir already exists...")
         bundledir = ActivityBundle(file_path).unpack(workingdir)
-        self.open_activity(os.path.join(bundledir))
+        self.first_open_activity(os.path.join(bundledir))
         self._logger.info(u'read_file. subfiles: %s' % 
                           self.metadata['open_filenames'])
         for filename in self.metadata['open_filenames'].split(
@@ -302,6 +315,7 @@ class DevelopActivity(ViewSourceActivity):
             self.change_base()
             self.save_unchanged = True
             try:
+                self.debug_msg("Saving a pristine copy for safety")
                 self.save()
             finally:
                 self.save_unchanged = False
@@ -668,7 +682,7 @@ class DevelopFileToolbar(gtk.Toolbar):
         
         insert = ToolButton('insert-image')
         insert.set_tooltip(_('Add a blank file...'))
-        insert.connect('clicked', self._add_blank_cb)
+        insert.connect('clicked', self._add_file_cb)
         
         palette = insert.get_palette()
         
@@ -696,13 +710,21 @@ class DevelopFileToolbar(gtk.Toolbar):
         self.insert(remove, -1)
         
         open = ToolButton('text-x-generic')
-        open.set_tooltip(_('Open an external file...'))
+        open.set_tooltip(_('View an external file...'))
         open.connect('clicked', self._open_file_cb)
+        
+        palette = open.get_palette()
+        
+        dirmenu = MenuItem(_('Import an external file...'))
+        dirmenu.connect('activate', self._import_file_cb)
+        palette.menu.append(dirmenu)
+        dirmenu.show()
         open.show()
         
         self.insert(open, -1)
         
-    def _add_blank_cb(self, menu):
+    def _add_file_cb(self, menu, sourcepath = None):
+        self.activity.set_dirty(True)
         chooser = gtk.FileChooserDialog(_('Name your new file...'), 
             self.activity, gtk.FILE_CHOOSER_ACTION_SAVE,
                 (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
@@ -711,26 +733,64 @@ class DevelopFileToolbar(gtk.Toolbar):
         if chooser.run() ==  gtk.RESPONSE_OK:
             filename = chooser.get_filename()
             chooser.destroy()
+            
+            if not filename.startswith(self.activity.activity_dir):
+                self.activity.show_msg(_("You cannot create a file "
+                                         "outside of the activity directory."),
+                                       _("Error: Outside Activity")) 
+                return
             if not os.path.exists(filename):
-                file(filename, 'w').close()
-            self.activity.refresh_files()
+                if sourcepath:
+                    import shutil
+                    shutil.copyfile(sourcepath, filename)
+                else:
+                    file(filename, 'w').close()
+            self._show_new_file(filename)
         else:
             chooser.destroy()
         del chooser
     
     def _add_dir_cb(self, menu):
+        self.activity.set_dirty(True)
         chooser = gtk.FileChooserDialog(_('Name your new directory...'), 
             self.activity, gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER,
                 (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                     gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)
         if chooser.run() ==  gtk.RESPONSE_OK:
+            dirname = chooser.get_filename()
             chooser.destroy()
-            self.activity.refresh_files()
+            
+            if not os.path.exists(filename):
+                os.mkdir(path)
+                self.activity.refresh_files()
+                
+            if not os.path.isdir(filename):
+                self.activity.debug_msg(_("Error: directory creation failed."),
+                                        DEBUG_FILTER_LEVEL)  
         else:
             chooser.destroy()
         del chooser
 
+    def _prune_manifest(self):
+        act_dir = self.activity.activity_dir
+        bundle = self.activity.bundle = ActivityBundle(act_dir)
+        manifestlines = bundle.manifest # trim MANIFEST
+        with file(os.path.join(act_dir,"MANIFEST"), "wb") as manifest:
+            for line in manifestlines:
+                manifest.write(line + "\n")
+                
+    def _show_new_file(self,filename):
+        if os.path.isfile(filename):
+            with file(os.path.join(self.activity.activity_dir, "MANIFEST"),
+                      "a") as manifest:
+                manifest.write(filename[len(os.path.join(
+                            self.activity.activity_dir,"")):]+"\n")
+            self.activity.refresh_files()
+        else:
+            self.activity.debug_msg(_("Error: file creation failed."),
+                                    DEBUG_FILTER_LEVEL)
+        
     def _erase_file_cb(self, menu):
         chooser = gtk.FileChooserDialog(_('Pick the file to erase...'), 
             self.activity, gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -740,8 +800,14 @@ class DevelopFileToolbar(gtk.Toolbar):
         if chooser.run() ==  gtk.RESPONSE_OK:
             filename = chooser.get_filename()
             chooser.destroy()
-            os.unlink(filename)
-            self.activity.refresh_files()
+            if os.path.isfile(filename):
+                os.unlink(filename)
+                self.prune_manifest()
+                self.activity.refresh_files()
+            else:
+                self.activity.debug_msg(_("Error: file deletion failed."),
+                                        DEBUG_FILTER_LEVEL)  
+
         else:
             chooser.destroy()
         del chooser
@@ -758,7 +824,7 @@ class DevelopFileToolbar(gtk.Toolbar):
             if os.listdir(filename):
                 alert = ConfirmationAlert()
                 name = filename[len(self.activity.activity_dir):]
-                alert.props.title=_('Are you sure you want to erase %s?')%name
+                alert.props.title=_('Are you sure you want to erase %s?') % name
                 alert.connect('response', self._alert_response, filename)
                 self.activity.add_alert(alert)
             else:
@@ -773,6 +839,7 @@ class DevelopFileToolbar(gtk.Toolbar):
         if response == gtk.RESPONSE_OK:
             import shutil
             shutil.rmtree(filename, True)
+            self.prune_manifest()
             self.activity.refresh_files()
 
     def _open_file_cb(self, button):
@@ -781,7 +848,7 @@ class DevelopFileToolbar(gtk.Toolbar):
                                         gtk.FILE_CHOOSER_ACTION_OPEN,
                                         (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                          gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-        chooser.set_current_folder(self.activity.activity_dir)
+        chooser.set_current_folder(os.path.expanduser("~"))
         if chooser.run() ==  gtk.RESPONSE_OK:
             filename = chooser.get_filename()
             chooser.destroy()
@@ -789,6 +856,21 @@ class DevelopFileToolbar(gtk.Toolbar):
             dso.metadata['filename'] = os.path.basename(filename)
             dso.metadata['source'] = dso.file_path = filename
             self.activity.editor.load_object(dso)
+        else:
+            chooser.destroy()
+        del chooser
+
+    def _import_file_cb(self, button):
+        chooser = gtk.FileChooserDialog(_('Pick the file to import...'), 
+                                        self.activity, 
+                                        gtk.FILE_CHOOSER_ACTION_OPEN,
+                                        (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+                                         gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        chooser.set_current_folder(os.path.expanduser("~"))
+        if chooser.run() ==  gtk.RESPONSE_OK:
+            filename = chooser.get_filename()
+            chooser.destroy()
+            self._add_file_cb(None,filename)
         else:
             chooser.destroy()
         del chooser

@@ -33,6 +33,7 @@ class GtkSourceview2Editor(notebook.Notebook):
 
     def __init__(self, activity):
         notebook.Notebook.__init__(self, can_close_tabs=True)
+        self._can_close_tabs = True #redundant, but above call broken for some reason
         self.activity = activity
         self.set_size_request(900, 350)
         self.connect('page-removed', self._page_removed_cb)
@@ -160,7 +161,7 @@ class GtkSourceview2Editor(notebook.Notebook):
 
     def save_all(self):
         self.activity._logger.info('save all %i' % self.get_n_pages())
-        if self.activity.is_foreign_dir:
+        if self.activity.is_foreign_dir():
             self.activity._logger.info('save all aborting, still viewing in place')
             return
         for i in range(self.get_n_pages()):
