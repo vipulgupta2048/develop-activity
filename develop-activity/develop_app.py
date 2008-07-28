@@ -155,7 +155,8 @@ class DevelopActivity(ViewSourceActivity):
         self.show()
      
         if not handle.object_id or not self.metadata.get('source'):
-            self._show_welcome()
+            #self._show_welcome()
+            gobject.timeout_add(100,self._show_welcome)
             
     def is_foreign_dir(self):
         return not (self.external_working_dir
@@ -189,6 +190,7 @@ class DevelopActivity(ViewSourceActivity):
         else:
             self.dirty = False
             self.close()
+        return False
 
     def _create_new_activity(self):
         dialog = gtk.Dialog(_("Name your Activity"), parent=self, 
