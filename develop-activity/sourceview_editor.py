@@ -240,7 +240,7 @@ class SearchablePage(gtk.ScrolledWindow):
                 match = buffertext.find(fpat)
                 if match >= 0:
                     end = match+len(fpat)
-                    yield (offset+match,offset + end,None)
+                    yield (offset + match, offset + end, None)
                 else:
                     return
                 buffertext, offset = buffertext[end:], offset + end
@@ -286,21 +286,22 @@ class SearchablePage(gtk.ScrolledWindow):
             buffertext = self.text_buffer.get_slice(selstart,selend)
             print buffertext
             try:
-                start, end, match = self._find_in(buffertext,ftext,0,s_opts,
-                        offsetadd)
+                start, end, match = self._find_in(buffertext, ftext, 0,
+                                            s_opts, offsetadd)
             except (ValueError,TypeError):
                 return False
         else:
             offset = self.get_offset() + (not s_opts.stay) #add 1 if not stay.
             text = self.get_text()
             try:
-                start,end,match = self._find_in(text,ftext,offset,
-                            s_opts,0)
+                start,end,match = self._find_in(text, ftext, offset,
+                                            s_opts, 0)
             except (ValueError,TypeError):
                 #find failed.
                 if wrap:
                     try:
-                        start,end,match = self._find_in(text,ftext,0,s_opts,0)
+                        start,end,match = self._find_in(text, ftext, 0, 
+                                                        s_opts, 0)
                     except (ValueError,TypeError):
                         return False
                 else:

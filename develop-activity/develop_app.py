@@ -159,11 +159,21 @@ class DevelopActivity(ViewSourceActivity):
             gobject.timeout_add(100,self._show_welcome)
             
     def is_foreign_dir(self):
+        """is_foreign_dir: self.activity_dir should be treated as read-only?
+        
+        Returns:
+        True: changes should not be saved in self.activity_dir,
+            and thus a change_base is necessary before saving changes.
+        
+        False: it is safe to save changes in self.activity_dir. 
+        """
         return not (self.external_working_dir
                     or not self.activity_dir 
                     or self.activity_dir.startswith(self.get_workingdir()))
 
     def show_msg(self, text, title = ""):
+        """show_msg(text) shows text in a drop-down alert message.
+        """
         alert = ConfirmationAlert()
         alert.props.title = title
         alert.props.msg = text 
@@ -172,6 +182,8 @@ class DevelopActivity(ViewSourceActivity):
         alert.show()
     
     def debug_msg(self, text, title = _("debug alert"), level=0):
+        """debug_msg(text, level=x): log text, and maybe show dialog.
+        """
         self._logger.debug(text)
         if level >= DEBUG_FILTER_LEVEL:
             self.show_msg(text, title)
@@ -180,6 +192,8 @@ class DevelopActivity(ViewSourceActivity):
         self.remove_alert(alert)
        
     def _show_welcome(self):
+        """_show_welcome: when opened without a bundle, ask open/new/cancel
+        """
         import welcome_dialog
         dialog = welcome_dialog.WelcomeDialog(self)
         reply = dialog.run()
@@ -193,6 +207,8 @@ class DevelopActivity(ViewSourceActivity):
         return False
 
     def _create_new_activity(self):
+        """create and open a new activity in working dir
+        """
         dialog = gtk.Dialog(_("Name your Activity"), parent=self, 
                             flags=gtk.DIALOG_MODAL)
         vbox = dialog.vbox
@@ -203,15 +219,25 @@ class DevelopActivity(ViewSourceActivity):
         dialog.add_button(gtk.STOCK_NEW, gtk.RESPONSE_OK)
         if dialog.run() == gtk.RESPONSE_OK:
             import new_activity
-            activityDir = new_activity.new_activity(entry.get_text().strip())
+            activityDir = new_activity.new_activity(entry.get_text().strip(),
+                                      self.get_workingdir())
             self.first_open_activity(activityDir)
             dialog.destroy()
         else:
             dialog.destroy()
+            self.dirty = False
             self.close()
-    
+
+    def _get_user_path(self):
+        if "user_path" not in self.__dict__:
+            self.user_path = os.path.expanduser('~/')
+            if "isolation" in self.user_path:
+                self.user_path = (
+                        os.path.join(*(["/"] + self.user_path.split("/")[0:3])))
+        return self.user_path
+
     def _pick_existing_activity(self):
-        root = os.path.expanduser('~/Activities')
+        root = os.path.join(self._get_user_path(),"Activities")
         chooser = gtk.FileChooserDialog(_("Choose an exisiting activity"), self,
             gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
             (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
@@ -224,8 +250,7 @@ class DevelopActivity(ViewSourceActivity):
         else:
             chooser.destroy()
             self.destroy()
-        del chooser
- 
+        del chooser 
  
     def open_activity(self, activity_dir):
         self._logger.info('opening %s' % activity_dir)
@@ -238,12 +263,15 @@ class DevelopActivity(ViewSourceActivity):
         return name
 
     def first_open_activity(self,activity_dir):
+        """Open an activity for the first time. Subsequently, use open_activity.
+        """
         name = self.open_activity(activity_dir)
         self.logview = logviewer.LogMinder(self, name.split(".")[0])
         self.set_dirty(False)
-        
-        
+
     def refresh_files(self):
+        """Refresh the treeview of activity files.
+        """
         import activity_model
         self.bundle = ActivityBundle(self.activity_dir)
         self.model = activity_model.DirectoryAndExtraModel(self.activity_dir, 
@@ -253,6 +281,8 @@ class DevelopActivity(ViewSourceActivity):
         #self.show_msg("refresh_files")
 
     def load_file(self, fullPath):
+        """Load one activity subfile into the editor view.
+        """
         if fullPath.startswith(self.activity_dir):
             filename = fullPath[len(self.activity_dir):]
         else:
@@ -261,6 +291,8 @@ class DevelopActivity(ViewSourceActivity):
         self.editor.load_object(fullPath, filename)
 
     def selection_cb(self, column):
+        """User selected an item in the treeview. Load it.
+        """
         if self.numb:
             #Choosing in the notebook selects in the list, and vice versa. 
             #Avoid infinite recursion.
@@ -273,6 +305,8 @@ class DevelopActivity(ViewSourceActivity):
             self.numb = False
     
     def write_file(self, file_path):
+        """Wrap up the activity as a bundle and save it to journal.
+        """
         if self.is_foreign_dir():
             self.debug_msg(u'write file from %s to %s; dirty is %s' % 
                             (self.activity_dir, file_path, str(self.dirty)))

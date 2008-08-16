@@ -55,10 +55,11 @@ class %s(activity.Activity):
         raise NotImplementedError
 """ % (classn, name)
 
-def new_activity(name):
+def new_activity(name, base_path):
     import os
-    path = os.path.expanduser('~/Activities/%s.activity' % name.replace(' ', ''))
-    os.mkdir(path)
+    path = os.path.expanduser(os.path.join(base_path, 
+                        '%s.activity' % name.replace(' ', '')))
+    os.makedirs(path)
     activityPath = os.path.join(path, 'activity')
     os.mkdir(activityPath)
     filen, classn = class_template(name)

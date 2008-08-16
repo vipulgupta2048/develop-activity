@@ -383,7 +383,7 @@ class Activity(Window, gtk.Container):
     Hint: A good and simple Activity to learn from is the Read activity. To
     create your own activity, you may want to copy it and use it as a template.
     """
-    __gtype_name__ = 'SugarActivity'
+    __gtype_name__ = 'SugarActivity2'
 
     __gsignals__ = {
         'shared': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ([])),
