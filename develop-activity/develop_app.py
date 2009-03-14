@@ -23,12 +23,12 @@ import gobject
 
 from gettext import gettext as _
 
-from developableactivity import ViewSourceActivity, OPENFILE_SEPARATOR
+#from developableactivity import ViewSourceActivity, OPENFILE_SEPARATOR
 from sugar import profile
 #from sugar.activity.activity import Activity
 #from sugar.activity import activity
-from activity import Activity
-import activity
+from sugar.activity.bundlebuilder import XOPackager, Config, Builder
+from sugar.activity import activity
      #import ActivityToolbox, \
     #     EditToolbar, get_bundle_name, get_bundle_path
 from sugar.graphics.toolbutton import ToolButton
@@ -65,6 +65,8 @@ REPLACE_ICONS = {False:"replace-and-find",
 
 TOOLBAR_SEARCH = 2
 
+OPENFILE_SEPARATOR = u"@ @"
+
 class Options:
     def __init__(self, template = None, **kw):
         if template:
@@ -77,14 +79,14 @@ class SearchOptions(Options):
     pass
     
 
-class DevelopActivity(ViewSourceActivity):
+class DevelopActivity(activity.Activity):
     """Develop Activity as specified in activity.info"""
     external_working_dir = False
-        
+    
     def __init__(self, handle):
         """Set up the Develop activity."""
-        super(DevelopActivity, self).__init__(handle, 
-                    create_jobject=False)
+        self.dirty = False
+        super(DevelopActivity, self).__init__(handle)
 
         self._logger = logging.getLogger('develop-activity')
         self._logger.setLevel(0)
@@ -304,6 +306,44 @@ class DevelopActivity(ViewSourceActivity):
             self.load_file(path)
             self.numb = False
     
+    def save_source_jobject(self, activity_dir, file_path, filenames = None):
+        if not activity_dir:
+            raise NotImplementedError
+        
+        #create bundle
+        dist_dir, dist_name = os.path.split(file_path)
+        builder = XOPackager(Builder(Config(activity_dir, dist_dir, dist_name)))
+        builder.package()
+        
+        #set up datastore object
+        jobject = datastore.create()
+        if self._shared_activity is not None:
+            icon_color = self._shared_activity.props.color
+        else:
+            icon_color = profile.get_color().to_string()
+
+        metadata = {
+            'title': _('%s Bundle') % builder.config.activity_name,
+            'title_set_by_user': '1',
+            'suggested_filename': '%s-%d.xo' % (builder.config.bundle_name, 
+                                                builder.config.version),
+            'icon-color': icon_color,
+            'mime_type': 'application/vnd.olpc-sugar',
+            'activity' : self.get_bundle_id(),
+            'activity_id' : self.get_id(),
+            'share-scope' : activity.SCOPE_PRIVATE,
+            'preview' : '',
+            'source' : activity_dir,
+            }
+        for k, v in metadata.items():
+            jobject.metadata[k] = v # dict.update method is missing =(
+        if filenames:
+            jobject.metadata['open_filenames'] = filenames
+        jobject.file_path = file_path
+        #datastore.write(jobject)
+        #jobject.destroy()
+        return jobject
+    
     def write_file(self, file_path):
         """Wrap up the activity as a bundle and save it to journal.
         """
@@ -322,7 +362,7 @@ class DevelopActivity(ViewSourceActivity):
         self.set_dirty(False)
         
     def get_workingdir(self):
-        return os.path.join(activity.get_activity_root(), activity.INSTANCE_DIR,
+        return os.path.join(activity.get_activity_root(), "instance",
                             WORKING_SOURCE_DIR)
     
     def read_file(self, file_path):
@@ -343,6 +383,9 @@ class DevelopActivity(ViewSourceActivity):
                 self.load_file(filename)
         self.set_dirty(False)
         
+    def is_dirty(self):
+        return self.dirty
+    
     def set_dirty(self, dirty):
         self.debug_msg("Setting dirty to %s; activity_dir is %s" %  
                 (str(dirty), str(self.activity_dir)))

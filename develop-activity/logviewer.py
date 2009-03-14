@@ -140,7 +140,7 @@ class LogMinder(gtk.VBox):
         newlogview = LogView(path,self)
         self.activity.editor.add_page(node["name"],newlogview)
         self.activity.editor.set_current_page(-1)
-        self._active_log = act_log
+        self._active_log = newlogview
 
     def _filter_by_name(self,node):
         return (self._namefilter in node.filename) or node.isDirectory
