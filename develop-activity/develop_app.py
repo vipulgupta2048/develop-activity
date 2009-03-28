@@ -36,8 +36,8 @@ from sugar.graphics.menuitem import MenuItem
 from sugar.graphics.alert import ConfirmationAlert, TimeoutAlert
 from sugar.graphics import iconentry, notebook
 from sugar.datastore import datastore
-#from sugar.bundle.activitybundle import ActivityBundle
-from activitybundle import ActivityBundle
+from sugar.bundle.activitybundle import ActivityBundle
+#from activitybundle import ActivityBundle
 import logviewer
 import sourceview_editor
 S_WHERE = sourceview_editor.S_WHERE
@@ -268,7 +268,8 @@ class DevelopActivity(activity.Activity):
         """Open an activity for the first time. Subsequently, use open_activity.
         """
         name = self.open_activity(activity_dir)
-        self.logview = logviewer.LogMinder(self, name.split(".")[0])
+        namefilter = ActivityBundle(activity_dir).get_bundle_id()
+        self.logview = logviewer.LogMinder(self, namefilter)
         self.set_dirty(False)
 
     def refresh_files(self):
@@ -315,8 +316,9 @@ class DevelopActivity(activity.Activity):
         builder = XOPackager(Builder(Config(activity_dir, dist_dir, dist_name)))
         builder.package()
         
-        #set up datastore object
-        jobject = datastore.create()
+        #fix up datastore object
+        #FIXME: some of this is overkill, legacy from when I created a new jobject each save
+        jobject = self._jobject
         if self._shared_activity is not None:
             icon_color = self._shared_activity.props.color
         else:

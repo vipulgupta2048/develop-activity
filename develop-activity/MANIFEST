@@ -6,13 +6,13 @@ sourceview_editor.py
 setup.py
 CREDITS
 developrunner.sh
-developableactivity.py
+
 welcome_dialog.py
 bundle.py
 activity_model.py
 logviewer.py
-bundlebuilder.py
-activitybundle.py
+
+
 po/Develop.pot
 icons/use-caps.svg
 icons/regex-in-selection.svg
