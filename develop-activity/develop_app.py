@@ -375,7 +375,10 @@ class DevelopActivity(activity.Activity):
         if os.path.isdir(workingdir):
             shutil.rmtree(workingdir)
             #raise IOError("working dir already exists...")
-        bundledir = ActivityBundle(file_path).unpack(workingdir)
+        try:
+            bundledir = ActivityBundle(file_path).install(workingdir)
+        except AttributeError:
+            bundledir = ActivityBundle(file_path).unpack(workingdir)
         self.first_open_activity(os.path.join(bundledir))
         self._logger.info(u'read_file. subfiles: %s' % 
                           self.metadata['open_filenames'])
