@@ -1,5 +1,6 @@
 39
 Handle API chages in 8.2
+Use gnomevfs and not gio
 
 37
 Fixed log updating

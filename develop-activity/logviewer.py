@@ -27,7 +27,7 @@ import dbus
 import pygtk
 import gobject
 import pango
-import gio 
+import gnomevfs 
 
 from sugar import env
 
@@ -96,22 +96,25 @@ class LogMinder(gtk.VBox):
         
 
     def _configure_watcher(self):
-        monitor = gio.File(self._logs_path).monitor_directory()
-        monitor.connect('changed', self._log_file_changed_cb)
+        gnomevfs.monitor_add('file://' + self._logs_path,
+                                gnomevfs.MONITOR_DIRECTORY,
+                                self._log_file_changed_cb)
 
         for f in self._extra_files:
-            monitor = gio.File(f).monitor_file()
-            monitor.connect('changed', self._log_file_changed_cb)
+            gnomevfs.monitor_add('file://' + f,
+                                gnomevfs.MONITOR_FILE,
+                                self._log_file_changed_cb)
 
-    def _log_file_changed_cb(self, monitor, file, other_file, event):
-        logfile = file.get_basename()
+    def _log_file_changed_cb(self, monitor_uri, info_uri, event):
+        path = info_uri.split('file://')[-1]
+        dir, logfile = os.path.split(path)
 
-        if event == gio.FILE_MONITOR_EVENT_CHANGED:
+        if event == gnomevfs.MONITOR_EVENT_CHANGED:
             for log in self._openlogs:
                 if logfile in log.logpath:        
                     log.update()
-        elif (event == gio.FILE_MONITOR_EVENT_DELETED 
-                or event == gio.FILE_MONITOR_EVENT_CREATED):
+        elif (event == gnomevfs.MONITOR_EVENT_DELETED 
+                or event == gnomevfs.MONITOR_EVENT_CREATED):
             self._model.refresh()
             #If the log is open, just leave it that way
 
