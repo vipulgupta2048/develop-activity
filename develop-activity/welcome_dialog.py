@@ -22,11 +22,12 @@ import gtk
 from gettext import gettext as _
 
 RESPONSE_OPEN = 1
-RESPONSE_NEW  = 2
+RESPONSE_NEW = 2
 RESPONSE_CANCEL = 3
 
+
 class WelcomeDialog(object):
-    
+
     # TODO: current iteration is very much a placeholder.  The Welcome screen
     # should display something like the below.  Wording is very important here
     # and I greatly look foward to the HIG defining some of the persistence,
@@ -58,7 +59,7 @@ class WelcomeDialog(object):
     #
     def __init__(self, host_activity):
         self._host_activity = host_activity
-        
+
     def run(self):
         """Creates and displays a welcome screen."""
         self.dialogbox = gtk.Dialog(_("Welcome to Develop"),
@@ -66,24 +67,34 @@ class WelcomeDialog(object):
                                     flags=gtk.DIALOG_MODAL)
         vbox = self.dialogbox.vbox
         welcome_hbox = gtk.HBox()
-        welcome_label = gtk.Label(_('<span weight="bold" size="larger">What would you like to do?</span>\n\nChoose "open" to open an existing activity. Your changes will be saved in the journal; in general, changes are NOT saved in place. (The exception is if you open an activity folder not inside ~/Activities, and you have write permissions. If a folder in ~/Activities is actually a symbolic link, this allows you to edit an activity in place, with changes visible next time you run.)\n\nTo continue to edit a bundle, go to journals detail view, right click on the "play" button in the toolbar, and open it with Develop. To test the activity you wrote, just click on it in the journal.'))
+        welcome_label = gtk.Label(_('<span weight="bold" size="larger">'
+            'What would you like to do?</span>\n\n'
+            'Choose "open" to open an existing activity. Your changes will be '
+            'saved in the journal; in general, changes are NOT saved in place'
+            '. (The exception is if you open an activity folder not inside '
+            '~/Activities, and you have write permissions. If a folder in '
+            '~/Activities is actually a symbolic link, this allows you to '
+            'edit an activity in place, with changes visible next time you '
+            'run.)\n\nTo continue to edit a bundle, go to journals detail '
+            'view, right click on the "play" button in the toolbar, and open '
+            'it with Develop. To test the activity you wrote, just click on '
+            'it in the journal.'))
         welcome_label.set_use_markup(True)
         welcome_label.set_line_wrap(True)
         welcome_image = gtk.Image()
         welcome_image.set_from_stock(gtk.STOCK_EDIT, gtk.ICON_SIZE_DIALOG)
         vbox.pack_start(welcome_hbox, expand=True, fill=True, padding=12)
         welcome_hbox.show()
-        welcome_hbox.pack_start(welcome_image, expand=True, fill=False, padding=12)
+        welcome_hbox.pack_start(welcome_image, expand=True, fill=False,
+                padding=12)
         welcome_image.show()
-        welcome_hbox.pack_end(welcome_label, expand=True, fill=True, padding=12)
+        welcome_hbox.pack_end(welcome_label, expand=True, fill=True,
+                padding=12)
         welcome_label.show()
-        
+
         self.dialogbox.add_button(gtk.STOCK_OPEN, RESPONSE_OPEN)
         self.dialogbox.add_button(gtk.STOCK_NEW, RESPONSE_NEW)
         self.dialogbox.add_button(gtk.STOCK_CANCEL, RESPONSE_CANCEL)
         response = self.dialogbox.run()
         self.dialogbox.destroy()
         return response
-
-            
-            
