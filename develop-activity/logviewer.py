@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2006-2007, Eduardo Silva <edsiper@gmail.com>, 2008 Jameson Quinn
+# Copyright (C) 2006-2007, Eduardo Silva <edsiper@gmail.com>,2008 Jameson Quinn
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,19 +39,21 @@ from sourceview_editor import SearchablePage
 # as passed to init.
 #In other words, needs refactoring.
 
+
 def _get_filename_from_path(path):
     return os.path.split(path)[-1]
+
 
 class LogMinder(gtk.VBox):
     def __init__(self, activity, namefilter, path=None, extra_files=None):
         self.activity = activity
         self._openlogs = []
-        
+
         self.activity._logger.info('creating MultiLogView')
         if not path:
             # Main path to watch: ~/.sugar/someuser/logs...
             path = os.path.join(self.activity._get_user_path(),
-                                ".sugar","default","logs")
+                                ".sugar", "default", "logs")
             #env.get_profile_path(), 'logs')
 
         if not extra_files:
@@ -71,17 +73,19 @@ class LogMinder(gtk.VBox):
         self._tv_menu.connect('cursor-changed', self._load_log)
         self._tv_menu.set_rules_hint(True)
         cellrenderer = gtk.CellRendererText()
-        self.treecolumn = gtk.TreeViewColumn(_("Sugar logs"), cellrenderer, text=1)
+        self.treecolumn = gtk.TreeViewColumn(_("Sugar logs"), cellrenderer,
+                text=1)
         self._tv_menu.append_column(self.treecolumn)
         self._tv_menu.set_size_request(220, 900)
-        
+
         # Create scrollbars around the tree view.
         scrolled = gtk.ScrolledWindow()
         scrolled.set_placement(gtk.CORNER_TOP_RIGHT)
         scrolled.add(self._tv_menu)
-        
-        # the internals of the treeview    
-        self._model = activity_model.DirectoryAndExtraModel(path, extra_files, self._filter_by_name)
+
+        # the internals of the treeview
+        self._model = activity_model.DirectoryAndExtraModel(path, extra_files,
+                self._filter_by_name)
         self._tv_menu.set_model(self._model)
 
         self._add_column(self._tv_menu, 'Sugar logs', 0)
@@ -93,8 +97,6 @@ class LogMinder(gtk.VBox):
 
         # TODO: gnomevfs is deprecated
         #self._configure_watcher()
-        
-        
 
     def _configure_watcher(self):
         gnomevfs.monitor_add('file://' + self._logs_path,
@@ -112,9 +114,9 @@ class LogMinder(gtk.VBox):
 
         if event == gnomevfs.MONITOR_EVENT_CHANGED:
             for log in self._openlogs:
-                if logfile in log.logpath:        
+                if logfile in log.logpath:
                     log.update()
-        elif (event == gnomevfs.MONITOR_EVENT_DELETED 
+        elif (event == gnomevfs.MONITOR_EVENT_DELETED
                 or event == gnomevfs.MONITOR_EVENT_CREATED):
             self._model.refresh()
             #If the log is open, just leave it that way
@@ -124,36 +126,36 @@ class LogMinder(gtk.VBox):
         node = activity_model.get_selected_file(self._tv_menu)
         print node
         path = node["path"]
-        
+
         if os.path.isdir(path):
             #do not try to open folders
             self.activity._logger.debug("Cannot open a folder as text :)")
             return
-        
+
         if not path:
             #DummyActivityNode
             return
-        
+
         # Set buffer and scroll down
         if self.activity.editor.set_to_page_like(path):
             return
-        newlogview = LogView(path,self)
-        self.activity.editor.add_page(node["name"],newlogview)
+        newlogview = LogView(path, self)
+        self.activity.editor.add_page(node["name"], newlogview)
         self.activity.editor.set_current_page(-1)
         self._active_log = newlogview
 
-    def _filter_by_name(self,node):
+    def _filter_by_name(self, node):
         return (self._namefilter in node.filename) or node.isDirectory
-        
+
     # Add a new column to the main treeview, (code from Memphis)
     def _add_column(self, treeview, column_name, index):
         cell = gtk.CellRendererText()
         col_tv = gtk.TreeViewColumn(column_name, cell, text=index)
         col_tv.set_resizable(True)
         col_tv.set_property('clickable', True)
-        
+
         treeview.append_column(col_tv)
-        
+
         # Set the last column index added
         self.last_col_index = index
 
@@ -161,15 +163,16 @@ class LogMinder(gtk.VBox):
     def _insert_row(self, store, parent, name):
         iter = store.insert_before(parent, None)
         index = 0
-        store.set_value(iter, index , name)
-            
+        store.set_value(iter, index, name)
+
         return iter
-        
-    def _remove_logview(self,logview):
+
+    def _remove_logview(self, logview):
         try:
             self._openlogs.remove(logview)
         except ValueError:
             self.activity._logger.debug("_remove_logview failed")
+
 
 class LogBuffer(gtk.TextBuffer):
     def __init__(self, logfile):
@@ -191,11 +194,14 @@ class LogBuffer(gtk.TextBuffer):
 
             self._written = (self._pos - init_pos)
         except:
-            self.insert(self.get_end_iter(), "Console error: can't open the file\n")
+            self.insert(self.get_end_iter(),
+                    "Console error: can't open the file\n")
             self._written = 0
 
+
 class LogView(SearchablePage):
-    def __init__(self,logpath,logminder):
+
+    def __init__(self, logpath, logminder):
         gtk.ScrolledWindow.__init__(self)
 
         self.logminder = logminder
@@ -205,7 +211,7 @@ class LogView(SearchablePage):
 
         self.text_view = gtk.TextView()
         self.text_view.set_wrap_mode(gtk.WRAP_WORD)
-        
+
         newbuffer = self._create_log_buffer(logpath)
         if newbuffer:
             self.text_view.set_buffer(newbuffer)
@@ -218,7 +224,7 @@ class LogView(SearchablePage):
 
         self.add(self.text_view)
         self.text_view.show()
-        
+
     def remove(self):
         self.logminder._remove_logview(self)
 
@@ -228,29 +234,28 @@ class LogView(SearchablePage):
             return False
 
         if not os.path.exists(path):
-            self.logminder.activity._logger.error( "ERROR: %s don't exists" % path)
+            self.logminder.activity._logger.error("ERROR: %s don't exists" %
+                    path)
             return False
 
-        if not os.access(path, os.R_OK): 
-            self.logminder.activity._logger.error( "ERROR: I can't read '%s' file" % path)
+        if not os.access(path, os.R_OK):
+            self.logminder.activity._logger.error(
+                    "ERROR: I can't read '%s' file" % path)
             return False
 
         self.filename = _get_filename_from_path(path)
 
         self._logbuffer = logbuffer = LogBuffer(path)
-        
+
         self._written = logbuffer._written
-        
+
         return logbuffer
 
-    def __eq__(self,other):
-        return  other == self.logpath or other == self.filename 
-    
+    def __eq__(self, other):
+        return  other == self.logpath or other == self.filename
+
     def replace(self, *args, **kw):
-        return (False,False)
-    
+        return (False, False)
+
     def update(self):
         self._logbuffer.update()
-
-
-
