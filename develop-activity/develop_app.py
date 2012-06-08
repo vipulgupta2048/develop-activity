@@ -327,7 +327,7 @@ class DevelopActivity(activity.Activity):
         metadata = {
             'title': _('%s Bundle') % builder.config.activity_name,
             'title_set_by_user': '1',
-            'suggested_filename': '%s-%d.xo' % (builder.config.bundle_name, 
+            'suggested_filename': '%s-%s.xo' % (builder.config.bundle_name,
                                                 builder.config.version),
             'icon-color': icon_color,
             'mime_type': 'application/vnd.olpc-sugar',
@@ -939,7 +939,7 @@ class DevelopFileToolbar(gtk.Toolbar):
             dso = datastore.create()
             dso.metadata['filename'] = os.path.basename(filename)
             dso.metadata['source'] = dso.file_path = filename
-            self.activity.editor.load_object(dso)
+            self.activity.editor.load_object(filename, dso)
         else:
             chooser.destroy()
         del chooser

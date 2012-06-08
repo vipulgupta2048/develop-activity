@@ -18,16 +18,18 @@ import gtk, gobject
 import os, os.path
 import logging
 from gettext import gettext as _
+import fnmatch
+
 unwantedPaths = [
     '.*', # hidden files
     '*~', # emacs backups
     '*.pyc', # compiled python
     '*.bak', # SPE backup file
+    '.git', # git repository info
     'CVS', # CVS repository info
     ]
 
 def _nodefilter(node):
-    import fnmatch
     notmatched = True
     for path in unwantedPaths:
         if fnmatch.fnmatch(node.filename, path):
@@ -36,7 +38,26 @@ def _nodefilter(node):
     return notmatched
     
 def inmanifestfn(bundle):
-    allfiles = bundle.get_files()
+    activity_path = bundle.get_path()
+    logging.error('activity path = %s', activity_path)
+
+    allfiles = []
+
+    def walk_callback(allfiles, directory, files):
+        for file_name in files:
+            notmatched = True
+            for path in unwantedPaths:
+                if fnmatch.fnmatch(file_name, path):
+                    notmatched = False
+                    break
+            if notmatched:
+                allfiles.append(os.path.join(directory, file_name))
+
+    os.path.walk(activity_path, walk_callback, allfiles)
+
+    logging.error('allfiles %s', allfiles)
+
+    #allfiles = bundle.get_files()
     def nodefilterfn(node):
         if os.path.isdir(node.path):
             return True

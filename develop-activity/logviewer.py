@@ -27,7 +27,7 @@ import dbus
 import pygtk
 import gobject
 import pango
-import gnomevfs 
+#import gnomevfs
 
 from sugar import env
 
@@ -91,7 +91,8 @@ class LogMinder(gtk.VBox):
         self.activity.treenotebook.add_page(_("Log"),
             scrolled)
 
-        self._configure_watcher()
+        # TODO: gnomevfs is deprecated
+        #self._configure_watcher()
         
         
 
