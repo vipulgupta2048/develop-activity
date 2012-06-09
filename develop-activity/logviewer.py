@@ -82,7 +82,6 @@ class LogMinder(gtk.VBox):
                 self._filter_by_name)
         self._tv_menu.set_model(self._model)
 
-        self._add_column(self._tv_menu, 'Sugar logs', 0)
         self._logs = {}
 
         # Activities menu
@@ -139,18 +138,6 @@ class LogMinder(gtk.VBox):
 
     def _filter_by_name(self, node):
         return (self._namefilter in node.filename) or node.isDirectory
-
-    # Add a new column to the main treeview, (code from Memphis)
-    def _add_column(self, treeview, column_name, index):
-        cell = gtk.CellRendererText()
-        col_tv = gtk.TreeViewColumn(column_name, cell, text=index)
-        col_tv.set_resizable(True)
-        col_tv.set_property('clickable', True)
-
-        treeview.append_column(col_tv)
-
-        # Set the last column index added
-        self.last_col_index = index
 
     # Insert a Row in our TreeView
     def _insert_row(self, store, parent, name):
