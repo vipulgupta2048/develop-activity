@@ -14,6 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import logging
 import gtk
 import gobject
 import pango
@@ -164,28 +165,25 @@ class GtkSourceview2Editor(notebook.Notebook):
                 yield page.fullPath
 
     def save_all(self):
-        self.activity._logger.info('save all %i' % self.get_n_pages())
+        logging.info('save all %i' % self.get_n_pages())
         if self.activity.is_foreign_dir():
-            self.activity._logger.info('save all error, '
-                    'still viewing in place')
+            logging.info('save all error, still viewing in place')
             return
         for i in range(self.get_n_pages()):
             page = self.get_nth_page(i)
             if isinstance(page, GtkSourceview2Page):
-                self.activity._logger.info('%s' % page.fullPath)
+                logging.info('%s' % page.fullPath)
                 page.save()
 
     def reroot(self, olddir, newdir):
-        self.activity._logger.info('reroot from %s to %s' % (olddir, newdir))
+        logging.info('reroot from %s to %s' % (olddir, newdir))
         for i in range(self.get_n_pages()):
             page = self.get_nth_page(i)
             if isinstance(page, GtkSourceview2Page):
                 if page.reroot(olddir, newdir):
-                    self.activity._logger.info('rerooting page %s failed' %
-                            page.fullPath)
+                    logging.info('rerooting page %s failed' % page.fullPath)
                 else:
-                    self.activity._logger.info('rerooting page %s succeeded' %
-                            page.fullPath)
+                    logging.info('rerooting page %s succeeded' % page.fullPath)
 
     def get_selected(self):
         return self._get_page().get_selected()

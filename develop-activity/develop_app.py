@@ -16,7 +16,6 @@
 from __future__ import with_statement
 import gtk
 import logging
-logging.getLogger().setLevel(0)
 import pango
 import os
 import os.path
@@ -85,9 +84,7 @@ class DevelopActivity(activity.Activity):
         self.dirty = False
         super(DevelopActivity, self).__init__(handle)
 
-        self._logger = logging.getLogger('develop-activity')
-        self._logger.setLevel(0)
-        self._logger.info(repr(handle.get_dict()))
+        logging.info(repr(handle.get_dict()))
 
         # Source buffer
         self.editor = sourceview_editor.GtkSourceview2Editor(self)
@@ -141,14 +138,14 @@ class DevelopActivity(activity.Activity):
         hbox.pack1(sidebar, resize=True, shrink=True)
         sidebar.show()
 
-        self._logger.info('finished check')
+        logging.info('finished check')
         vbox.pack_start(self.editor)
         self.editor.show()
         hbox.pack2(vbox, resize=True, shrink=True)
         vbox.show()
         self.set_canvas(hbox)
         hbox.show()
-        self._logger.critical('finished initialization')
+        logging.critical('finished initialization')
         self.activity_dir = None
         self.show()
 
@@ -181,7 +178,7 @@ class DevelopActivity(activity.Activity):
     def debug_msg(self, text, titl=_("debug alert"), level=0):
         """debug_msg(text, level=x): log text, and maybe show dialog.
         """
-        self._logger.debug(text)
+        logging.debug(text)
         if level >= DEBUG_FILTER_LEVEL:
             self.show_msg(text, title)
 
@@ -250,7 +247,7 @@ class DevelopActivity(activity.Activity):
         del chooser
 
     def open_activity(self, activity_dir):
-        self._logger.info('opening %s' % activity_dir)
+        logging.info('opening %s' % activity_dir)
         self.activity_dir = activity_dir + '/'
         name = os.path.basename(activity_dir)
         self.treecolumn.set_title(name)
@@ -378,7 +375,7 @@ class DevelopActivity(activity.Activity):
         except AttributeError:
             bundledir = ActivityBundle(file_path).unpack(workingdir)
         self.first_open_activity(os.path.join(bundledir))
-        self._logger.info(u'read_file. subfiles: %s' %
+        logging.info(u'read_file. subfiles: %s' %
                           self.metadata['open_filenames'])
         for filename in self.metadata['open_filenames'].split(
                                                         OPENFILE_SEPARATOR):

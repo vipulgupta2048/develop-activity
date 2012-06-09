@@ -49,7 +49,7 @@ class LogMinder(gtk.VBox):
         self.activity = activity
         self._openlogs = []
 
-        self.activity._logger.info('creating MultiLogView')
+        logging.info('creating MultiLogView')
         if not path:
             # Main path to watch: ~/.sugar/someuser/logs...
             path = os.path.join(self.activity._get_user_path(),
@@ -129,7 +129,7 @@ class LogMinder(gtk.VBox):
 
         if os.path.isdir(path):
             #do not try to open folders
-            self.activity._logger.debug("Cannot open a folder as text :)")
+            logging.debug("Cannot open a folder as text :)")
             return
 
         if not path:
@@ -171,7 +171,7 @@ class LogMinder(gtk.VBox):
         try:
             self._openlogs.remove(logview)
         except ValueError:
-            self.activity._logger.debug("_remove_logview failed")
+            logging.debug("_remove_logview failed")
 
 
 class LogBuffer(gtk.TextBuffer):
@@ -234,13 +234,11 @@ class LogView(SearchablePage):
             return False
 
         if not os.path.exists(path):
-            self.logminder.activity._logger.error("ERROR: %s don't exists" %
-                    path)
+            logging.error("ERROR: %s don't exists" % path)
             return False
 
         if not os.access(path, os.R_OK):
-            self.logminder.activity._logger.error(
-                    "ERROR: I can't read '%s' file" % path)
+            logging.error("ERROR: I can't read '%s' file" % path)
             return False
 
         self.filename = _get_filename_from_path(path)
