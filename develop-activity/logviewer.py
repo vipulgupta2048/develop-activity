@@ -23,13 +23,7 @@ import logging
 from gettext import gettext as _
 
 import gtk
-import dbus
-import pygtk
-import gobject
-import pango
 #import gnomevfs
-
-from sugar import env
 
 import activity_model
 
@@ -234,11 +228,11 @@ class LogView(SearchablePage):
             return False
 
         if not os.path.exists(path):
-            logging.error("ERROR: %s don't exists" % path)
+            logging.error("ERROR: %s don't exists", path)
             return False
 
         if not os.access(path, os.R_OK):
-            logging.error("ERROR: I can't read '%s' file" % path)
+            logging.error("ERROR: I can't read '%s' file", path)
             return False
 
         self.filename = _get_filename_from_path(path)

@@ -34,7 +34,7 @@ show_launcher = yes
 
 
 def base_file_template(name):
-    filen, classn = class_template(name)
+    __filen, classn = class_template(name)
     return """from sugar.activity import activity
 
 class %s(activity.Activity):
@@ -66,7 +66,7 @@ def new_activity(name, base_path):
     os.makedirs(path)
     activityPath = os.path.join(path, 'activity')
     os.mkdir(activityPath)
-    filen, classn = class_template(name)
+    filen, __classn = class_template(name)
     _file = file(os.path.join(path, filen + '.py'), 'w')
     _file.write(base_file_template(name))
     _file.close()
@@ -76,14 +76,6 @@ def new_activity(name, base_path):
     _file.close()
 
     _file = file(os.path.join(path, 'NEWS'), 'w')
-    _file.close()
-
-    _file = file(os.path.join(path, 'MANIFEST'), 'w')
-    _file.write('''activity/activity.info
-activity/activity-default.svg
-%s.py
-NEWS
-MANIFEST''' % filen)
     _file.close()
 
     icon_path = os.path.join(os.path.dirname(__file__), 'activity',

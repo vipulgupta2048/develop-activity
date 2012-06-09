@@ -23,7 +23,7 @@ import gtksourceview2
 import os.path
 import re
 import mimetypes
-from exceptions import *
+from exceptions import ValueError, StopIteration, TypeError, IOError, OSError
 
 
 class S_WHERE:
@@ -44,10 +44,10 @@ class GtkSourceview2Editor(notebook.Notebook):
         self.connect('page-removed', self._page_removed_cb)
         self.connect('switch-page', self._switch_page_cb)
 
-    def _page_removed_cb(self, notebook, page, n):
+    def _page_removed_cb(self, __notebook, page, n):
         page.remove()
 
-    def _switch_page_cb(self, notebook, page_gptr, page_num):
+    def _switch_page_cb(self, __notebook, page_gptr, page_num):
         self.activity.update_sidebar_to_page(self.get_nth_page(page_num))
 
     def set_to_page_like(self, eq_to_page):
@@ -165,14 +165,14 @@ class GtkSourceview2Editor(notebook.Notebook):
                 yield page.fullPath
 
     def save_all(self):
-        logging.info('save all %i' % self.get_n_pages())
+        logging.info('save all %i', self.get_n_pages())
         if self.activity.is_foreign_dir():
             logging.info('save all error, still viewing in place')
             return
         for i in range(self.get_n_pages()):
             page = self.get_nth_page(i)
             if isinstance(page, GtkSourceview2Page):
-                logging.info('%s' % page.fullPath)
+                logging.info('%s', page.fullPath)
                 page.save()
 
     def reroot(self, olddir, newdir):
@@ -181,9 +181,9 @@ class GtkSourceview2Editor(notebook.Notebook):
             page = self.get_nth_page(i)
             if isinstance(page, GtkSourceview2Page):
                 if page.reroot(olddir, newdir):
-                    logging.info('rerooting page %s failed' % page.fullPath)
+                    logging.info('rerooting page %s failed', page.fullPath)
                 else:
-                    logging.info('rerooting page %s succeeded' % page.fullPath)
+                    logging.info('rerooting page %s succeeded', page.fullPath)
 
     def get_selected(self):
         return self._get_page().get_selected()

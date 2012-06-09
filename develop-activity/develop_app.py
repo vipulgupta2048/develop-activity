@@ -16,7 +16,6 @@
 from __future__ import with_statement
 import gtk
 import logging
-import pango
 import os
 import os.path
 import shutil
@@ -29,7 +28,7 @@ from sugar.activity.bundlebuilder import XOPackager, Config, Builder
 from sugar.activity import activity
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.menuitem import MenuItem
-from sugar.graphics.alert import ConfirmationAlert, TimeoutAlert
+from sugar.graphics.alert import ConfirmationAlert
 from sugar.graphics import iconentry, notebook
 from sugar.datastore import datastore
 from sugar.bundle.activitybundle import ActivityBundle
@@ -175,7 +174,7 @@ class DevelopActivity(activity.Activity):
         self.add_alert(alert)
         alert.show()
 
-    def debug_msg(self, text, titl=_("debug alert"), level=0):
+    def debug_msg(self, text, title=_("debug alert"), level=0):
         """debug_msg(text, level=x): log text, and maybe show dialog.
         """
         logging.debug(text)
@@ -247,7 +246,7 @@ class DevelopActivity(activity.Activity):
         del chooser
 
     def open_activity(self, activity_dir):
-        logging.info('opening %s' % activity_dir)
+        logging.info('opening %s', activity_dir)
         self.activity_dir = activity_dir + '/'
         name = os.path.basename(activity_dir)
         self.treecolumn.set_title(name)
@@ -260,7 +259,7 @@ class DevelopActivity(activity.Activity):
         """Open an activity for the first time.
            Subsequently, use open_activity.
         """
-        name = self.open_activity(activity_dir)
+        self.open_activity(activity_dir)
         namefilter = ActivityBundle(activity_dir).get_bundle_id()
         self.logview = logviewer.LogMinder(self, namefilter)
         self.set_dirty(False)
@@ -268,7 +267,6 @@ class DevelopActivity(activity.Activity):
     def refresh_files(self):
         """Refresh the treeview of activity files.
         """
-        import activity_model
         self.bundle = ActivityBundle(self.activity_dir)
         self.model = activity_model.DirectoryAndExtraModel(self.activity_dir,
                        nodefilter=activity_model.inmanifestfn(self.bundle))
@@ -690,7 +688,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
     def _replace_cb(self, button=None):
         ftext = self._search_entry.props.text
         rtext = self._replace_entry.props.text
-        replaced, found = self._activity.editor.replace(ftext, rtext,
+        __replaced, found = self._activity.editor.replace(ftext, rtext,
                     self.s_opts)
         if found:
             self._replace_button.set_sensitive(True)
@@ -752,10 +750,10 @@ class DevelopSearchToolbar(gtk.Toolbar):
 
 class DevelopFileToolbar(gtk.Toolbar):
 
-    def __init__(self, activity):
+    def __init__(self, develop_activity):
         gtk.Toolbar.__init__(self)
 
-        self.activity = activity
+        self.activity = develop_activity
 
         insert = ToolButton('insert-image')
         insert.set_tooltip(_('Add a blank file...'))
@@ -786,19 +784,19 @@ class DevelopFileToolbar(gtk.Toolbar):
 
         self.insert(remove, -1)
 
-        open = ToolButton('text-x-generic')
-        open.set_tooltip(_('View an external file...'))
-        open.connect('clicked', self._open_file_cb)
+        open_btn = ToolButton('text-x-generic')
+        open_btn.set_tooltip(_('View an external file...'))
+        open_btn.connect('clicked', self._open_file_cb)
 
-        palette = open.get_palette()
+        palette = open_btn.get_palette()
 
         dirmenu = MenuItem(_('Import an external file...'))
         dirmenu.connect('activate', self._import_file_cb)
         palette.menu.append(dirmenu)
         dirmenu.show()
-        open.show()
+        open_btn.show()
 
-        self.insert(open, -1)
+        self.insert(open_btn, -1)
 
     def _add_file_cb(self, menu, sourcepath=None):
         self.activity.set_dirty(True)
@@ -818,7 +816,6 @@ class DevelopFileToolbar(gtk.Toolbar):
                 return
             if not os.path.exists(filename):
                 if sourcepath:
-                    import shutil
                     shutil.copyfile(sourcepath, filename)
                 else:
                     file(filename, 'w').close()
@@ -838,24 +835,16 @@ class DevelopFileToolbar(gtk.Toolbar):
             dirname = chooser.get_filename()
             chooser.destroy()
 
-            if not os.path.exists(filename):
-                os.mkdir(path)
+            if not os.path.exists(dirname):
+                os.mkdir(dirname)
                 self.activity.refresh_files()
 
-            if not os.path.isdir(filename):
+            if not os.path.isdir(dirname):
                 self.activity.debug_msg(_("Error: directory creation failed."),
                                         DEBUG_FILTER_LEVEL)
         else:
             chooser.destroy()
         del chooser
-
-    def _prune_manifest(self):
-        act_dir = self.activity.activity_dir
-        bundle = self.activity.bundle = ActivityBundle(act_dir)
-        manifestlines = bundle.manifest  # trim MANIFEST
-        with file(os.path.join(act_dir, "MANIFEST"), "wb") as manifest:
-            for line in manifestlines:
-                manifest.write(line + "\n")
 
     def _show_new_file(self, filename):
         if os.path.isfile(filename):
@@ -879,7 +868,6 @@ class DevelopFileToolbar(gtk.Toolbar):
             chooser.destroy()
             if os.path.isfile(filename):
                 os.unlink(filename)
-                self.prune_manifest()
                 self.activity.refresh_files()
             else:
                 self.activity.debug_msg(_("Error: file deletion failed."),
@@ -914,9 +902,7 @@ class DevelopFileToolbar(gtk.Toolbar):
         if alert:
             self.activity.remove_alert(alert)
         if response == gtk.RESPONSE_OK:
-            import shutil
             shutil.rmtree(filename, True)
-            self.prune_manifest()
             self.activity.refresh_files()
 
     def _open_file_cb(self, button):
