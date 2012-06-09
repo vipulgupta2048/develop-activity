@@ -13,7 +13,6 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 """Develop Activity: A programming activity."""
-from __future__ import with_statement
 import gtk
 import logging
 import os
@@ -24,6 +23,10 @@ import gobject
 from gettext import gettext as _
 
 from sugar import profile
+from sugar.graphics.toolbarbox import ToolbarBox
+from sugar.activity.widgets import ActivityToolbarButton
+from sugar.graphics.toolbarbox import ToolbarButton
+from sugar.activity.widgets import StopButton
 from sugar.activity.bundlebuilder import XOPackager, Config, Builder
 from sugar.activity import activity
 from sugar.graphics.toolbutton import ToolButton
@@ -82,28 +85,45 @@ class DevelopActivity(activity.Activity):
         """Set up the Develop activity."""
         self.dirty = False
         super(DevelopActivity, self).__init__(handle)
+        self.max_participants = 1
 
         logging.info(repr(handle.get_dict()))
 
         # Source buffer
         self.editor = sourceview_editor.GtkSourceview2Editor(self)
 
-        # Top toolbar with share and close buttons:
-        toolbox = activity.ActivityToolbox(self)
-        self.set_toolbox(toolbox)
-        toolbox.show()
+        toolbarbox = ToolbarBox()
+        activity_button = ActivityToolbarButton(self)
+        toolbarbox.toolbar.insert(activity_button, 0)
+        self.set_toolbar_box(toolbarbox)
 
-        self.edittoolbar = DevelopEditToolbar(self, toolbox)
-        toolbox.add_toolbar(_("Edit"), self.edittoolbar)
-        self.edittoolbar.show()
+        edit_btn = ToolbarButton()
+        edit_btn.props.page = DevelopEditToolbar(self)
+        edit_btn.props.icon_name = 'toolbar-edit'
+        edit_btn.props.label = _('Edit')
+        toolbarbox.toolbar.insert(edit_btn, -1)
 
-        self.edittoolbar = DevelopSearchToolbar(self, toolbox)
-        toolbox.add_toolbar(_("Search"), self.edittoolbar)
-        self.edittoolbar.show()
+        search_btn = ToolbarButton()
+        search_btn.props.page = DevelopSearchToolbar(self)
+        search_btn.props.icon_name = 'search'
+        search_btn.props.label = _('Search')
+        toolbarbox.toolbar.insert(search_btn, -1)
 
+        """
         filetoolbar = DevelopFileToolbar(self)
         toolbox.add_toolbar(_("File"), filetoolbar)
         filetoolbar.show()
+        """
+
+        separator = gtk.SeparatorToolItem()
+        separator.set_draw(False)
+        separator.set_expand(True)
+        toolbarbox.toolbar.insert(separator, -1)
+
+        stopbtn = StopButton(self)
+        toolbarbox.toolbar.insert(stopbtn, -1)
+
+        toolbarbox.show_all()
 
         # Main layout.
         hbox = gtk.HPaned()
@@ -435,10 +455,9 @@ class DevelopActivity(activity.Activity):
 
 class DevelopEditToolbar(activity.EditToolbar):
 
-    def __init__(self, _activity, toolbox):
+    def __init__(self, _activity):
         activity.EditToolbar.__init__(self)
 
-        self._toolbox = toolbox
         self._activity = _activity
         self._activity.editor.connect('changed', self._changed_cb)
         self._changed_cb(None)
@@ -489,10 +508,9 @@ class DevelopEditToolbar(activity.EditToolbar):
 
 class DevelopSearchToolbar(gtk.Toolbar):
 
-    def __init__(self, _activity, toolbox):
+    def __init__(self, _activity):
         gtk.Toolbar.__init__(self)
 
-        self._toolbox = toolbox
         self._activity = _activity
 
         # setup the search options
@@ -624,7 +642,6 @@ class DevelopSearchToolbar(gtk.Toolbar):
     def _go_to_search_entry_cb(self):
         entry = self._search_entry
         text = self._activity.editor.get_selected()
-        self.switch_to()
         entry.grab_focus()
         if text:
             entry.delete_text(0, -1)
@@ -641,10 +658,6 @@ class DevelopSearchToolbar(gtk.Toolbar):
         else:
             self._replace_entry.select_region(0, -1)
             self._replace_entry.grab_focus()
-            self.switch_to()
-
-    def switch_to(self):
-        self._toolbox.set_current_toolbar(TOOLBAR_SEARCH)
 
     def _reset_search_icons(self):
         self._search_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
