@@ -26,6 +26,7 @@ from sugar import profile
 from sugar.graphics.toolbarbox import ToolbarBox
 from sugar.activity.widgets import ActivityToolbarButton
 from sugar.graphics.toolbarbox import ToolbarButton
+from sugar.graphics.radiotoolbutton import RadioToolButton
 from sugar.activity.widgets import StopButton
 from sugar.activity.bundlebuilder import XOPackager, Config, Builder
 from sugar.activity import activity
@@ -114,6 +115,25 @@ class DevelopActivity(activity.Activity):
         toolbox.add_toolbar(_("File"), filetoolbar)
         filetoolbar.show()
         """
+        toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
+
+        show_files_btn = RadioToolButton()
+        show_files_btn.props.icon_name = 'format-justify-left'
+        show_files_btn.props.group = show_files_btn
+        show_files_btn.set_active(True)
+        show_files_btn.set_tooltip(_('Show source files'))
+        toolbarbox.toolbar.insert(show_files_btn, -1)
+        show_files_btn.connect('clicked', self._change_treenotebook_page, 0)
+
+        show_log_btn = RadioToolButton()
+        show_log_btn.props.icon_name = 'format-justify-fill'
+        show_log_btn.props.group = show_files_btn
+        show_log_btn.set_active(False)
+        show_log_btn.set_tooltip(_('Show log files'))
+        toolbarbox.toolbar.insert(show_log_btn, -1)
+        show_log_btn.connect('clicked', self._change_treenotebook_page, 1)
+
+        toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
 
         separator = gtk.SeparatorToolItem()
         separator.set_draw(False)
@@ -139,6 +159,7 @@ class DevelopActivity(activity.Activity):
         # The sidebar
         sidebar = gtk.VBox()
         self.treenotebook = notebook.Notebook(can_close_tabs=False)
+        self.treenotebook.set_show_tabs(False)
         sidebar.pack_start(self.treenotebook)
 
         self.model = gtk.TreeStore(gobject.TYPE_PYOBJECT, gobject.TYPE_STRING)
@@ -170,6 +191,9 @@ class DevelopActivity(activity.Activity):
 
         if not handle.object_id or not self.metadata.get('source'):
             gobject.timeout_add(100, self._show_welcome)
+
+    def _change_treenotebook_page(self, button, page):
+        self.treenotebook.set_current_page(page)
 
     def is_foreign_dir(self):
         """is_foreign_dir: self.activity_dir should be treated as read-only?
