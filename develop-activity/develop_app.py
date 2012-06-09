@@ -172,8 +172,8 @@ class DevelopActivity(activity.Activity):
 
         # Create scrollbars around the tree view.
         scrolled = gtk.ScrolledWindow()
-        scrolled.set_placement(gtk.CORNER_TOP_RIGHT)
         scrolled.add(self.treeview)
+        scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
         self.treenotebook.add_page(_("Activity"), scrolled)
         hbox.pack1(sidebar, resize=True, shrink=True)
         sidebar.show()

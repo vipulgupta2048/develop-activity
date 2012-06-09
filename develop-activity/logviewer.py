@@ -74,7 +74,7 @@ class LogMinder(gtk.VBox):
 
         # Create scrollbars around the tree view.
         scrolled = gtk.ScrolledWindow()
-        scrolled.set_placement(gtk.CORNER_TOP_RIGHT)
+        scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
         scrolled.add(self._tv_menu)
 
         # the internals of the treeview
@@ -86,8 +86,7 @@ class LogMinder(gtk.VBox):
         self._logs = {}
 
         # Activities menu
-        self.activity.treenotebook.add_page(_("Log"),
-            scrolled)
+        self.activity.treenotebook.add_page(_("Log"), scrolled)
 
         # TODO: gnomevfs is deprecated
         #self._configure_watcher()
