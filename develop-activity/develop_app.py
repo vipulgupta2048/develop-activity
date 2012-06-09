@@ -861,10 +861,6 @@ class DevelopFileToolbar(gtk.Toolbar):
 
     def _show_new_file(self, filename):
         if os.path.isfile(filename):
-            with file(os.path.join(self.activity.activity_dir, "MANIFEST"),
-                      "a") as manifest:
-                manifest.write(filename[len(os.path.join(
-                            self.activity.activity_dir, "")):] + "\n")
             self.activity.refresh_files()
         else:
             self.activity.debug_msg(_("Error: file creation failed."),
