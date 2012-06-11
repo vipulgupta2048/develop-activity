@@ -1,7 +1,6 @@
 [Activity]
 name = Develop
 bundle_id = org.laptop.Develop
-service_name = org.laptop.Develop
 exec = sugar-activity develop_app.DevelopActivity -s
 icon = activity-develop
 activity_version = 39
