@@ -27,8 +27,6 @@ import gtk
 
 import activity_model
 
-from sourceview_editor import SearchablePage
-
 #does not import develop_app, but references internals from the activity,
 # as passed to init.
 #In other words, needs refactoring.
@@ -132,7 +130,13 @@ class LogMinder(gtk.VBox):
         if self.activity.editor.set_to_page_like(path):
             return
         newlogview = LogView(path, self)
-        self.activity.editor.add_page(node["name"], newlogview)
+
+        scrollwnd = gtk.ScrolledWindow()
+        scrollwnd.set_policy(gtk.POLICY_AUTOMATIC,
+                             gtk.POLICY_AUTOMATIC)
+        scrollwnd.add(newlogview)
+        scrollwnd.page = newlogview
+        self.activity.editor.add_page(node["name"], scrollwnd)
         self.activity.editor.set_current_page(-1)
         self._active_log = newlogview
 
@@ -155,8 +159,8 @@ class LogMinder(gtk.VBox):
 
 
 class LogBuffer(gtk.TextBuffer):
-    def __init__(self, logfile):
-        gtk.TextBuffer.__init__(self)
+    def __init__(self, logfile, tagtable):
+        gtk.TextBuffer.__init__(self, table=tagtable)
 
         self._logfile = logfile
         self._pos = 0
@@ -179,36 +183,43 @@ class LogBuffer(gtk.TextBuffer):
             self._written = 0
 
 
-class LogView(SearchablePage):
+class LogView(gtk.TextView):
 
     def __init__(self, logpath, logminder):
-        gtk.ScrolledWindow.__init__(self)
+        gtk.TextView.__init__(self)
 
         self.logminder = logminder
         self.logpath = logpath
         self.logminder._openlogs.append(self)
-        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 
-        self.text_view = gtk.TextView()
-        self.text_view.set_wrap_mode(gtk.WRAP_WORD)
+        self.set_wrap_mode(gtk.WRAP_WORD)
 
-        newbuffer = self._create_log_buffer(logpath)
+        # Tags for search
+        tagtable = gtk.TextTagTable()
+        hilite_tag = gtk.TextTag('search-hilite')
+        hilite_tag.props.background = '#FFFFB0'
+        tagtable.add(hilite_tag)
+        select_tag = gtk.TextTag('search-select')
+        select_tag.props.background = '#B0B0FF'
+        tagtable.add(select_tag)
+
+        newbuffer = self._create_log_buffer(logpath, tagtable)
         if newbuffer:
-            self.text_view.set_buffer(newbuffer)
+            self.set_buffer(newbuffer)
             self.text_buffer = newbuffer
+
         # Set background color
         bgcolor = gtk.gdk.color_parse("#FFFFFF")
-        self.text_view.modify_base(gtk.STATE_NORMAL, bgcolor)
+        self.modify_base(gtk.STATE_NORMAL, bgcolor)
 
-        self.text_view.set_editable(False)
+        self.set_editable(False)
 
-        self.add(self.text_view)
-        self.text_view.show()
+        self.show()
 
     def remove(self):
         self.logminder._remove_logview(self)
 
-    def _create_log_buffer(self, path):
+    def _create_log_buffer(self, path, tagtable):
         self._written = False
         if os.path.isdir(path):
             return False
@@ -223,7 +234,7 @@ class LogView(SearchablePage):
 
         self.filename = _get_filename_from_path(path)
 
-        self._logbuffer = logbuffer = LogBuffer(path)
+        self._logbuffer = logbuffer = LogBuffer(path, tagtable)
 
         self._written = logbuffer._written
 
@@ -237,3 +248,59 @@ class LogView(SearchablePage):
 
     def update(self):
         self._logbuffer.update()
+
+    def set_search_text(self, text):
+        self.search_text = text
+
+        _buffer = self.get_buffer()
+
+        start, end = _buffer.get_bounds()
+        _buffer.remove_tag_by_name('search-hilite', start, end)
+        _buffer.remove_tag_by_name('search-select', start, end)
+
+        text_iter = _buffer.get_start_iter()
+        while True:
+            next_found = text_iter.forward_search(text, 0)
+            if next_found is None:
+                break
+            start, end = next_found
+            _buffer.apply_tag_by_name('search-hilite', start, end)
+            text_iter = end
+
+        if self.get_next_result('current'):
+            self.search_next('current')
+        elif self.get_next_result('backward'):
+            self.search_next('backward')
+
+        return True
+
+    def get_next_result(self, direction):
+        _buffer = self.get_buffer()
+
+        if direction == 'forward':
+            text_iter = \
+                      _buffer.get_iter_at_mark(_buffer.get_insert(
+                                                                 ))
+            text_iter.forward_char()
+        else:
+            text_iter = \
+                      _buffer.get_iter_at_mark(_buffer.get_insert(
+                                                                 ))
+        if direction == 'backward':
+            return text_iter.backward_search(self.search_text, 0)
+        else:
+            return text_iter.forward_search(self.search_text, 0)
+
+    def search_next(self, direction):
+        next_found = self.get_next_result(direction)
+        if next_found:
+            _buffer = self.get_buffer()
+
+            start, end = _buffer.get_bounds()
+            _buffer.remove_tag_by_name('search-select', start, end)
+            start, end = next_found
+            _buffer.apply_tag_by_name('search-select', start, end)
+            _buffer.place_cursor(start)
+
+            self.scroll_to_iter(start, 0.1)
+            self.scroll_to_iter(end, 0.1)

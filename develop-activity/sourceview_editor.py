@@ -23,7 +23,7 @@ import gtksourceview2
 import os.path
 import re
 import mimetypes
-from exceptions import ValueError, StopIteration, TypeError, IOError, OSError
+from exceptions import ValueError, TypeError, IOError, OSError
 
 
 class S_WHERE:
@@ -61,10 +61,16 @@ class GtkSourceview2Editor(notebook.Notebook):
     def load_object(self, fullPath, filename):
         if self.set_to_page_like(fullPath):
             return
+        scrollwnd = gtk.ScrolledWindow()
+        scrollwnd.set_policy(gtk.POLICY_AUTOMATIC,
+                          gtk.POLICY_AUTOMATIC)
+
         page = GtkSourceview2Page(fullPath)
+        scrollwnd.add(page)
+        scrollwnd.page = page
         label = filename
         page.text_buffer.connect('changed', self._changed_cb)
-        self.add_page(label, page)
+        self.add_page(label, scrollwnd)
         self.set_current_page(-1)
         self._changed_cb(page.text_buffer)
 
@@ -114,49 +120,38 @@ class GtkSourceview2Editor(notebook.Notebook):
         if multifile and s_opts.replace_all:
             for n in range(self.get_n_pages()):
                 page = self.get_nth_page(n)
-                replaced = page.replace(ftext, rtext,
+                replaced = page.page.replace(ftext, rtext,
                                 s_opts) or replaced
             return (replaced, False)  # not found-again
 
         page = self._get_page()
         if page:
             selection = s_opts.where == S_WHERE.selection
-            replaced = page.replace(ftext, rtext, s_opts)
+            replaced = page.page.replace(ftext, rtext, s_opts)
             if s_opts.replace_all:
                 return (replaced, False)
             elif not selection:
-                found = self.find_next(ftext, s_opts, page)
+                found = self.find_next(ftext, page=page)
                 return (replaced, found)
             else:
                 #for replace-in-selection, leave selection unmodified
                 return (replaced, replaced)
 
-    def find_next(self, ftext, s_opts, page=None):
+    def find_next(self, ftext, page=None, direction='current'):
         if not page:
             page = self._get_page()
         if page:
-            if s_opts.use_regex and issubclass(type(ftext), basestring):
-                ftext = re.compile(ftext)
-            if page.find_next(ftext, s_opts,
-                                wrap=(s_opts.where != S_WHERE.multifile)):
+            if direction == 'current' and page.page.set_search_text(ftext):
                 return True
-            else:
-                if (s_opts.where == S_WHERE.multifile):
-                    current_page = self.get_current_page()
-                    n_pages = self.get_n_pages()
-                    for i in range(1, n_pages):
-                        page = self.get_nth_page((current_page + i) % n_pages)
-                        if isinstance(page, SearchablePage):
-                            if page.find_next(ftext, s_opts,
-                                        wrap=True):
-                                self.set_current_page((current_page + i) %
-                                        n_pages)
-                                return True
-                    return False
+            elif direction:
+                if page.page.search_next(direction):
+                    return True
                 else:
-                    return False  # first file failed, not multifile
+                    return False
+            else:
+                return False
         else:
-            return False  # no open pages
+            return False
 
     def get_all_filenames(self):
         for i in range(self.get_n_pages()):
@@ -189,188 +184,39 @@ class GtkSourceview2Editor(notebook.Notebook):
         return self._get_page().get_selected()
 
 
-class SearchablePage(gtk.ScrolledWindow):
-
-    def get_selected(self):
-        try:
-            start, end = self.text_buffer.get_selection_bounds()
-            return self.text_buffer.get_slice(start, end)
-        except ValueError:
-            return 0
-
-    def get_text(self):
-        """
-        Return the text that's currently being edited.
-        """
-        start, end = self.text_buffer.get_bounds()
-        return self.text_buffer.get_text(start, end)
-
-    def get_offset(self):
-        """
-        Return the current character position in the currnet file.
-        """
-        insert = self.text_buffer.get_insert()
-        _iter = self.text_buffer.get_iter_at_mark(insert)
-        return _iter.get_offset()
-
-    def copy(self):
-        """
-        Copy the currently selected text to the clipboard.
-        """
-        self.text_buffer.copy_clipboard(gtk.Clipboard())
-
-    def paste(self):
-        """
-        Paste from the clipboard into the current file.
-        """
-        self.text_buffer.paste_clipboard(gtk.Clipboard(), None, True)
-
-    def _getMatches(self, buffertext, fpat, s_opts, offset):
-        if s_opts.use_regex:
-            while True:
-                match = fpat.search(buffertext,
-                        re.I if s_opts.ignore_caps else 0)
-                if match:
-                    start, end = match.span()
-                    yield (start + offset, end + offset, match)
-                else:
-                    return
-                buffertext, offset = buffertext[end:], offset + end
-        else:
-            while True:
-                if s_opts.ignore_caps:
-                    #possible optimization: turn fpat into a
-                    #regex by escaping,
-                    #then use re.i
-                    buffertext = buffertext.lower()
-                    fpat = fpat.lower()
-                match = buffertext.find(fpat)
-                if match >= 0:
-                    end = match + len(fpat)
-                    yield (offset + match, offset + end, None)
-                else:
-                    return
-                buffertext, offset = buffertext[end:], offset + end
-
-    def _match(self, pattern, text, s_opts):
-        if s_opts.use_regex:
-            return pattern.match(text, re.I if s_opts.ignore_caps else 0)
-        else:
-            if s_opts.ignore_caps:
-                pattern = pattern.lower()
-                text = text.lower()
-            return pattern == text
-
-    def _find_in(self, text, fpat, offset, s_opts, offset_add=0):
-        if s_opts.forward:
-            matches = self._getMatches(text[offset:], fpat, s_opts,
-                    offset + offset_add)
-            try:
-                return matches.next()
-            except StopIteration:
-                return ()
-        else:
-            if offset != 0:
-                text = text[:offset]
-            matches = list(self._getMatches(text, fpat, s_opts,
-                    offset_add))
-            if matches:
-                return matches[-1]
-            else:
-                return ()
-
-    def find_next(self, ftext, s_opts, wrap=True):
-        """
-        Scroll to the next place where the string text appears.
-        If stay is True and text is found at the current position,
-        stay where we are.
-        """
-        if s_opts.where == S_WHERE.selection:
-            try:
-                selstart, selend = self.text_buffer.get_selection_bounds()
-            except (ValueError, TypeError):
-                return False
-            offsetadd = selstart.get_offset()
-            buffertext = self.text_buffer.get_slice(selstart, selend)
-            print buffertext
-            try:
-                start, end, match = self._find_in(buffertext, ftext, 0,
-                                            s_opts, offsetadd)
-            except (ValueError, TypeError):
-                return False
-        else:
-            # add 1 if not stay
-            offset = self.get_offset() + (not s_opts.stay)
-            text = self.get_text()
-            try:
-                start, end, match = self._find_in(text, ftext, offset,
-                                            s_opts, 0)
-            except (ValueError, TypeError):
-                #find failed.
-                if wrap:
-                    try:
-                        start, end, match = self._find_in(text, ftext, 0,
-                                                        s_opts, 0)
-                    except (ValueError, TypeError):
-                        return False
-                else:
-                    return False
-        self._scroll_to_offset(start, end)
-        return True
-
-    def _scroll_to_offset(self, offset, bound):
-        _iter = self.text_buffer.get_iter_at_offset(offset)
-        _iter2 = self.text_buffer.get_iter_at_offset(bound)
-        self.text_buffer.select_range(_iter, _iter2)
-        self.text_view.scroll_mark_onscreen(self.text_buffer.get_insert())
-
-    def __eq__(self, other):
-        if isinstance(other, GtkSourceview2Page):
-            return self.fullPath == other.fullPath
-        #elif isinstance(other,type(self.fullPath)):
-        #    other = other.metadata['source']
-        if isinstance(other, basestring):
-            return other == self.fullPath
-        else:
-            return False
-
-
-class GtkSourceview2Page(SearchablePage):
+class GtkSourceview2Page(gtksourceview2.View):
 
     def __init__(self, fullPath):
         """
         Do any initialization here.
         """
-        gtk.ScrolledWindow.__init__(self)
+        gtksourceview2.View.__init__(self)
 
         self.fullPath = fullPath
 
-        self.text_buffer = gtksourceview2.Buffer()
-        self.text_view = gtksourceview2.View(self.text_buffer)
+        self.set_size_request(900, 350)
+        self.set_editable(True)
+        self.set_cursor_visible(True)
+        self.set_show_line_numbers(True)
+        self.set_insert_spaces_instead_of_tabs(True)
 
-        self.text_view.set_size_request(900, 350)
-        self.text_view.set_editable(True)
-        self.text_view.set_cursor_visible(True)
-        self.text_view.set_show_line_numbers(True)
-        self.text_view.set_insert_spaces_instead_of_tabs(True)
-        if hasattr(self.text_view, 'set_tabs_width'):
-            self.text_view.set_tabs_width(4)
-        else:
-            self.text_view.set_tab_width(4)
-        self.text_view.set_auto_indent(True)
+        # Tags for search
+        tagtable = gtk.TextTagTable()
+        hilite_tag = gtk.TextTag('search-hilite')
+        hilite_tag.props.background = '#FFFFB0'
+        tagtable.add(hilite_tag)
+        select_tag = gtk.TextTag('search-select')
+        select_tag.props.background = '#B0B0FF'
+        tagtable.add(select_tag)
 
-        self.text_view.set_wrap_mode(gtk.WRAP_CHAR)
-        self.text_view.modify_font(pango.FontDescription("Monospace 10"))
+        self.text_buffer = gtksourceview2.Buffer(tag_table=tagtable)
+        self.set_buffer(self.text_buffer)
 
-        # We could change the color theme here, if we want to.
-        #mgr = gtksourceview2.style_manager_get_default()
-        #style_scheme = mgr.get_scheme('kate')
-        #self.text_buffer.set_style_scheme(style_scheme)
+        self.set_tab_width(4)
+        self.set_auto_indent(True)
 
-        self.set_policy(gtk.POLICY_AUTOMATIC,
-                      gtk.POLICY_AUTOMATIC)
-        self.add(self.text_view)
-        self.text_view.show()
+        self.modify_font(pango.FontDescription("Monospace 10"))
+
         self.load_text()
         self.show()
 
@@ -385,29 +231,20 @@ class GtkSourceview2Page(SearchablePage):
         if offset is not None:
             self._scroll_to_offset(offset)
 
-        if hasattr(self.text_buffer, 'set_highlight'):
-            self.text_buffer.set_highlight(False)
-        else:
-            self.text_buffer.set_highlight_syntax(False)
+        self.text_buffer.set_highlight_syntax(False)
         mime_type = mimetypes.guess_type(self.fullPath)[0]
         if mime_type:
             lang_manager = gtksourceview2.language_manager_get_default()
-            if hasattr(lang_manager, 'list_languages'):
-                langs = lang_manager.list_languages()
-            else:
-                lang_ids = lang_manager.get_language_ids()
-                langs = [lang_manager.get_language(i) for i in lang_ids]
+            lang_ids = lang_manager.get_language_ids()
+            langs = [lang_manager.get_language(i) for i in lang_ids]
             for lang in langs:
                 for m in lang.get_mime_types():
                     if m == mime_type:
                         self.text_buffer.set_language(lang)
-                        if hasattr(self.text_buffer, 'set_highlight'):
-                            self.text_buffer.set_highlight(True)
-                        else:
-                            self.text_buffer.set_highlight_syntax(True)
+                        self.text_buffer.set_highlight_syntax(True)
         self.text_buffer.end_not_undoable_action()
         self.text_buffer.set_modified(False)
-        self.text_view.grab_focus()
+        self.grab_focus()
 
     def remove(self):
         self.save()
@@ -507,3 +344,59 @@ class GtkSourceview2Page(SearchablePage):
             return False
         else:
             return True
+
+    def set_search_text(self, text):
+        self.search_text = text
+
+        _buffer = self.get_buffer()
+
+        start, end = _buffer.get_bounds()
+        _buffer.remove_tag_by_name('search-hilite', start, end)
+        _buffer.remove_tag_by_name('search-select', start, end)
+
+        text_iter = _buffer.get_start_iter()
+        while True:
+            next_found = text_iter.forward_search(text, 0)
+            if next_found is None:
+                break
+            start, end = next_found
+            _buffer.apply_tag_by_name('search-hilite', start, end)
+            text_iter = end
+
+        if self.get_next_result('current'):
+            self.search_next('current')
+        elif self.get_next_result('backward'):
+            self.search_next('backward')
+
+        return True
+
+    def get_next_result(self, direction):
+        _buffer = self.get_buffer()
+
+        if direction == 'forward':
+            text_iter = \
+                      _buffer.get_iter_at_mark(_buffer.get_insert(
+                                                                 ))
+            text_iter.forward_char()
+        else:
+            text_iter = \
+                      _buffer.get_iter_at_mark(_buffer.get_insert(
+                                                                 ))
+        if direction == 'backward':
+            return text_iter.backward_search(self.search_text, 0)
+        else:
+            return text_iter.forward_search(self.search_text, 0)
+
+    def search_next(self, direction):
+        next_found = self.get_next_result(direction)
+        if next_found:
+            _buffer = self.get_buffer()
+
+            start, end = _buffer.get_bounds()
+            _buffer.remove_tag_by_name('search-select', start, end)
+            start, end = next_found
+            _buffer.apply_tag_by_name('search-select', start, end)
+            _buffer.place_cursor(start)
+
+            self.scroll_to_iter(start, 0.1)
+            self.scroll_to_iter(end, 0.1)
