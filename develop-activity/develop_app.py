@@ -32,14 +32,18 @@ from sugar.activity.bundlebuilder import XOPackager, Config, Builder
 from sugar.activity import activity
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.menuitem import MenuItem
+from sugar.graphics.combobox import ComboBox
 from sugar.graphics.alert import ConfirmationAlert
+from sugar.graphics.alert import Alert
 from sugar.graphics import iconentry, notebook
 from sugar.datastore import datastore
 from sugar.bundle.activitybundle import ActivityBundle
+
 import logviewer
 import sourceview_editor
 S_WHERE = sourceview_editor.S_WHERE
 import activity_model
+import new_activity
 
 DEBUG_FILTER_LEVEL = 1
 
@@ -231,39 +235,102 @@ class DevelopActivity(activity.Activity):
     def _show_welcome(self):
         """_show_welcome: when opened without a bundle, ask open/new/cancel
         """
-        import welcome_dialog
-        dialog = welcome_dialog.WelcomeDialog(self)
-        reply = dialog.run()
-        if reply == welcome_dialog.RESPONSE_OPEN:
-            self._pick_existing_activity()
-        elif reply == welcome_dialog.RESPONSE_NEW:
-            self._create_new_activity()
-        else:
-            self.dirty = False
-            self.close()
+        vbox = gtk.VBox()
+        welcome_label = gtk.Label(_('<span weight="bold" size="larger">'
+            'What would you like to do?</span>\n\n'
+            'Choose "Edit one activity" to open an existing activity. '
+            'Your changes will be '
+            'saved in the journal; in general, changes are NOT saved in place'
+            '. (The exception is if you open an activity folder not inside '
+            '~/Activities, and you have write permissions. If a folder in '
+            '~/Activities is actually a symbolic link, this allows you to '
+            'edit an activity in place, with changes visible next time you '
+            'run.)\n\nTo continue to edit a bundle, go to journals detail '
+            'view, right click on the "play" button in the toolbar, and open '
+            'it with Develop. To test the activity you wrote, just click on '
+            'it in the journal.'))
+        welcome_label.set_use_markup(True)
+        welcome_label.set_line_wrap(True)
+        vbox.pack_start(welcome_label, expand=False, fill=True, padding=10)
+
+        hbox = gtk.HBox()
+        hbox_edit = gtk.HBox()
+        edit_btn = gtk.Button(_('Edit one activity'))
+        hbox_edit.pack_start(edit_btn, expand=False, fill=False, padding=10)
+        hbox_edit.pack_start(gtk.Label(_('Select the activity')))
+        activity_name_combo = ComboBox()
+        self._load_activities_installed_combo(activity_name_combo)
+        edit_btn.connect('clicked', self._pick_existing_activity,
+                activity_name_combo)
+        hbox_edit.pack_start(activity_name_combo, expand=True, fill=True,
+                padding=10)
+        hbox.pack_start(hbox_edit, expand=False, fill=False)
+        vbox.pack_start(hbox, expand=False, fill=False, padding=10)
+
+        hbox = gtk.HBox()
+        hbox_create = gtk.HBox()
+        create_btn = gtk.Button(_('Create a new activity'))
+        hbox_create.pack_start(create_btn, expand=False, fill=False,
+                padding=10)
+        hbox_create.pack_start(gtk.Label(_('Name the activity')))
+        activity_name_entry = gtk.Entry()
+        create_btn.connect('clicked', self._create_new_activity,
+                activity_name_entry)
+        hbox_create.pack_start(activity_name_entry, expand=True, fill=True,
+                padding=10)
+        hbox.pack_start(hbox_create, expand=False, fill=False)
+        vbox.pack_start(hbox, expand=False, fill=False, padding=10)
+
+        vbox.show_all()
+        self.editor.append_page(vbox, gtk.Label(_('Start')))
         return False
 
-    def _create_new_activity(self):
+    def _load_activities_installed_combo(self, activities_combo):
+        activities_path = os.path.join(os.path.expanduser("~"), "Activities")
+        for dir_name in sorted(os.listdir(activities_path)):
+            if dir_name.endswith('.activity'):
+                activity_name = dir_name[:- len('.activity')]
+                # search the icon
+                info_file_name = os.path.join(activities_path, dir_name,
+                        'activity/activity.info')
+                info_file = open(info_file_name, 'r')
+                icon_name = None
+                for line in info_file.readlines():
+                    if line.strip().startswith('icon'):
+                        icon_name = line.split()[-1]
+                info_file.close()
+                icon_file_name = None
+                if icon_name is not None:
+                    icon_file_name = os.path.join(activities_path,
+                            dir_name, 'activity', '%s.svg' % icon_name)
+                activities_combo.append_item(0, activity_name,
+                        file_name=icon_file_name)
+
+    def _create_new_activity(self, button, name_entry):
         """create and open a new activity in working dir
         """
-        dialog = gtk.Dialog(_("Name your Activity"), parent=self,
-                            flags=gtk.DIALOG_MODAL)
-        vbox = dialog.vbox
-        entry = gtk.Entry()
-        vbox.add(entry)
-        entry.show()
-        dialog.add_button(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL)
-        dialog.add_button(gtk.STOCK_NEW, gtk.RESPONSE_OK)
-        if dialog.run() == gtk.RESPONSE_OK:
-            import new_activity
-            activityDir = new_activity.new_activity(entry.get_text().strip(),
-                                      self.get_workingdir())
-            self.first_open_activity(activityDir)
-            dialog.destroy()
+        if name_entry.get_text() == '':
+            self._show_alert(_('You must type the name for the new activity'))
         else:
-            dialog.destroy()
-            self.dirty = False
-            self.close()
+            activity_name = name_entry.get_text().strip()
+            activityDir = new_activity.new_activity(activity_name,
+                      self.get_workingdir())
+            self.first_open_activity(activityDir)
+            # remove the welcome tab
+            self.editor.remove_page(0)
+
+    def _show_alert(self, message, title=None):
+        alert = Alert()
+        if title is None:
+            title = _('Atention')
+        alert.props.title = title
+        alert.props.msg = message
+        alert.add_button(gtk.RESPONSE_OK, _('Ok'))
+        self.add_alert(alert)
+        alert.connect('response', self._alert_response_cb)
+
+    def _alert_response_cb(self, alert, response_id):
+        self.remove_alert(alert)
 
     def _get_user_path(self):
         if "user_path" not in self.__dict__:
@@ -273,21 +340,19 @@ class DevelopActivity(activity.Activity):
                     os.path.join(*(["/"] + self.user_path.split("/")[0:3])))
         return self.user_path
 
-    def _pick_existing_activity(self):
-        root = os.path.join(self._get_user_path(), "Activities")
-        chooser = gtk.FileChooserDialog(_("Choose an exisiting activity"),
-            self, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
-            (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-             gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-        chooser.set_current_folder(root)
-        if chooser.run() == gtk.RESPONSE_OK:
-            activity_dir = chooser.get_filename()
-            chooser.destroy()
-            self.first_open_activity(activity_dir)
+    def _pick_existing_activity(self, button, combo_activities):
+        if combo_activities.get_active() == -1:
+            self._show_alert(_('You must select the activity'))
         else:
-            chooser.destroy()
-            self.destroy()
-        del chooser
+            activities_path = os.path.join(self._get_user_path(), "Activities")
+            selected = combo_activities.get_active_iter()
+            activity_name = combo_activities.get_model().get_value(selected, 1)
+            logging.error('Activity selected %s', activity_name)
+            activity_dir = os.path.join(activities_path,
+                    "%s.activity" % activity_name)
+            self.first_open_activity(activity_dir)
+            # remove the welcome tab
+            self.editor.remove_page(0)
 
     def open_activity(self, activity_dir):
         logging.info('opening %s', activity_dir)
@@ -386,6 +451,8 @@ class DevelopActivity(activity.Activity):
     def write_file(self, file_path):
         """Wrap up the activity as a bundle and save it to journal.
         """
+        if self.activity_dir is None:
+            return
         if self.is_foreign_dir():
             self.debug_msg(u'write file from %s to %s; dirty is %s' %
                             (self.activity_dir, file_path, str(self.dirty)))
