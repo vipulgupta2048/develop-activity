@@ -25,17 +25,20 @@ def activity_info_template(name):
     return """[Activity]
 name = %s
 bundle_id = %s
-service_name = %s
 icon = activity-default
-class = %s.%s
+exec = sugar-activity %s.%s -s
 activity_version = 1
 show_launcher = yes
-""" % ((name, bundle_id, bundle_id) + class_template(name))
+""" % ((name, bundle_id) + class_template(name))
 
 
 def base_file_template(name):
     __filen, classn = class_template(name)
-    return """from sugar.activity import activity
+    return """import gtk
+from sugar.activity import activity
+from sugar.activity.widgets import ActivityToolbarButton
+from sugar.graphics.toolbarbox import ToolbarBox
+from sugar.activity.widgets import StopButton
 
 class %s(activity.Activity):
     '''
@@ -44,6 +47,20 @@ class %s(activity.Activity):
 
     def __init__(self, handle):
         activity.Activity.__init__(self, handle)
+        toolbarbox = ToolbarBox()
+
+        activity_button = ActivityToolbarButton(self)
+        toolbarbox.toolbar.insert(activity_button, 0)
+
+        separator = gtk.SeparatorToolItem()
+        separator.set_draw(False)
+        separator.set_expand(True)
+        toolbarbox.toolbar.insert(separator, -1)
+
+        toolbarbox.toolbar.insert(StopButton(self), -1)
+        toolbarbox.show_all()
+        self.set_toolbar_box(toolbarbox)
+
 
     def write_file(self, file_path):
         '''
