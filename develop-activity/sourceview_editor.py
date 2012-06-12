@@ -18,34 +18,32 @@ import logging
 import gtk
 import gobject
 import pango
-from sugar.graphics import notebook
 import gtksourceview2
 import os.path
 import re
 import mimetypes
 from exceptions import ValueError, TypeError, IOError, OSError
 
+from widgets import TabLabel
+
 
 class S_WHERE:
     selection, file, multifile = range(3)  # an enum
 
 
-class GtkSourceview2Editor(notebook.Notebook):
+class GtkSourceview2Editor(gtk.Notebook):
     __gsignals__ = {
         'changed': (gobject.SIGNAL_RUN_FIRST, None, [])
     }
 
     def __init__(self, activity):
-        notebook.Notebook.__init__(self, can_close_tabs=True)
-        self._can_close_tabs = True  # redundant, but above call
-        #                             broken for some reason
+        gtk.Notebook.__init__(self)
         self.activity = activity
-        self.set_size_request(900, 350)
         self.connect('page-removed', self._page_removed_cb)
         self.connect('switch-page', self._switch_page_cb)
 
     def _page_removed_cb(self, __notebook, page, n):
-        page.remove()
+        page.page.remove()
 
     def _switch_page_cb(self, __notebook, page_gptr, page_num):
         self.activity.update_sidebar_to_page(self.get_nth_page(page_num))
@@ -70,9 +68,17 @@ class GtkSourceview2Editor(notebook.Notebook):
         scrollwnd.page = page
         label = filename
         page.text_buffer.connect('changed', self._changed_cb)
-        self.add_page(label, scrollwnd)
+
+        tablabel = TabLabel(page, label)
+        tablabel.connect('tab-close',
+                   lambda widget, child: self.remove_page(self.page_num(child)))
+        tablabel.page = page
+
+        self.append_page(scrollwnd, tablabel)
+
         self.set_current_page(-1)
         self._changed_cb(page.text_buffer)
+        self.show_all()
 
     def _changed_cb(self, buffer):
         if not buffer.can_undo():
@@ -193,9 +199,9 @@ class GtkSourceview2Editor(notebook.Notebook):
 class GtkSourceview2Page(gtksourceview2.View):
 
     def __init__(self, fullPath):
-        """
+        '''
         Do any initialization here.
-        """
+        '''
         gtksourceview2.View.__init__(self)
 
         self.fullPath = fullPath
@@ -221,15 +227,15 @@ class GtkSourceview2Page(gtksourceview2.View):
         self.set_tab_width(4)
         self.set_auto_indent(True)
 
-        self.modify_font(pango.FontDescription("Monospace 10"))
+        self.modify_font(pango.FontDescription('Monospace 10'))
 
         self.load_text()
         self.show()
 
     def load_text(self, offset=None):
-        """
+        '''
         Load the text, and optionally scroll to the given offset in the file.
-        """
+        '''
         self.text_buffer.begin_not_undoable_action()
         _file = file(self.fullPath)
         self.text_buffer.set_text(_file.read())
@@ -270,26 +276,26 @@ class GtkSourceview2Page(gtksourceview2.View):
             _file.close()
 
     def can_undo_redo(self):
-        """
+        '''
         Returns a two-tuple (can_undo, can_redo) with Booleans
         of those abilities.
-        """
+        '''
         return (self.text_buffer.can_undo(), self.text_buffer.can_redo())
 
     def undo(self):
-        """
+        '''
         Undo the last change in the file.  If we can't do anything, ignore.
-        """
+        '''
         self.text_buffer.undo()
 
     def redo(self):
-        """
+        '''
         Redo the last change in the file.  If we can't do anything, ignore.
-        """
+        '''
         self.text_buffer.redo()
 
     def replace(self, ftext, rtext, s_opts):
-        """returns true if replaced (succeeded)"""
+        '''returns true if replaced (succeeded)'''
         selection = s_opts.where == S_WHERE.selection
         if s_opts.replace_all or selection:
             result = False
@@ -343,7 +349,7 @@ class GtkSourceview2Page(gtksourceview2.View):
             return rpat
 
     def reroot(self, olddir, newdir):
-        """Returns False if it works"""
+        '''Returns False if it works'''
         oldpath = self.fullPath
         if oldpath.startswith(olddir):
             self.fullPath = os.path.join(newdir, oldpath[len(olddir):])

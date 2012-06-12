@@ -26,6 +26,7 @@ import gtk
 #import gnomevfs
 
 import activity_model
+from sourceview_editor import TabLabel
 
 #does not import develop_app, but references internals from the activity,
 # as passed to init.
@@ -83,7 +84,7 @@ class LogMinder(gtk.VBox):
         self._logs = {}
 
         # Activities menu
-        self.activity.treenotebook.add_page(_("Log"), scrolled)
+        self.activity.treenotebook.append_page(gtk.Label(_("Log")), scrolled)
 
         # TODO: gnomevfs is deprecated
         #self._configure_watcher()
@@ -136,7 +137,10 @@ class LogMinder(gtk.VBox):
                              gtk.POLICY_AUTOMATIC)
         scrollwnd.add(newlogview)
         scrollwnd.page = newlogview
-        self.activity.editor.add_page(node["name"], scrollwnd)
+        tablabel = TabLabel(label=node["name"])
+        tablabel.page = newlogview
+
+        self.activity.editor.append_page(scrollwnd, tablabel)
         self.activity.editor.set_current_page(-1)
         self._active_log = newlogview
 
