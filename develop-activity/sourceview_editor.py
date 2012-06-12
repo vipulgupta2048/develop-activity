@@ -83,7 +83,10 @@ class GtkSourceview2Editor(notebook.Notebook):
 
     def _get_page(self):
         n = self.get_current_page()
-        return self.get_nth_page(n)
+        if self.get_nth_page(n) is not None:
+            return self.get_nth_page(n).get_children()[0]
+        else:
+            return None
 
     def can_undo_redo(self):
         page = self._get_page()
@@ -95,22 +98,25 @@ class GtkSourceview2Editor(notebook.Notebook):
     def undo(self):
         page = self._get_page()
         if page:
-            page.undo()
+            page.get_buffer().undo()
 
     def redo(self):
         page = self._get_page()
         if page:
-            page.redo()
+            page.get_buffer().redo()
 
     def copy(self):
         page = self._get_page()
         if page:
-            page.copy()
+            clip = gtk.Clipboard()
+            page.get_buffer().copy_clipboard(clip)
 
     def paste(self):
         page = self._get_page()
         if page:
-            page.paste()
+            clip = gtk.Clipboard()
+            text = clip.wait_for_text()
+            page.get_buffer().insert_at_cursor(text)
 
     def replace(self, ftext, rtext, s_opts):
         replaced = False
