@@ -172,7 +172,7 @@ class DevelopActivity(activity.Activity):
         self.treecolumn = gtk.TreeViewColumn(_("Activities"), cellrenderer,
                                              text=1)
         self.treeview.append_column(self.treecolumn)
-        self.treeview.set_size_request(220, 900)
+        self.treeview.set_size_request(gtk.gdk.screen_width() / 4, -1)
 
         # Create scrollbars around the tree view.
         scrolled = gtk.ScrolledWindow()

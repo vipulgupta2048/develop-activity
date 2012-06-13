@@ -39,6 +39,7 @@ class GtkSourceview2Editor(gtk.Notebook):
     def __init__(self, activity):
         gtk.Notebook.__init__(self)
         self.activity = activity
+        self.set_size_request(gtk.gdk.screen_width(), -1)
         self.connect('page-removed', self._page_removed_cb)
         self.connect('switch-page', self._switch_page_cb)
 
