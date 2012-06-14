@@ -1,0 +1,17 @@
+PENDING
+
+
+
+* In logviewer.py, there are comments referencing activities (copy/pasted code)
+
+* In logviewer.py, file monitoring is commented because used gnomevfs
+
+* Icons to "show sources" and "show log" buttons.
+
+* In the treeviews, sort first the directories and next the files.
+
+* File operations (add file, add dir, delete file, delete dir) are using file choser.
+  want implement these operations here? Now are commented.
+
+* The clone capability is in sugar src/jarabe/view/customizebundle.py
+  Probably should be moved to sugar-toolkit.
