@@ -23,7 +23,7 @@ import logging
 from gettext import gettext as _
 
 import gtk
-#import gnomevfs
+import gio
 
 import activity_model
 from sourceview_editor import TabLabel
@@ -56,7 +56,7 @@ class LogMinder(gtk.VBox):
             extra_files.append("/var/log/syslog")
             extra_files.append("/var/log/messages")
 
-        self._logs_path = path
+        self._logs_path = path + '/'
         self._active_log = None
         self._extra_files = extra_files
         self._namefilter = namefilter
@@ -82,33 +82,36 @@ class LogMinder(gtk.VBox):
         self._tv_menu.set_model(self._model)
 
         self._logs = {}
+        self._monitors = []
 
         # Activities menu
-        self.activity.treenotebook.append_page(gtk.Label(_("Log")), scrolled)
+        self.activity.treenotebook.add_page(_("Log"), scrolled)
 
-        # TODO: gnomevfs is deprecated
-        #self._configure_watcher()
+        self._configure_watcher()
 
     def _configure_watcher(self):
-        gnomevfs.monitor_add('file://' + self._logs_path,
-                                gnomevfs.MONITOR_DIRECTORY,
-                                self._log_file_changed_cb)
+        logging.error('Monitor directory %s', self._logs_path)
+        dir_monitor = gio.File(self._logs_path).monitor_directory()
+        dir_monitor.set_rate_limit(2000)
+        dir_monitor.connect('changed', self._log_file_changed_cb)
+        self._monitors.append(dir_monitor)
 
         for f in self._extra_files:
-            gnomevfs.monitor_add('file://' + f,
-                                gnomevfs.MONITOR_FILE,
-                                self._log_file_changed_cb)
+            logging.error('Monitor file %s', f)
+            file_monitor = gio.File(f).monitor_file()
+            file_monitor.set_rate_limit(2000)
+            file_monitor.connect('changed', self._log_file_changed_cb)
+            self._monitors.append(file_monitor)
 
-    def _log_file_changed_cb(self, monitor_uri, info_uri, event):
-        path = info_uri.split('file://')[-1]
-        dir, logfile = os.path.split(path)
+    def _log_file_changed_cb(self, monitor, path1, path2, event):
+        _directory, logfile = os.path.split(str(path1))
 
-        if event == gnomevfs.MONITOR_EVENT_CHANGED:
+        if event == gio.FILE_MONITOR_EVENT_CHANGED:
             for log in self._openlogs:
                 if logfile in log.logpath:
                     log.update()
-        elif (event == gnomevfs.MONITOR_EVENT_DELETED
-                or event == gnomevfs.MONITOR_EVENT_CREATED):
+        elif (event == gio.FILE_MONITOR_EVENT_DELETED
+                or event == gio.FILE_MONITOR_EVENT_CREATED):
             self._model.refresh()
             #If the log is open, just leave it that way
 
@@ -137,8 +140,7 @@ class LogMinder(gtk.VBox):
                              gtk.POLICY_AUTOMATIC)
         scrollwnd.add(newlogview)
         scrollwnd.page = newlogview
-        tablabel = TabLabel(label=node["name"])
-        tablabel.page = newlogview
+        tablabel = TabLabel(newlogview, label=node["name"])
 
         self.activity.editor.append_page(scrollwnd, tablabel)
         self.activity.editor.set_current_page(-1)
