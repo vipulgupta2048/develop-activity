@@ -47,11 +47,11 @@ class GtkSourceview2Editor(gtk.Notebook):
         page.page.remove()
 
     def _switch_page_cb(self, __notebook, page_gptr, page_num):
-        self.activity.update_sidebar_to_page(self.get_nth_page(page_num))
+        self.activity.update_sidebar_to_page(self._get_page(page_num))
 
     def set_to_page_like(self, eq_to_page):
         for n in range(self.get_n_pages()):
-            page = self.get_nth_page(n)
+            page = self._get_page(n)
             if page == eq_to_page:
                 self.set_current_page(n)
                 return True
@@ -88,8 +88,11 @@ class GtkSourceview2Editor(gtk.Notebook):
             self.activity.set_dirty(True)
         self.emit('changed')
 
-    def _get_page(self):
-        n = self.get_current_page()
+    def _get_page(self, order=-1):
+        if order == -1:
+            n = self.get_current_page()
+        else:
+            n = order
         if self.get_nth_page(n) is not None:
             return self.get_nth_page(n).get_children()[0]
         else:
@@ -132,7 +135,7 @@ class GtkSourceview2Editor(gtk.Notebook):
         multifile = (s_opts.where == S_WHERE.multifile)
         if multifile and s_opts.replace_all:
             for n in range(self.get_n_pages()):
-                page = self.get_nth_page(n)
+                page = self._get_page(n)
                 replaced = page.page.replace(ftext, rtext,
                                 s_opts) or replaced
             return (replaced, False)  # not found-again
@@ -167,10 +170,12 @@ class GtkSourceview2Editor(gtk.Notebook):
             return False
 
     def get_all_filenames(self):
+        filenames = []
         for i in range(self.get_n_pages()):
-            page = self.get_nth_page(i)
+            page = self._get_page(i)
             if isinstance(page, GtkSourceview2Page):
-                yield page.fullPath
+                filenames.append(page.fullPath)
+        return filenames
 
     def save_all(self):
         logging.info('save all %i', self.get_n_pages())
@@ -178,7 +183,7 @@ class GtkSourceview2Editor(gtk.Notebook):
             logging.info('save all error, still viewing in place')
             return
         for i in range(self.get_n_pages()):
-            page = self.get_nth_page(i)
+            page = self._get_page(i)
             if isinstance(page, GtkSourceview2Page):
                 logging.info('%s', page.fullPath)
                 page.save()
@@ -186,7 +191,7 @@ class GtkSourceview2Editor(gtk.Notebook):
     def reroot(self, olddir, newdir):
         logging.info('reroot from %s to %s' % (olddir, newdir))
         for i in range(self.get_n_pages()):
-            page = self.get_nth_page(i)
+            page = self._get_page(i)
             if isinstance(page, GtkSourceview2Page):
                 if page.reroot(olddir, newdir):
                     logging.info('rerooting page %s failed', page.fullPath)
@@ -268,7 +273,8 @@ class GtkSourceview2Page(gtksourceview2.View):
             #should not save. currently, the above is never true when that is.
             #This hack is because we're not keeping a pointer to the activity
             # here.
-            text = self.get_text()
+            buff = self.text_buffer
+            text = buff.get_text(buff.get_start_iter(), buff.get_end_iter())
             _file = file(self.fullPath, 'w')
             try:
                 _file.write(text)
