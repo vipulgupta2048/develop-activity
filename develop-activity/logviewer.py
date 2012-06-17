@@ -141,10 +141,13 @@ class LogMinder(gtk.VBox):
         scrollwnd.add(newlogview)
         scrollwnd.page = newlogview
         tablabel = TabLabel(newlogview, label=node["name"])
-
+        tablabel.connect('tab-close',
+            lambda widget, child: self.activity.editor.remove_page(
+                self.activity.editor.page_num(child)))
         self.activity.editor.append_page(scrollwnd, tablabel)
         self.activity.editor.set_current_page(-1)
         self._active_log = newlogview
+        self.activity.editor.show_all()
 
     def _filter_by_name(self, node):
         return (self._namefilter in node.filename) or node.isDirectory

@@ -72,7 +72,7 @@ class GtkSourceview2Editor(gtk.Notebook):
 
         tablabel = TabLabel(page, label)
         tablabel.connect('tab-close',
-                   lambda widget, child: self.remove_page(self.page_num(child)))
+               lambda widget, child: self.remove_page(self.page_num(child)))
         tablabel.page = page
 
         self.append_page(scrollwnd, tablabel)
