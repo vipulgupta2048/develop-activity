@@ -19,6 +19,7 @@ import os
 import os.path
 import shutil
 import gobject
+import simplejson
 
 from gettext import gettext as _
 
@@ -199,19 +200,6 @@ class DevelopActivity(activity.Activity):
     def _change_treenotebook_page(self, button, page):
         self.treenotebook.set_current_page(page)
 
-    def is_foreign_dir(self):
-        """is_foreign_dir: self.activity_dir should be treated as read-only?
-
-        Returns:
-        True: changes should not be saved in self.activity_dir,
-            and thus a change_base is necessary before saving changes.
-
-        False: it is safe to save changes in self.activity_dir.
-        """
-        return not (self.external_working_dir
-                    or not self.activity_dir
-                    or self.activity_dir.startswith(self.get_workingdir()))
-
     def show_msg(self, text, title=""):
         """show_msg(text) shows text in a drop-down alert message.
         """
@@ -313,8 +301,10 @@ class DevelopActivity(activity.Activity):
             self._show_alert(_('You must type the name for the new activity'))
         else:
             activity_name = name_entry.get_text().strip()
+            activities_path = os.path.join(os.path.expanduser("~"),
+                    "Activities")
             activityDir = new_activity.new_activity(activity_name,
-                      self.get_workingdir())
+                    activities_path)
             self.first_open_activity(activityDir)
             # remove the welcome tab
             self.editor.remove_page(0)
@@ -332,19 +322,12 @@ class DevelopActivity(activity.Activity):
     def _alert_response_cb(self, alert, response_id):
         self.remove_alert(alert)
 
-    def _get_user_path(self):
-        if "user_path" not in self.__dict__:
-            self.user_path = os.path.expanduser('~/')
-            if "isolation" in self.user_path:
-                self.user_path = (
-                    os.path.join(*(["/"] + self.user_path.split("/")[0:3])))
-        return self.user_path
-
     def _pick_existing_activity(self, button, combo_activities):
         if combo_activities.get_active() == -1:
             self._show_alert(_('You must select the activity'))
         else:
-            activities_path = os.path.join(self._get_user_path(), "Activities")
+            activities_path = os.path.join(os.path.expanduser("~"),
+                    "Activities")
             selected = combo_activities.get_active_iter()
             activity_name = combo_activities.get_model().get_value(selected, 1)
             logging.error('Activity selected %s', activity_name)
@@ -359,7 +342,7 @@ class DevelopActivity(activity.Activity):
         self.activity_dir = activity_dir + '/'
         name = os.path.basename(activity_dir)
         self.treecolumn.set_title(name)
-        #self.metadata['title'] = name
+        self.metadata['title'] = 'Develop %s' % name
         self.refresh_files()
         self.treeview.get_selection().connect("changed", self.selection_cb)
         return name
@@ -386,11 +369,15 @@ class DevelopActivity(activity.Activity):
     def load_file(self, fullPath):
         """Load one activity subfile into the editor view.
         """
+        logging.error('load_file fullPath %s', fullPath)
+        logging.error('load_file self.activity_dir %s', self.activity_dir)
+
         if fullPath.startswith(self.activity_dir):
             filename = fullPath[len(self.activity_dir):]
         else:
             filename = fullPath
             fullPath = os.path.join(self.activity_dir, fullPath)
+        logging.error('load_file filename %s', filename)
         self.editor.load_object(fullPath, filename)
 
     def selection_cb(self, column):
@@ -407,24 +394,14 @@ class DevelopActivity(activity.Activity):
             self.load_file(path)
             self.numb = False
 
-    def save_source_jobject(self, activity_dir, file_path, filenames=None):
-        if not activity_dir:
-            raise NotImplementedError
-
+    def save_bundle(self, file_path):
         #create bundle
         dist_dir, dist_name = os.path.split(file_path)
         builder = XOPackager(Builder(Config(activity_dir,
                 dist_dir, dist_name)))
         builder.package()
-
-        # fix up datastore object
-        # FIXME: some of this is overkill,
-        # legacy from when I created a new jobject each save
         jobject = self._jobject
-        if self._shared_activity is not None:
-            icon_color = self._shared_activity.props.color
-        else:
-            icon_color = profile.get_color().to_string()
+        icon_color = profile.get_color().to_string()
 
         metadata = {
             'title': _('%s Bundle') % builder.config.activity_name,
@@ -439,13 +416,49 @@ class DevelopActivity(activity.Activity):
             'preview': '',
             'source': activity_dir,
             }
+        jobject.file_path = file_path
+        datastore.write(jobject)
+        jobject.destroy()
+        return jobject
+
+    def save_source_jobject(self, activity_dir, file_path, filenames=None):
+        if not activity_dir:
+            raise NotImplementedError
+
+        # fix up datastore object
+        # FIXME: some of this is overkill,
+        # legacy from when I created a new jobject each save
+        jobject = self._jobject
+        icon_color = profile.get_color().to_string()
+
+        metadata = {
+            'title': self.metadata['title'],
+            'title_set_by_user': '1',
+            #'suggested_filename': '%s-%s.xo' % (builder.config.bundle_name,
+            #                                    builder.config.version),
+            'icon-color': icon_color,
+            'mime_type': 'application/develop-session',
+            'activity': self.get_bundle_id(),
+            'activity_id': self.get_id(),
+            'share-scope': activity.SCOPE_PRIVATE,
+            'preview': '',
+            'source': activity_dir,
+            }
         for k, v in metadata.items():
             jobject.metadata[k] = v  # dict.update method is missing =(
+        dev_session_data = {}
+
         if filenames:
-            jobject.metadata['open_filenames'] = filenames
+            dev_session_data['open_filenames'] = filenames
+
+        f = open(file_path, 'w')
+        try:
+            simplejson.dump(dev_session_data, f)
+        finally:
+            f.close()
         jobject.file_path = file_path
-        #datastore.write(jobject)
-        #jobject.destroy()
+        datastore.write(jobject)
+        jobject.destroy()
         return jobject
 
     def write_file(self, file_path):
@@ -453,43 +466,32 @@ class DevelopActivity(activity.Activity):
         """
         if self.activity_dir is None:
             return
-        if self.is_foreign_dir():
-            self.debug_msg(u'write file from %s to %s; dirty is %s' %
-                            (self.activity_dir, file_path, str(self.dirty)))
         if not self.save_unchanged:
             self.editor.save_all()
         filenames = OPENFILE_SEPARATOR.join(self.editor.get_all_filenames())
         self.debug_msg('activity_dir %s, file_path %s, filenames %s' %
-                (len(self.activity_dir),
-                len(file_path), len(filenames)))
+                (self.activity_dir, file_path, len(filenames)))
         self._jobject = self.save_source_jobject(self.activity_dir,
                 file_path, filenames)
-        self.metadata['source'] = self.activity_dir[:-1]
+        self.metadata['source'] = self.activity_dir
         self.set_dirty(False)
 
-    def get_workingdir(self):
-        return os.path.join(activity.get_activity_root(), "instance",
-                            WORKING_SOURCE_DIR)
-
     def read_file(self, file_path):
-        if not os.path.isfile(file_path):
-            self._show_welcome()
-            return
-        workingdir = self.get_workingdir()
-        if os.path.isdir(workingdir):
-            shutil.rmtree(workingdir)
-            #raise IOError("working dir already exists...")
+        self.activity_dir = self.metadata['source']
+        logging.error('read_file self.activity_dir %s', self.activity_dir)
+        self.first_open_activity(self.activity_dir)
+
+        f = open(file_path, 'r')
         try:
-            bundledir = ActivityBundle(file_path).install(workingdir)
-        except AttributeError:
-            bundledir = ActivityBundle(file_path).unpack(workingdir)
-        self.first_open_activity(os.path.join(bundledir))
-        logging.info(u'read_file. subfiles: %s' %
-                          self.metadata['open_filenames'])
-        for filename in self.metadata['open_filenames'].split(
+            session_data = simplejson.load(f)
+            for filename in session_data['open_filenames'].split(
                                                         OPENFILE_SEPARATOR):
-            if filename:
-                self.load_file(filename)
+                if filename:
+                    logging.info('opening : %s', filename)
+                    self.load_file(filename)
+        finally:
+            f.close()
+
         self.set_dirty(False)
 
     def is_dirty(self):
@@ -499,8 +501,7 @@ class DevelopActivity(activity.Activity):
         self.debug_msg("Setting dirty to %s; activity_dir is %s" %
                 (str(dirty), str(self.activity_dir)))
         self.dirty = dirty
-        if dirty and self.activity_dir and self.is_foreign_dir():
-            self.change_base()
+        if dirty:
             self.save_unchanged = True
             try:
                 self.debug_msg("Saving a pristine copy for safety")
@@ -508,26 +509,6 @@ class DevelopActivity(activity.Activity):
             finally:
                 self.save_unchanged = False
                 self.dirty = dirty
-
-    def change_base(self):
-        targetdir = self.get_workingdir()
-
-        #if in an editable directory outside ~/Activities, edit in place
-        if (not self.activity_dir.startswith(
-                os.path.join(os.path.expanduser("~"), "Activities"))
-                and os.access(targetdir, os.W_OK)):
-            self.debug_msg("Editing files in place: " + self.activity_dir)
-            self.external_working_dir = True
-            return
-
-        #otherwise, copy for editing
-        self.debug_msg("Copying files for editing")
-        if os.path.isdir(targetdir):
-            shutil.rmtree(targetdir)
-        olddir = self.activity_dir
-        shutil.copytree(olddir, targetdir)
-        self.open_activity(targetdir)
-        self.editor.reroot(olddir, targetdir)
 
     def update_sidebar_to_page(self, page):
         if self.numb:

@@ -45,9 +45,8 @@ class LogMinder(gtk.VBox):
         logging.info('creating MultiLogView')
         if not path:
             # Main path to watch: ~/.sugar/someuser/logs...
-            path = os.path.join(self.activity._get_user_path(),
-                                ".sugar", "default", "logs")
-            #env.get_profile_path(), 'logs')
+            path = os.path.join(os.path.expanduser("~"), ".sugar", "default",
+                    "logs")
 
         if not extra_files:
             # extra files to watch in logviewer

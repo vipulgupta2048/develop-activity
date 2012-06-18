@@ -179,9 +179,6 @@ class GtkSourceview2Editor(gtk.Notebook):
 
     def save_all(self):
         logging.info('save all %i', self.get_n_pages())
-        if self.activity.is_foreign_dir():
-            logging.info('save all error, still viewing in place')
-            return
         for i in range(self.get_n_pages()):
             page = self._get_page(i)
             if isinstance(page, GtkSourceview2Page):
@@ -269,10 +266,6 @@ class GtkSourceview2Page(gtksourceview2.View):
 
     def save(self):
         if self.text_buffer.can_undo():  # only save if there's something to
-            # save note: the above is a hack. If activity.is_foreign_dir(), we
-            #should not save. currently, the above is never true when that is.
-            #This hack is because we're not keeping a pointer to the activity
-            # here.
             buff = self.text_buffer
             text = buff.get_text(buff.get_start_iter(), buff.get_end_iter())
             _file = file(self.fullPath, 'w')

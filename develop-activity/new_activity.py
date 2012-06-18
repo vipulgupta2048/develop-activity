@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+import os
+import shutil
 
 
 def class_template(name):
@@ -77,7 +79,6 @@ class %s(activity.Activity):
 
 
 def new_activity(name, base_path):
-    import os
     path = os.path.expanduser(os.path.join(base_path,
                         '%s.activity' % name.replace(' ', '')))
     os.makedirs(path)
@@ -97,7 +98,6 @@ def new_activity(name, base_path):
 
     icon_path = os.path.join(os.path.dirname(__file__), 'activity',
         'activity-default.svg')
-    import shutil
     shutil.copy(icon_path, activityPath)
 
     return path
