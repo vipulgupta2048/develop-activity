@@ -20,6 +20,7 @@ import os.path
 import shutil
 import gobject
 import simplejson
+import tempfile
 
 from gettext import gettext as _
 
@@ -147,6 +148,11 @@ class DevelopActivity(activity.Activity):
 
         stopbtn = StopButton(self)
         toolbarbox.toolbar.insert(stopbtn, -1)
+
+        save_bundle_btn = ToolButton('save-as-bundle')
+        activity_button.get_page().insert(save_bundle_btn, -1)
+        save_bundle_btn.connect('clicked', self.save_bundle)
+        save_bundle_btn.show()
 
         toolbarbox.show_all()
 
@@ -388,17 +394,17 @@ class DevelopActivity(activity.Activity):
             self.load_file(path)
             self.numb = False
 
-    def save_bundle(self, file_path):
+    def save_bundle(self, btn):
         #create bundle
-        dist_dir, dist_name = os.path.split(file_path)
-        builder = XOPackager(Builder(Config(activity_dir,
-                dist_dir, dist_name)))
+        builder = XOPackager(Builder(Config(self.activity_dir, '/tmp')))
         builder.package()
-        jobject = self._jobject
+        logging.error('Packaging %s', builder.package_path)
+        jobject = datastore.create()
         icon_color = profile.get_color().to_string()
 
         metadata = {
-            'title': _('%s Bundle') % builder.config.activity_name,
+            'title': '%s-%s.xo' % (builder.config.bundle_name,
+                builder.config.version),
             'title_set_by_user': '1',
             'suggested_filename': '%s-%s.xo' % (builder.config.bundle_name,
                                                 builder.config.version),
@@ -408,12 +414,15 @@ class DevelopActivity(activity.Activity):
             'activity_id': self.get_id(),
             'share-scope': activity.SCOPE_PRIVATE,
             'preview': '',
-            'source': activity_dir,
+            'source': self.activity_dir,
             }
-        jobject.file_path = file_path
+        for k, v in metadata.items():
+            jobject.metadata[k] = v
+        jobject.file_path = builder.package_path
         datastore.write(jobject)
         jobject.destroy()
-        return jobject
+        self._show_alert(_('The bundle has been saved in the journal.'),
+                _('Success'))
 
     def save_source_jobject(self, activity_dir, file_path, filenames=None):
         if not activity_dir:

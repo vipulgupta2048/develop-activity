@@ -59,7 +59,7 @@ def inmanifestfn(bundle):
 
     os.path.walk(activity_path, walk_callback, allfiles)
 
-    logging.error('allfiles %s', allfiles)
+    #logging.error('allfiles %s', allfiles)
 
     #allfiles = bundle.get_files()
     def nodefilterfn(node):
