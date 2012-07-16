@@ -227,16 +227,10 @@ class DevelopActivity(activity.Activity):
         welcome_label = gtk.Label(_('<span weight="bold" size="larger">'
             'What would you like to do?</span>\n\n'
             'Choose "Edit one activity" to open an existing activity. '
-            'Your changes will be '
-            'saved in the journal; in general, changes are NOT saved in place'
-            '. (The exception is if you open an activity folder not inside '
-            '~/Activities, and you have write permissions. If a folder in '
-            '~/Activities is actually a symbolic link, this allows you to '
-            'edit an activity in place, with changes visible next time you '
-            'run.)\n\nTo continue to edit a bundle, go to journals detail '
-            'view, right click on the "play" button in the toolbar, and open '
-            'it with Develop. To test the activity you wrote, just click on '
-            'it in the journal.'))
+            'You can modify the activity, and if there are errors the '
+            'activity can stop working. If you are not sure, clone the '
+            'activity to have a backup. To test the activity you wrote, '
+            'just click on it in the journal.'))
         welcome_label.set_use_markup(True)
         welcome_label.set_line_wrap(True)
         vbox.pack_start(welcome_label, expand=False, fill=True, padding=10)
