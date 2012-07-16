@@ -140,6 +140,10 @@ class DevelopActivity(activity.Activity):
 
         toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
 
+        show_info_btn = ToolButton('search')
+        toolbarbox.toolbar.insert(show_info_btn, -1)
+        show_info_btn.connect('clicked', self.explore_code)
+
         separator = gtk.SeparatorToolItem()
         separator.set_draw(False)
         separator.set_expand(True)
@@ -204,6 +208,13 @@ class DevelopActivity(activity.Activity):
 
     def _change_treenotebook_page(self, button, page):
         self.treenotebook.set_current_page(page)
+
+    def explore_code(self, btn):
+        from ninja import introspection
+        text = self.editor.get_text()
+        path = self.editor.get_file_path()
+        symbols = introspection.obtain_symbols(text, filename=path)
+        logging.error(symbols)
 
     def show_msg(self, text, title=""):
         """show_msg(text) shows text in a drop-down alert message.

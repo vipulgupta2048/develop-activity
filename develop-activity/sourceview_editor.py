@@ -198,6 +198,13 @@ class GtkSourceview2Editor(gtk.Notebook):
     def get_selected(self):
         return self._get_page().get_selected()
 
+    def get_text(self):
+        buff = self._get_page().text_buffer
+        return buff.get_text(buff.get_start_iter(), buff.get_end_iter())
+
+    def get_file_path(self):
+        return self._get_page().fullPath
+
 
 class GtkSourceview2Page(gtksourceview2.View):
 
