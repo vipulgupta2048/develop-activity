@@ -20,7 +20,6 @@ import os.path
 import shutil
 import gobject
 import simplejson
-import tempfile
 
 from gettext import gettext as _
 
