@@ -46,6 +46,8 @@ S_WHERE = sourceview_editor.S_WHERE
 import activity_model
 import new_activity
 
+from symbols_tree import SymbolsTree
+
 DEBUG_FILTER_LEVEL = 1
 
 SERVICE = "org.laptop.Develop"
@@ -136,13 +138,17 @@ class DevelopActivity(activity.Activity):
         show_log_btn.set_active(False)
         show_log_btn.set_tooltip(_('Show log files'))
         toolbarbox.toolbar.insert(show_log_btn, -1)
-        show_log_btn.connect('clicked', self._change_treenotebook_page, 1)
+        show_log_btn.connect('clicked', self._change_treenotebook_page, 2)
+
+        show_symbols_btn = RadioToolButton()
+        show_symbols_btn.props.icon_name = 'search'
+        show_symbols_btn.props.group = show_files_btn
+        show_symbols_btn.set_active(False)
+        show_symbols_btn.set_tooltip(_('Show file symbols'))
+        toolbarbox.toolbar.insert(show_symbols_btn, -1)
+        show_symbols_btn.connect('clicked', self.explore_code)
 
         toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
-
-        show_info_btn = ToolButton('search')
-        toolbarbox.toolbar.insert(show_info_btn, -1)
-        show_info_btn.connect('clicked', self.explore_code)
 
         separator = gtk.SeparatorToolItem()
         separator.set_draw(False)
@@ -189,6 +195,16 @@ class DevelopActivity(activity.Activity):
         scrolled.add(self.treeview)
         scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
         self.treenotebook.add_page(_("Activity"), scrolled)
+
+        # Symbols tree
+        self._symbolstree = SymbolsTree()
+        self._symbolstree.connect('symbol-selected',
+                                  self.editor.symbol_selected_cb)
+        scrolled = gtk.ScrolledWindow()
+        scrolled.add(self._symbolstree)
+        scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        self.treenotebook.add_page(_('Symbols Tree'), scrolled)
+
         hbox.pack1(sidebar, resize=True, shrink=True)
         sidebar.show()
 
@@ -209,12 +225,15 @@ class DevelopActivity(activity.Activity):
     def _change_treenotebook_page(self, button, page):
         self.treenotebook.set_current_page(page)
 
-    def explore_code(self, btn):
+    def explore_code(self, btn, switch_page=True):
         from ninja import introspection
         text = self.editor.get_text()
         path = self.editor.get_file_path()
         symbols = introspection.obtain_symbols(text, filename=path)
-        logging.error(symbols)
+        self._symbolstree.load_symbols(symbols)
+        if switch_page:
+            self._change_treenotebook_page(None, 1)
+        self._symbolstree.expand_all()
 
     def show_msg(self, text, title=""):
         """show_msg(text) shows text in a drop-down alert message.

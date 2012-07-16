@@ -48,6 +48,7 @@ class GtkSourceview2Editor(gtk.Notebook):
 
     def _switch_page_cb(self, __notebook, page_gptr, page_num):
         self.activity.update_sidebar_to_page(self._get_page(page_num))
+        self.activity.explore_code(None, switch_page=False)
 
     def set_to_page_like(self, eq_to_page):
         for n in range(self.get_n_pages()):
@@ -204,6 +205,12 @@ class GtkSourceview2Editor(gtk.Notebook):
 
     def get_file_path(self):
         return self._get_page().fullPath
+
+    def symbol_selected_cb(self, tree, line):
+        page = self._get_page()
+        _buffer = page.get_buffer()
+        _iter = _buffer.get_iter_at_line(line - 1)
+        page.scroll_to_iter(_iter, 0.0)
 
 
 class GtkSourceview2Page(gtksourceview2.View):
