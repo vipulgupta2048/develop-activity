@@ -17,8 +17,6 @@
 import gtk
 import gobject
 
-from gettext import gettext as _
-
 
 class SymbolsTree(gtk.TreeView):
 
@@ -27,49 +25,45 @@ class SymbolsTree(gtk.TreeView):
     def __init__(self):
         gtk.TreeView.__init__(self)
 
-        self._model = gtk.TreeStore(str, str)
+        self._model = gtk.TreeStore(gtk.gdk.Pixbuf, str, str)
         self.set_model(self._model)
 
         column = gtk.TreeViewColumn('Symbols')
+        icon_cell = gtk.CellRendererPixbuf()
+        column.pack_start(icon_cell, False)
+        column.add_attribute(icon_cell, 'pixbuf', 0)
+
         name_cell = gtk.CellRendererText()
         column.pack_start(name_cell, True)
-        column.add_attribute(name_cell, 'text', 0)
+        column.add_attribute(name_cell, 'text', 1)
 
         line_cell = gtk.CellRendererText()
         line_cell.props.visible = False
         column.pack_start(line_cell, False)
-        column.add_attribute(line_cell, 'text', 1)
+        column.add_attribute(line_cell, 'text', 2)
         self.append_column(column)
 
         self.connect('cursor-changed', self._symbol_selected_cb)
 
-    def _add_class(self, name, line, create_attrs=False, create_methods=False):
-        parent = self._model.append(self._classes, (name, line))
-        _return = [parent]
-        if create_attrs:
-            attributes = self._model.append(parent, (_('Attributes'), 0))
-            _return.append(attributes)
-        if create_methods:
-            methods = self._model.append(parent, (_('Methods'), 0))
-            _return.append(methods)
-        return _return
+    def _add_class(self, name, line):
+        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('icons/class.png', 24, 24)
+        parent = self._model.append(None, (pixbuf, name, line))
+        return parent
 
     def _add_method(self, name, line, parent=None):
-        if not parent:
-            self._model.append(self._methods, (name, line))
-        else:
-            self._model.append(parent, (name, line))
+        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('icons/function.png',
+                                                      24, 24)
+        self._model.append(parent, (pixbuf, name, line))
 
     def _add_attribute(self, name, line, parent=None):
-        if not parent:
-            self._model.append(self._attributes, (name, line))
-        else:
-            self._model.append(parent, (name, line))
+        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('icons/attribute.png',
+                                                      24, 24)
+        self._model.append(parent, (pixbuf, name, line))
 
     def _symbol_selected_cb(self, widget):
         selection = self.get_selection()
         model, _iter = selection.get_selected()
-        line = int(model.get_value(_iter, 1))
+        line = int(model.get_value(_iter, 2))
         if line is 0:
             return
         self.emit('symbol-selected', line)
@@ -77,35 +71,30 @@ class SymbolsTree(gtk.TreeView):
     def load_symbols(self, data):
         self._model.clear()
         if 'attributes' in data:
-            self._attributes = self._model.append(None, (_('Attributes'), 0))
             attributes = data['attributes']
             for attribute in attributes.keys():
                 self._add_attribute(attribute, attributes[attribute])
 
         if 'methods' in data:
             methods = data['methods']
-            self._methods = self._model.append(None, (_('Methods'), 0))
             for method in methods.keys():
                 self._add_method(method, methods[method])
 
         if 'classes' in data:
             classes = data['classes']
-            self._classes = self._model.append(None, (_('Classes'), 0))
             for _class in classes.keys():
                 class_dict = classes[_class][1]
-                parents = self._add_class(_class, classes[_class][0],
-                                         'attributes' in class_dict,
-                                         'functions' in class_dict)
+                parent = self._add_class(_class, classes[_class][0])
                 for key in class_dict.keys():
                     if key == 'attributes':
                         attributes_dict = class_dict[key]
                         for attribute in attributes_dict.keys():
                             self._add_attribute(attribute,
                                                attributes_dict[attribute],
-                                               parents[1])
+                                               parent)
                     if key == 'functions':
                         methods_dict = class_dict[key]
                         for method in methods_dict:
                             self._add_method(method,
                                             methods_dict[method],
-                                            parents[2])
+                                            parent)
