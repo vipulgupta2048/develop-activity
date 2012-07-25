@@ -368,7 +368,9 @@ class DevelopActivity(activity.Activity):
 
     def open_activity(self, activity_dir):
         logging.info('opening %s', activity_dir)
-        self.activity_dir = activity_dir + '/'
+        if not activity_dir.endswith('/'):
+            activity_dir = activity_dir + '/'
+        self.activity_dir = activity_dir
         name = os.path.basename(activity_dir)
         self.treecolumn.set_title(name)
         self.metadata['title'] = 'Develop %s' % name
