@@ -28,8 +28,7 @@ unwantedPaths = [
     '*.pyc',  # compiled python
     '*.bak',  # SPE backup file
     '.git',  # git repository info
-    'CVS',  # CVS repository info
-    ]
+    'CVS', ]  # CVS repository info
 
 
 def _nodefilter(node):
@@ -99,13 +98,16 @@ class DirectoryAndExtraModel(gtk.GenericTreeModel):
         gtk.GenericTreeModel.__init__(self)
 
     def refresh(self):
-        self.files = list(n for n in
-                        (ActivityNode(filename, self, None, self.nodefilter)
-                        for filename in sorted(os.listdir(self.root)))
-                            if self.nodefilter(n))
+        self.files = list(
+            n for n in
+            (ActivityNode(filename, self, None, self.nodefilter)
+             for filename in sorted(os.listdir(self.root)))
+            if self.nodefilter(n))
+
         if self.extra_paths:
-            self.files.extend(ActivityNode(filename, self, None,
-            self.nodefilter) for filename in self.extra_paths)
+            self.files.extend(ActivityNode(
+                filename, self, None,
+                self.nodefilter) for filename in self.extra_paths)
 
     def get_iter_from_filepath(self, filepath):
         if filepath.startswith(self.root):
@@ -219,9 +221,10 @@ class ActivityNode(object):
             return None
         if self._files is None:
             files = sorted(os.listdir(self.path))
-            self._files = filter(self.nodefilter,
-                    (ActivityNode(filename, self.model, self, self.nodefilter)
-                    for filename in files))
+            self._files = filter(
+                self.nodefilter,
+                (ActivityNode(filename, self.model, self, self.nodefilter)
+                 for filename in files))
         if not self._files:
             self._files = (DummyActivityNode(self),)
         return self._files

@@ -46,7 +46,7 @@ class LogMinder(gtk.VBox):
         if not path:
             # Main path to watch: ~/.sugar/someuser/logs...
             path = os.path.join(os.path.expanduser("~"), ".sugar", "default",
-                    "logs")
+                                "logs")
 
         if not extra_files:
             # extra files to watch in logviewer
@@ -66,7 +66,7 @@ class LogMinder(gtk.VBox):
         self._tv_menu.set_rules_hint(True)
         cellrenderer = gtk.CellRendererText()
         self.treecolumn = gtk.TreeViewColumn(_("Sugar logs"), cellrenderer,
-                text=1)
+                                             text=1)
         self._tv_menu.append_column(self.treecolumn)
         self._tv_menu.set_size_request(220, 900)
 
@@ -76,8 +76,9 @@ class LogMinder(gtk.VBox):
         scrolled.add(self._tv_menu)
 
         # the internals of the treeview
-        self._model = activity_model.DirectoryAndExtraModel(path, extra_files,
-                self._filter_by_name)
+        self._model = activity_model.DirectoryAndExtraModel(
+            path, extra_files, self._filter_by_name)
+
         self._tv_menu.set_model(self._model)
 
         self._logs = {}
@@ -140,7 +141,8 @@ class LogMinder(gtk.VBox):
         scrollwnd.add(newlogview)
         scrollwnd.page = newlogview
         tablabel = TabLabel(newlogview, label=node["name"])
-        tablabel.connect('tab-close',
+        tablabel.connect(
+            'tab-close',
             lambda widget, child: self.activity.editor.remove_page(
                 self.activity.editor.page_num(child)))
         self.activity.editor.append_page(scrollwnd, tablabel)
@@ -187,7 +189,7 @@ class LogBuffer(gtk.TextBuffer):
             self._written = (self._pos - init_pos)
         except:
             self.insert(self.get_end_iter(),
-                    "Console error: can't open the file\n")
+                        "Console error: can't open the file\n")
             self._written = 0
 
 
@@ -249,7 +251,7 @@ class LogView(gtk.TextView):
         return logbuffer
 
     def __eq__(self, other):
-        return  other == self.logpath or other == self.filename
+        return other == self.logpath or other == self.filename
 
     def replace(self, *args, **kw):
         return (False, False)
@@ -286,14 +288,11 @@ class LogView(gtk.TextView):
         _buffer = self.get_buffer()
 
         if direction == 'forward':
-            text_iter = \
-                      _buffer.get_iter_at_mark(_buffer.get_insert(
-                                                                 ))
+            text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
             text_iter.forward_char()
         else:
-            text_iter = \
-                      _buffer.get_iter_at_mark(_buffer.get_insert(
-                                                                 ))
+            text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
+
         if direction == 'backward':
             return text_iter.backward_search(self.search_text, 0)
         else:

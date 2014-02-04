@@ -60,9 +60,9 @@ SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
                         S_WHERE.multifile: "multi-search",
                         },
                 True: {S_WHERE.selection: "regex-in-selection",
-                        S_WHERE.file: "regex",
-                        S_WHERE.multifile: "multi-regex",
-                        }}
+                       S_WHERE.file: "regex",
+                       S_WHERE.multifile: "multi-regex",
+                       }}
 CAP_ICONS = {False: "use-caps", True: "ignore-caps"}
 REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
 
@@ -259,13 +259,14 @@ class DevelopActivity(activity.Activity):
         """_show_welcome: when opened without a bundle, ask open/new/cancel
         """
         vbox = gtk.VBox()
-        welcome_label = gtk.Label(_('<span weight="bold" size="larger">'
-            'What would you like to do?</span>\n\n'
-            'Choose "Edit one activity" to open an existing activity. '
-            'You can modify the activity, and if there are errors the '
-            'activity can stop working. If you are not sure, clone the '
-            'activity to have a backup. To test the activity you wrote, '
-            'just click on it in the journal.'))
+        welcome_label = gtk.Label(
+            _('<span weight="bold" size="larger">'
+              'What would you like to do?</span>\n\n'
+              'Choose "Edit one activity" to open an existing activity. '
+              'You can modify the activity, and if there are errors the '
+              'activity can stop working. If you are not sure, clone the '
+              'activity to have a backup. To test the activity you wrote, '
+              'just click on it in the journal.'))
         welcome_label.set_use_markup(True)
         welcome_label.set_line_wrap(True)
         vbox.pack_start(welcome_label, expand=False, fill=True, padding=10)
@@ -278,9 +279,9 @@ class DevelopActivity(activity.Activity):
         activity_name_combo = ComboBox()
         self._load_activities_installed_combo(activity_name_combo)
         edit_btn.connect('clicked', self._pick_existing_activity,
-                activity_name_combo)
+                         activity_name_combo)
         hbox_edit.pack_start(activity_name_combo, expand=True, fill=True,
-                padding=10)
+                             padding=10)
         hbox.pack_start(hbox_edit, expand=False, fill=False)
         vbox.pack_start(hbox, expand=False, fill=False, padding=10)
 
@@ -288,13 +289,13 @@ class DevelopActivity(activity.Activity):
         hbox_create = gtk.HBox()
         create_btn = gtk.Button(_('Create a new activity'))
         hbox_create.pack_start(create_btn, expand=False, fill=False,
-                padding=10)
+                               padding=10)
         hbox_create.pack_start(gtk.Label(_('Name the activity')))
         activity_name_entry = gtk.Entry()
         create_btn.connect('clicked', self._create_new_activity,
-                activity_name_entry)
+                           activity_name_entry)
         hbox_create.pack_start(activity_name_entry, expand=True, fill=True,
-                padding=10)
+                               padding=10)
         hbox.pack_start(hbox_create, expand=False, fill=False)
         vbox.pack_start(hbox, expand=False, fill=False, padding=10)
 
@@ -309,7 +310,7 @@ class DevelopActivity(activity.Activity):
                 activity_name = dir_name[:- len('.activity')]
                 # search the icon
                 info_file_name = os.path.join(activities_path, dir_name,
-                        'activity/activity.info')
+                                              'activity/activity.info')
                 try:
                     info_file = open(info_file_name, 'r')
                     icon_name = None
@@ -319,10 +320,11 @@ class DevelopActivity(activity.Activity):
                     info_file.close()
                     icon_file_name = None
                     if icon_name is not None:
-                        icon_file_name = os.path.join(activities_path,
-                                dir_name, 'activity', '%s.svg' % icon_name)
+                        icon_file_name = os.path.join(
+                            activities_path, dir_name, 'activity',
+                            '%s.svg' % icon_name)
                     activities_combo.append_item(0, activity_name,
-                            file_name=icon_file_name)
+                                                 file_name=icon_file_name)
                 except:
                     logging.error('Error trying to read information about %s',
                                   activity_name)
@@ -335,9 +337,9 @@ class DevelopActivity(activity.Activity):
         else:
             activity_name = name_entry.get_text().strip()
             activities_path = os.path.join(os.path.expanduser("~"),
-                    "Activities")
+                                           "Activities")
             activityDir = new_activity.new_activity(activity_name,
-                    activities_path)
+                                                    activities_path)
             self.first_open_activity(activityDir)
             # remove the welcome tab
             self.editor.remove_page(0)
@@ -360,12 +362,12 @@ class DevelopActivity(activity.Activity):
             self._show_alert(_('You must select the activity'))
         else:
             activities_path = os.path.join(os.path.expanduser("~"),
-                    "Activities")
+                                           "Activities")
             selected = combo_activities.get_active_iter()
             activity_name = combo_activities.get_model().get_value(selected, 1)
             logging.error('Activity selected %s', activity_name)
             activity_dir = os.path.join(activities_path,
-                    "%s.activity" % activity_name)
+                                        "%s.activity" % activity_name)
             self.first_open_activity(activity_dir)
             # remove the welcome tab
             self.editor.remove_page(0)
@@ -395,11 +397,10 @@ class DevelopActivity(activity.Activity):
         """Refresh the treeview of activity files.
         """
         self.bundle = ActivityBundle(self.activity_dir)
-        self.model = activity_model.DirectoryAndExtraModel(self.activity_dir,
-                       nodefilter=activity_model.inmanifestfn(self.bundle))
+        self.model = activity_model.DirectoryAndExtraModel(
+            self.activity_dir,
+            nodefilter=activity_model.inmanifestfn(self.bundle))
         self.treeview.set_model(self.model)
-        #self.treeview.redraw()
-        #self.show_msg("refresh_files")
 
     def load_file(self, fullPath):
         """Load one activity subfile into the editor view.
@@ -439,7 +440,7 @@ class DevelopActivity(activity.Activity):
 
         metadata = {
             'title': '%s-%s.xo' % (builder.config.bundle_name,
-                builder.config.version),
+                                   builder.config.version),
             'title_set_by_user': '1',
             'suggested_filename': '%s-%s.xo' % (builder.config.bundle_name,
                                                 builder.config.version),
@@ -449,15 +450,15 @@ class DevelopActivity(activity.Activity):
             'activity_id': self.get_id(),
             'share-scope': activity.SCOPE_PRIVATE,
             'preview': '',
-            'source': self.activity_dir,
-            }
+            'source': self.activity_dir, }
+
         for k, v in metadata.items():
             jobject.metadata[k] = v
         jobject.file_path = builder.package_path
         datastore.write(jobject)
         jobject.destroy()
         self._show_alert(_('The bundle has been saved in the journal.'),
-                _('Success'))
+                         _('Success'))
 
     def save_source_jobject(self, activity_dir, file_path, filenames=None):
         if not activity_dir:
@@ -480,8 +481,8 @@ class DevelopActivity(activity.Activity):
             'activity_id': self.get_id(),
             'share-scope': activity.SCOPE_PRIVATE,
             'preview': '',
-            'source': activity_dir,
-            }
+            'source': activity_dir, }
+
         for k, v in metadata.items():
             jobject.metadata[k] = v  # dict.update method is missing =(
         dev_session_data = {}
@@ -508,9 +509,9 @@ class DevelopActivity(activity.Activity):
             self.editor.save_all()
         filenames = OPENFILE_SEPARATOR.join(self.editor.get_all_filenames())
         self.debug_msg('activity_dir %s, file_path %s, filenames %s' %
-                (self.activity_dir, file_path, len(filenames)))
-        self._jobject = self.save_source_jobject(self.activity_dir,
-                file_path, filenames)
+                       (self.activity_dir, file_path, len(filenames)))
+        self._jobject = self.save_source_jobject(
+            self.activity_dir, file_path, filenames)
         self.metadata['source'] = self.activity_dir
         self.set_dirty(False)
 
@@ -522,8 +523,8 @@ class DevelopActivity(activity.Activity):
         f = open(file_path, 'r')
         try:
             session_data = simplejson.load(f)
-            for filename in session_data['open_filenames'].split(
-                                                        OPENFILE_SEPARATOR):
+            for filename in \
+                    session_data['open_filenames'].split(OPENFILE_SEPARATOR):
                 if filename:
                     logging.info('opening : %s', filename)
                     self.load_file(filename)
@@ -537,7 +538,7 @@ class DevelopActivity(activity.Activity):
 
     def set_dirty(self, dirty):
         self.debug_msg("Setting dirty to %s; activity_dir is %s" %
-                (str(dirty), str(self.activity_dir)))
+                       (str(dirty), str(self.activity_dir)))
         self.dirty = dirty
         if dirty:
             self.save_unchanged = True
@@ -624,22 +625,25 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._activity = _activity
 
         # setup the search options
-        self.s_opts = SearchOptions(where=S_WHERE.multifile,
-                            use_regex=False,
-                            ignore_caps=True,
-                            replace_all=False,
-                            #defaults to avoid creating
-                            #a new SearchOptions object for normal searches
-                            #should never be changed, just make a copy like:
-                            #SearchOptions(self.s_opts, forward=False)
-                            forward=True,
-                            stay=False
-                            )
+        self.s_opts = SearchOptions(
+            where=S_WHERE.multifile,
+            use_regex=False,
+            ignore_caps=True,
+            replace_all=False,
+            #defaults to avoid creating
+            #a new SearchOptions object for normal searches
+            #should never be changed, just make a copy like:
+            #SearchOptions(self.s_opts, forward=False)
+            forward=True,
+            stay=False)
+
         self.safe_to_replace = False
 
         self._search_entry = iconentry.IconEntry()
-        self._search_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
-                        SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
+        self._search_entry.set_icon_from_name(
+            iconentry.ICON_ENTRY_PRIMARY,
+            SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
+
         self._search_entry.add_clear_button()
         self._search_entry.connect('activate', self._search_entry_activated_cb)
         self._search_entry.connect('changed', self._search_entry_changed_cb)
@@ -740,7 +744,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
 
     def _on_key_press_event(self, widget, event):
         keyname = gtk.gdk.keyval_name(event.keyval)
-        if  "F5" <= keyname and keyname <= "F8":
+        if "F5" <= keyname and keyname <= "F8":
             if keyname == "F5":
                 self._go_to_search_entry_cb()
             elif keyname == "F6":
@@ -772,16 +776,16 @@ class DevelopSearchToolbar(gtk.Toolbar):
             self._replace_entry.grab_focus()
 
     def _reset_search_icons(self):
-        self._search_entry.set_icon_from_name(iconentry.ICON_ENTRY_PRIMARY,
-                    SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
+        self._search_entry.set_icon_from_name(
+            iconentry.ICON_ENTRY_PRIMARY,
+            SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
         self._settings.set_icon(CAP_ICONS[self.s_opts.ignore_caps])
         self._replace_button.set_icon(REPLACE_ICONS[self.s_opts.replace_all])
         self._reset_replace_sensitivity()
 
     def _reset_replace_sensitivity(self):
-        self._replace_button.set_sensitive(self.s_opts.where ==
-                                                 S_WHERE.selection
-                    or self.s_opts.replace_all)
+        self._replace_button.set_sensitive(
+            self.s_opts.where == S_WHERE.selection or self.s_opts.replace_all)
 
     def _set_where_options(self, menu, option):
         self.s_opts.where = option  # IGNORE:W0201
@@ -814,7 +818,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
         ftext = self._search_entry.props.text
         rtext = self._replace_entry.props.text
         __replaced, found = self._activity.editor.replace(ftext, rtext,
-                    self.s_opts)
+                                                          self.s_opts)
         if found:
             self._replace_button.set_sensitive(True)
 
@@ -918,10 +922,11 @@ class DevelopFileToolbar(gtk.Toolbar):
 
     def _add_file_cb(self, menu, sourcepath=None):
         self.activity.set_dirty(True)
-        chooser = gtk.FileChooserDialog(_('Name your new file...'),
+        chooser = gtk.FileChooserDialog(
+            _('Name your new file...'),
             self.activity, gtk.FILE_CHOOSER_ACTION_SAVE,
-                (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                    gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+            (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+             gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)
         if chooser.run() == gtk.RESPONSE_OK:
             filename = chooser.get_filename()
@@ -944,10 +949,11 @@ class DevelopFileToolbar(gtk.Toolbar):
 
     def _add_dir_cb(self, menu):
         self.activity.set_dirty(True)
-        chooser = gtk.FileChooserDialog(_('Name your new directory...'),
+        chooser = gtk.FileChooserDialog(
+            _('Name your new directory...'),
             self.activity, gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER,
-                (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                    gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+            (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+             gtk.STOCK_OPEN, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)
         if chooser.run() == gtk.RESPONSE_OK:
             dirname = chooser.get_filename()
@@ -972,10 +978,11 @@ class DevelopFileToolbar(gtk.Toolbar):
                                     DEBUG_FILTER_LEVEL)
 
     def _erase_file_cb(self, menu):
-        chooser = gtk.FileChooserDialog(_('Pick the file to erase...'),
+        chooser = gtk.FileChooserDialog(
+            _('Pick the file to erase...'),
             self.activity, gtk.FILE_CHOOSER_ACTION_OPEN,
-                (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                    gtk.STOCK_DELETE, gtk.RESPONSE_OK))
+            (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+             gtk.STOCK_DELETE, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)
         if chooser.run() == gtk.RESPONSE_OK:
             filename = chooser.get_filename()
@@ -991,10 +998,11 @@ class DevelopFileToolbar(gtk.Toolbar):
         del chooser
 
     def _erase_dir_cb(self, menu):
-        chooser = gtk.FileChooserDialog(_('Pick the directory to erase...'),
+        chooser = gtk.FileChooserDialog(
+            _('Pick the directory to erase...'),
             self.activity, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-                    gtk.STOCK_DELETE, gtk.RESPONSE_OK))
+            (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+             gtk.STOCK_DELETE, gtk.RESPONSE_OK))
         chooser.set_current_folder(self.activity.activity_dir)
         if chooser.run() == gtk.RESPONSE_OK:
             filename = chooser.get_filename()
@@ -1003,7 +1011,7 @@ class DevelopFileToolbar(gtk.Toolbar):
                 alert = ConfirmationAlert()
                 name = filename[len(self.activity.activity_dir):]
                 alert.props.title = \
-                        _('Are you sure you want to erase %s?') % name
+                    _('Are you sure you want to erase %s?') % name
                 alert.connect('response', self._alert_response, filename)
                 self.activity.add_alert(alert)
             else:

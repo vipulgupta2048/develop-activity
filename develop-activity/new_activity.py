@@ -80,7 +80,7 @@ class %s(activity.Activity):
 
 def new_activity(name, base_path):
     path = os.path.expanduser(os.path.join(base_path,
-                        '%s.activity' % name.replace(' ', '')))
+                              '%s.activity' % name.replace(' ', '')))
     os.makedirs(path)
     activityPath = os.path.join(path, 'activity')
     os.mkdir(activityPath)
@@ -97,7 +97,7 @@ def new_activity(name, base_path):
     _file.close()
 
     icon_path = os.path.join(os.path.dirname(__file__), 'activity',
-        'activity-default.svg')
+                             'activity-default.svg')
     shutil.copy(icon_path, activityPath)
 
     return path

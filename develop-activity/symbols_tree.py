@@ -46,7 +46,8 @@ class SymbolsTree(gtk.TreeView):
         self.connect('cursor-changed', self._symbol_selected_cb)
 
     def _add_class(self, name, line):
-        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('icons/class.png', 24, 24)
+        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('icons/class.png', 24,
+                                                      24)
         parent = self._model.append(None, (pixbuf, name, line))
         return parent
 
@@ -90,11 +91,11 @@ class SymbolsTree(gtk.TreeView):
                         attributes_dict = class_dict[key]
                         for attribute in attributes_dict.keys():
                             self._add_attribute(attribute,
-                                               attributes_dict[attribute],
-                                               parent)
+                                                attributes_dict[attribute],
+                                                parent)
                     if key == 'functions':
                         methods_dict = class_dict[key]
                         for method in methods_dict:
                             self._add_method(method,
-                                            methods_dict[method],
-                                            parent)
+                                             methods_dict[method],
+                                             parent)

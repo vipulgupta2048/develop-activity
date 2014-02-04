@@ -63,7 +63,7 @@ class GtkSourceview2Editor(gtk.Notebook):
             return
         scrollwnd = gtk.ScrolledWindow()
         scrollwnd.set_policy(gtk.POLICY_AUTOMATIC,
-                          gtk.POLICY_AUTOMATIC)
+                             gtk.POLICY_AUTOMATIC)
 
         page = GtkSourceview2Page(fullPath)
         scrollwnd.add(page)
@@ -72,8 +72,9 @@ class GtkSourceview2Editor(gtk.Notebook):
         page.text_buffer.connect('changed', self._changed_cb)
 
         tablabel = TabLabel(page, label)
-        tablabel.connect('tab-close',
-               lambda widget, child: self.remove_page(self.page_num(child)))
+        tablabel.connect(
+            'tab-close',
+            lambda widget, child: self.remove_page(self.page_num(child)))
         tablabel.page = page
 
         self.append_page(scrollwnd, tablabel)
@@ -137,8 +138,7 @@ class GtkSourceview2Editor(gtk.Notebook):
         if multifile and s_opts.replace_all:
             for n in range(self.get_n_pages()):
                 page = self._get_page(n)
-                replaced = page.page.replace(ftext, rtext,
-                                s_opts) or replaced
+                replaced = page.page.replace(ftext, rtext, s_opts) or replaced
             return (replaced, False)  # not found-again
 
         page = self._get_page()
@@ -335,8 +335,8 @@ class GtkSourceview2Page(gtksourceview2.View):
                 start = self.text_buffer.get_iter_at_offset(start)
                 end = self.text_buffer.get_iter_at_offset(end)
                 self.text_buffer.delete(start, end)
-                self.text_buffer.insert(start,
-                        self.makereplace(rtext, match, s_opts.use_regex))
+                self.text_buffer.insert(
+                    start, self.makereplace(rtext, match, s_opts.use_regex))
                 result = True
             self.text_buffer.end_user_action()
             return result
@@ -345,9 +345,8 @@ class GtkSourceview2Page(gtksourceview2.View):
                 start, end = self.text_buffer.get_selection_bounds()
             except TypeError:
                 return False
-            match = self._match(ftext,
-                        self.text_buffer.get_slice(start, end),
-                        s_opts)
+            match = self._match(
+                ftext, self.text_buffer.get_slice(start, end), s_opts)
             if match:
                 self.text_buffer.delete(start, end)
                 rtext = self.makereplace(rtext, match, s_opts.use_regex)
@@ -400,14 +399,11 @@ class GtkSourceview2Page(gtksourceview2.View):
         _buffer = self.get_buffer()
 
         if direction == 'forward':
-            text_iter = \
-                      _buffer.get_iter_at_mark(_buffer.get_insert(
-                                                                 ))
+            text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
             text_iter.forward_char()
         else:
-            text_iter = \
-                      _buffer.get_iter_at_mark(_buffer.get_insert(
-                                                                 ))
+            text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
+
         if direction == 'backward':
             return text_iter.backward_search(self.search_text, 0)
         else:
