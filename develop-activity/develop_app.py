@@ -657,6 +657,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._findnext.show()
         self._findnext.connect('clicked', self._findnext_cb)
 
+        """
         self._settings = ToolButton(CAP_ICONS[self.s_opts.ignore_caps])
         self._settings.set_tooltip(_('Search settings'))
         self.insert(self._settings, -1)
@@ -731,6 +732,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
                 menuitem.connect('activate', function, options)
             palette.menu.append(menuitem)
             menuitem.show()
+        """
 
         self._activity.editor.connect('changed', self._changed_cb)
 
