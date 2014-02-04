@@ -125,28 +125,28 @@ class DevelopActivity(activity.Activity):
         toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
 
         show_files_btn = RadioToolButton()
-        show_files_btn.props.icon_name = 'format-justify-left'
+        show_files_btn.props.icon_name = 'sources'
         show_files_btn.props.group = show_files_btn
         show_files_btn.set_active(True)
         show_files_btn.set_tooltip(_('Show source files'))
         toolbarbox.toolbar.insert(show_files_btn, -1)
         show_files_btn.connect('clicked', self._change_treenotebook_page, 0)
 
-        show_log_btn = RadioToolButton()
-        show_log_btn.props.icon_name = 'format-justify-fill'
-        show_log_btn.props.group = show_files_btn
-        show_log_btn.set_active(False)
-        show_log_btn.set_tooltip(_('Show log files'))
-        toolbarbox.toolbar.insert(show_log_btn, -1)
-        show_log_btn.connect('clicked', self._change_treenotebook_page, 2)
-
         show_symbols_btn = RadioToolButton()
-        show_symbols_btn.props.icon_name = 'search'
+        show_symbols_btn.props.icon_name = 'symbols'
         show_symbols_btn.props.group = show_files_btn
         show_symbols_btn.set_active(False)
         show_symbols_btn.set_tooltip(_('Show file symbols'))
         toolbarbox.toolbar.insert(show_symbols_btn, -1)
         show_symbols_btn.connect('clicked', self.explore_code)
+
+        show_log_btn = RadioToolButton()
+        show_log_btn.props.icon_name = 'logs'
+        show_log_btn.props.group = show_files_btn
+        show_log_btn.set_active(False)
+        show_log_btn.set_tooltip(_('Show log files'))
+        toolbarbox.toolbar.insert(show_log_btn, -1)
+        show_log_btn.connect('clicked', self._change_treenotebook_page, 2)
 
         toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
 
