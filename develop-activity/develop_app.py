@@ -310,18 +310,22 @@ class DevelopActivity(activity.Activity):
                 # search the icon
                 info_file_name = os.path.join(activities_path, dir_name,
                         'activity/activity.info')
-                info_file = open(info_file_name, 'r')
-                icon_name = None
-                for line in info_file.readlines():
-                    if line.strip().startswith('icon'):
-                        icon_name = line.split()[-1]
-                info_file.close()
-                icon_file_name = None
-                if icon_name is not None:
-                    icon_file_name = os.path.join(activities_path,
-                            dir_name, 'activity', '%s.svg' % icon_name)
-                activities_combo.append_item(0, activity_name,
-                        file_name=icon_file_name)
+                try:
+                    info_file = open(info_file_name, 'r')
+                    icon_name = None
+                    for line in info_file.readlines():
+                        if line.strip().startswith('icon'):
+                            icon_name = line.split()[-1]
+                    info_file.close()
+                    icon_file_name = None
+                    if icon_name is not None:
+                        icon_file_name = os.path.join(activities_path,
+                                dir_name, 'activity', '%s.svg' % icon_name)
+                    activities_combo.append_item(0, activity_name,
+                            file_name=icon_file_name)
+                except:
+                    logging.error('Error trying to read information about %s',
+                                  activity_name)
 
     def _create_new_activity(self, button, name_entry):
         """create and open a new activity in working dir
