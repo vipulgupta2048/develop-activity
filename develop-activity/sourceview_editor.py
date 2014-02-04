@@ -158,10 +158,10 @@ class GtkSourceview2Editor(gtk.Notebook):
         if not page:
             page = self._get_page()
         if page:
-            if direction == 'current' and page.page.set_search_text(ftext):
+            if direction == 'current' and page.set_search_text(ftext):
                 return True
             elif direction:
-                if page.page.search_next(direction):
+                if page.search_next(direction):
                     return True
                 else:
                     return False
