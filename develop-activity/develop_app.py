@@ -220,7 +220,7 @@ class DevelopActivity(activity.Activity):
         self.show()
 
         if not handle.object_id or not self.metadata.get('source'):
-            gobject.timeout_add(100, self._show_welcome)
+            gobject.timeout_add(10, self._show_welcome)
 
     def _change_treenotebook_page(self, button, page):
         self.treenotebook.set_current_page(page)
@@ -259,31 +259,32 @@ class DevelopActivity(activity.Activity):
         """_show_welcome: when opened without a bundle, ask open/new/cancel
         """
         vbox = gtk.VBox()
-        welcome_label = gtk.Label(
-            _('<span weight="bold" size="larger">'
-              'What would you like to do?</span>\n\n'
-              'Choose "Edit one activity" to open an existing activity. '
-              'You can modify the activity, and if there are errors the '
-              'activity can stop working. If you are not sure, clone the '
-              'activity to have a backup. To test the activity you wrote, '
-              'just click on it in the journal.'))
-        welcome_label.set_use_markup(True)
-        welcome_label.set_line_wrap(True)
-        vbox.pack_start(welcome_label, expand=False, fill=True, padding=10)
 
-        hbox = gtk.HBox()
+        edit_label = gtk.Label(
+            _('<span weight="bold" size="larger">'
+              'Edit a installed activity</span>\n\n'
+              'You can modify a activity, and if there are errors the '
+              'activity can stop working. If you are not sure, clone the '
+              'activity to have a backup.'))
+        edit_label.set_use_markup(True)
+        edit_label.set_line_wrap(True)
+        vbox.pack_start(edit_label, expand=False, fill=True, padding=10)
+
         hbox_edit = gtk.HBox()
-        edit_btn = gtk.Button(_('Edit one activity'))
-        hbox_edit.pack_start(edit_btn, expand=False, fill=False, padding=10)
-        hbox_edit.pack_start(gtk.Label(_('Select the activity')))
+        hbox_edit.pack_start(gtk.Label('Select the activity'), expand=False,
+                             fill=False, padding=10)
         activity_name_combo = ComboBox()
         self._load_activities_installed_combo(activity_name_combo)
+        hbox_edit.pack_start(activity_name_combo, expand=False, fill=False,
+                             padding=10)
+        edit_btn = gtk.Button(_('Start'))
         edit_btn.connect('clicked', self._pick_existing_activity,
                          activity_name_combo)
-        hbox_edit.pack_start(activity_name_combo, expand=True, fill=True,
+        hbox_edit.pack_start(edit_btn, expand=False, fill=False,
                              padding=10)
-        hbox.pack_start(hbox_edit, expand=False, fill=False)
-        vbox.pack_start(hbox, expand=False, fill=False, padding=10)
+        align = gtk.Alignment(xalign=0.5, yalign=0.5)
+        align.add(hbox_edit)
+        vbox.pack_start(align, expand=False, fill=False, padding=10)
 
         hbox = gtk.HBox()
         hbox_create = gtk.HBox()

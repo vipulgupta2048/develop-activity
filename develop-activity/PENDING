@@ -11,3 +11,7 @@ PENDING
 
 * The clone capability is in sugar src/jarabe/view/customizebundle.py
   Probably should be moved to sugar-toolkit.
+
+* Change the background (maybe grey) in the log files to show they are read only.
+
+* Add gtk3 new activity template
