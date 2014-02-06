@@ -159,6 +159,7 @@ class DevelopActivity(activity.Activity):
         toolbarbox.toolbar.insert(stopbtn, -1)
 
         save_bundle_btn = ToolButton('save-as-bundle')
+        save_bundle_btn.set_tooltip(_('Create bundle (.xo file)'))
         activity_button.get_page().insert(save_bundle_btn, -1)
         save_bundle_btn.connect('clicked', self.save_bundle)
         save_bundle_btn.show()
