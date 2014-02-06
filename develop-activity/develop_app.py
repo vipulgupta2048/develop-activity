@@ -260,13 +260,6 @@ class DevelopActivity(activity.Activity):
         self.add_alert(alert)
         return alert
 
-    def debug_msg(self, text, title=_("debug alert"), level=0):
-        """debug_msg(text, level=x): log text, and maybe show dialog.
-        """
-        logging.debug(text)
-        if level >= DEBUG_FILTER_LEVEL:
-            self.show_msg(text, title)
-
     def alert_cb(self, alert, response_id):
         self.remove_alert(alert)
 
@@ -557,8 +550,8 @@ class DevelopActivity(activity.Activity):
         if not self.save_unchanged:
             self.editor.save_all()
         filenames = OPENFILE_SEPARATOR.join(self.editor.get_all_filenames())
-        self.debug_msg('activity_dir %s, file_path %s, filenames %s' %
-                       (self.activity_dir, file_path, len(filenames)))
+        logging.debug('activity_dir %s, file_path %s, filenames %s' %
+                      (self.activity_dir, file_path, len(filenames)))
         self._jobject = self.save_source_jobject(
             self.activity_dir, file_path, filenames)
         self.metadata['source'] = self.activity_dir
@@ -586,13 +579,13 @@ class DevelopActivity(activity.Activity):
         return self.dirty
 
     def set_dirty(self, dirty):
-        self.debug_msg("Setting dirty to %s; activity_dir is %s" %
-                       (str(dirty), str(self.activity_dir)))
+        logging.debug("Setting dirty to %s; activity_dir is %s" %
+                      (str(dirty), str(self.activity_dir)))
         self.dirty = dirty
         if dirty:
             self.save_unchanged = True
             try:
-                self.debug_msg("Saving a pristine copy for safety")
+                logging.debug("Saving a pristine copy for safety")
                 self.save()
             finally:
                 self.save_unchanged = False
