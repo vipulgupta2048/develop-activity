@@ -314,7 +314,7 @@ class DevelopActivity(activity.Activity):
 
         create_btn = gtk.Button(_('Start'))
         create_btn.connect('clicked', self._create_new_activity,
-                           activity_name_entry)
+                           activity_name_entry, project_type_combo)
         hbox_name.pack_start(create_btn, expand=True, fill=True,
                              padding=10)
         align = gtk.Alignment(xalign=0.5, yalign=0.5)
@@ -356,20 +356,27 @@ class DevelopActivity(activity.Activity):
         for dir_name in sorted(os.listdir(skeletons_path)):
             skeletons_combo.append_item(0, dir_name)
 
-    def _create_new_activity(self, button, name_entry):
+    def _create_new_activity(self, button, name_entry, combo_skeletons):
         """create and open a new activity in working dir
         """
         if name_entry.get_text() == '':
             self._show_alert(_('You must type the name for the new activity'))
-        else:
-            activity_name = name_entry.get_text().strip()
-            activities_path = os.path.join(os.path.expanduser("~"),
-                                           "Activities")
-            activityDir = new_activity.new_activity(activity_name,
-                                                    activities_path)
-            self.first_open_activity(activityDir)
-            # remove the welcome tab
-            self.editor.remove_page(0)
+            return
+        if combo_skeletons.get_active() == -1:
+            self._show_alert(_('You must select the project type'))
+            return
+
+        activity_name = name_entry.get_text().strip()
+        activities_path = os.path.join(os.path.expanduser("~"),
+                                       "Activities")
+        skel_iter = combo_skeletons.get_active_iter()
+        skeleton = combo_skeletons.get_model().get_value(skel_iter, 1)
+
+        activityDir = new_activity.create_activity(activity_name,
+                                                   activities_path, skeleton)
+        self.first_open_activity(activityDir)
+        # remove the welcome tab
+        self.editor.remove_page(0)
 
     def _show_alert(self, message, title=None):
         alert = Alert()

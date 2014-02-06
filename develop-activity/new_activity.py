@@ -15,6 +15,9 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 import os
 import shutil
+import logging
+
+from sugar.activity import activity
 
 
 def class_template(name):
@@ -22,82 +25,50 @@ def class_template(name):
     return '%s_app' % name.lower(), '%sActivity' % name
 
 
-def activity_info_template(name):
-    bundle_id = 'org.laptop.%s' % name.replace(' ', '')
+def activity_info_template(name, web_activity=False):
+    bundle_id = 'org.sugarlabs.%s' % name.replace(' ', '')
+    if web_activity:
+        exec_line = 'sugar-activity-web'
+    else:
+        exec_line = 'sugar-activity activity.HelloWorldActivity'
+
     return """[Activity]
 name = %s
 bundle_id = %s
-icon = activity-default
-exec = sugar-activity %s.%s -s
+icon = activity-helloworld
+exec = %s
 activity_version = 1
 show_launcher = yes
-""" % ((name, bundle_id) + class_template(name))
+""" % (name, bundle_id, exec_line)
 
 
-def base_file_template(name):
-    __filen, classn = class_template(name)
-    return """import gtk
-from sugar.activity import activity
-from sugar.activity.widgets import ActivityToolbarButton
-from sugar.graphics.toolbarbox import ToolbarBox
-from sugar.activity.widgets import StopButton
-
-class %s(activity.Activity):
-    '''
-    The base class for the %s activity.
-    '''
-
-    def __init__(self, handle):
-        activity.Activity.__init__(self, handle)
-        toolbarbox = ToolbarBox()
-
-        activity_button = ActivityToolbarButton(self)
-        toolbarbox.toolbar.insert(activity_button, 0)
-
-        separator = gtk.SeparatorToolItem()
-        separator.set_draw(False)
-        separator.set_expand(True)
-        toolbarbox.toolbar.insert(separator, -1)
-
-        toolbarbox.toolbar.insert(StopButton(self), -1)
-        toolbarbox.show_all()
-        self.set_toolbar_box(toolbarbox)
-
-
-    def write_file(self, file_path):
-        '''
-        Implement this method to save your activity's state.
-        '''
-        raise NotImplementedError
-
-    def read_file(self, file_path):
-        '''
-        Implement this method to resume state saved in write_file().
-        '''
-        raise NotImplementedError
-""" % (classn, name)
-
-
-def new_activity(name, base_path):
+def create_activity(name, base_path, skeleton):
     path = os.path.expanduser(os.path.join(base_path,
                               '%s.activity' % name.replace(' ', '')))
     os.makedirs(path)
-    activityPath = os.path.join(path, 'activity')
-    os.mkdir(activityPath)
-    filen, __classn = class_template(name)
-    _file = file(os.path.join(path, filen + '.py'), 'w')
-    _file.write(base_file_template(name))
-    _file.close()
+    activity_path = os.path.join(path, 'activity')
+    os.mkdir(activity_path)
 
-    _file = file(os.path.join(activityPath, 'activity.info'), 'w')
-    _file.write(activity_info_template(name))
-    _file.close()
+    # copy all the files in the skeleton directory
+    skeleton_path = os.path.join(activity.get_bundle_path(), 'skeletons',
+                                 skeleton)
+    for cur, dirs, files in os.walk(skeleton_path):
+        destination_path = os.path.join(path, cur[len(skeleton_path) + 1:])
+        for directory in dirs:
+            directory_path = os.path.join(destination_path, directory)
+            try:
+                os.mkdir(directory_path)
+            except:
+                logging.error('Error trying to create %s', directory_path)
 
-    _file = file(os.path.join(path, 'NEWS'), 'w')
-    _file.close()
+        for file_name in files:
+            shutil.copyfile(os.path.join(cur, file_name),
+                            os.path.join(destination_path, file_name))
 
-    icon_path = os.path.join(os.path.dirname(__file__), 'activity',
-                             'activity-default.svg')
-    shutil.copy(icon_path, activityPath)
+    # create activity.info file
+    activity_info_path = os.path.join(activity_path, 'activity.info')
+    with open(activity_info_path, 'w') as activity_info_file:
+        activity_info_file.write(activity_info_template(name,
+                                                        (skeleton == 'Web')))
 
     return path
