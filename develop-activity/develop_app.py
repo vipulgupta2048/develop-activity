@@ -37,6 +37,8 @@ from sugar.graphics.combobox import ComboBox
 from sugar.graphics.alert import ConfirmationAlert
 from sugar.graphics.alert import Alert
 from sugar.graphics import iconentry, notebook
+from sugar.graphics.icon import Icon
+from sugar.graphics import style
 from sugar.datastore import datastore
 from sugar.bundle.activitybundle import ActivityBundle
 
@@ -117,11 +119,6 @@ class DevelopActivity(activity.Activity):
         search_btn.props.label = _('Search')
         toolbarbox.toolbar.insert(search_btn, -1)
 
-        """
-        filetoolbar = DevelopFileToolbar(self)
-        toolbox.add_toolbar(_("File"), filetoolbar)
-        filetoolbar.show()
-        """
         toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
 
         show_files_btn = RadioToolButton()
@@ -149,6 +146,18 @@ class DevelopActivity(activity.Activity):
         show_log_btn.connect('clicked', self._change_treenotebook_page, 2)
 
         toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
+
+        create_file_btn = ToolButton('text-x-generic')
+        create_file_btn.set_tooltip(_('Create empty file'))
+        toolbarbox.toolbar.insert(create_file_btn, -1)
+        create_file_btn.show()
+        create_file_btn.connect('clicked', self.__create_empty_file_cb)
+
+        erase_btn = ToolButton('erase')
+        erase_btn.set_tooltip(_('Remove file'))
+        toolbarbox.toolbar.insert(erase_btn, -1)
+        erase_btn.show()
+        erase_btn.connect('clicked', self.__remove_file_cb)
 
         separator = gtk.SeparatorToolItem()
         separator.set_draw(False)
@@ -245,6 +254,13 @@ class DevelopActivity(activity.Activity):
         alert.connect('response', self.alert_cb)
         self.add_alert(alert)
         alert.show()
+
+    def create_confirmation_alert(self, text, title=""):
+        alert = ConfirmationAlert()
+        alert.props.title = title
+        alert.props.msg = text
+        self.add_alert(alert)
+        return alert
 
     def debug_msg(self, text, title=_("debug alert"), level=0):
         """debug_msg(text, level=x): log text, and maybe show dialog.
@@ -597,6 +613,64 @@ class DevelopActivity(activity.Activity):
                 self.numb = True
                 tree_selection.select_iter(tree_iter)
                 self.numb = False
+
+    def __create_empty_file_cb(self, button):
+        alert = Alert()
+        alert.props.title = _('Create new file')
+        alert.props.msg = _('Select the name of the file')
+
+        #HACK
+        alert._hbox.remove(alert._buttons_box)
+        alert.entry = gtk.Entry()
+        alert._hbox.pack_start(alert.entry)
+
+        alert._buttons_box = gtk.HButtonBox()
+        alert._buttons_box.set_layout(gtk.BUTTONBOX_END)
+        alert._buttons_box.set_spacing(style.DEFAULT_SPACING)
+        alert._hbox.pack_start(alert._buttons_box)
+
+        icon = Icon(icon_name='dialog-cancel')
+        alert.add_button(gtk.RESPONSE_CANCEL, _('Cancel'), icon)
+
+        icon = Icon(icon_name='dialog-ok')
+        alert.add_button(gtk.RESPONSE_OK, _('Ok'), icon)
+        alert.show_all()
+        #
+
+        self.add_alert(alert)
+        alert.connect('response', self.__create_file_alert_cb)
+
+    def __create_file_alert_cb(self, alert, response_id):
+        file_name = alert.entry.get_text()
+        try:
+            path = os.path.dirname(self.editor.get_file_path())
+        except:
+            path = self.activity_dir
+
+        file_path = os.path.join(path, file_name)
+        with open(file_path, 'w') as new_file:
+            new_file.write('')
+
+        self.refresh_files()
+        self.editor.load_object(file_path, file_name)
+
+        self.remove_alert(alert)
+
+    def __remove_file_cb(self, button):
+        file_path = self.editor.get_file_path()
+        msg = _('The action you will do can not be revereted.\n'
+                'Do you want remove the file %s?') % file_path
+        alert = self.create_confirmation_alert(msg, _('WARNING'))
+        alert.show()
+        alert.connect('response', self.__remove_file_alert_cb, file_path)
+
+    def __remove_file_alert_cb(self, alert, response_id, file_path):
+        if response_id is gtk.RESPONSE_OK:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+                self.refresh_files()
+                self.editor.close_page()
+        self.remove_alert(alert)
 
 
 class DevelopEditToolbar(activity.EditToolbar):

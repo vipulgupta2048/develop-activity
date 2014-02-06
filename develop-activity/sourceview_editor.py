@@ -206,6 +206,9 @@ class GtkSourceview2Editor(gtk.Notebook):
     def get_file_path(self):
         return self._get_page().fullPath
 
+    def close_page(self):
+        return self.remove_page(self.get_current_page())
+
     def symbol_selected_cb(self, tree, line):
         page = self._get_page()
         _buffer = page.get_buffer()
