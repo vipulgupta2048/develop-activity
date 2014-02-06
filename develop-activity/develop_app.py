@@ -286,19 +286,40 @@ class DevelopActivity(activity.Activity):
         align.add(hbox_edit)
         vbox.pack_start(align, expand=False, fill=False, padding=10)
 
-        hbox = gtk.HBox()
+        new_project_label = gtk.Label(
+            _('<span weight="bold" size="larger">'
+              'Create a new activity</span>\n\n'
+              'You can create something new, '
+              'just select the type of project.'))
+        new_project_label.set_use_markup(True)
+        new_project_label.set_line_wrap(True)
+        vbox.pack_start(new_project_label, expand=False, fill=True, padding=10)
+
         hbox_create = gtk.HBox()
-        create_btn = gtk.Button(_('Create a new activity'))
-        hbox_create.pack_start(create_btn, expand=False, fill=False,
+        hbox_create.pack_start(gtk.Label('Select the type'),
+                               expand=False, fill=False, padding=10)
+        project_type_combo = ComboBox()
+        self._load_skeletons_combo(project_type_combo)
+        hbox_create.pack_start(project_type_combo, expand=False, fill=False,
                                padding=10)
-        hbox_create.pack_start(gtk.Label(_('Name the activity')))
+        align = gtk.Alignment(xalign=0.5, yalign=0.5)
+        align.add(hbox_create)
+        vbox.pack_start(align, expand=False, fill=False, padding=10)
+
+        hbox_name = gtk.HBox()
+        hbox_name.pack_start(gtk.Label(_('Name the activity')))
         activity_name_entry = gtk.Entry()
+        hbox_name.pack_start(activity_name_entry, expand=True, fill=True,
+                             padding=10)
+
+        create_btn = gtk.Button(_('Start'))
         create_btn.connect('clicked', self._create_new_activity,
                            activity_name_entry)
-        hbox_create.pack_start(activity_name_entry, expand=True, fill=True,
-                               padding=10)
-        hbox.pack_start(hbox_create, expand=False, fill=False)
-        vbox.pack_start(hbox, expand=False, fill=False, padding=10)
+        hbox_name.pack_start(create_btn, expand=True, fill=True,
+                             padding=10)
+        align = gtk.Alignment(xalign=0.5, yalign=0.5)
+        align.add(hbox_name)
+        vbox.pack_start(align, expand=False, fill=False, padding=10)
 
         vbox.show_all()
         self.editor.append_page(vbox, gtk.Label(_('Start')))
@@ -329,6 +350,11 @@ class DevelopActivity(activity.Activity):
                 except:
                     logging.error('Error trying to read information about %s',
                                   activity_name)
+
+    def _load_skeletons_combo(self, skeletons_combo):
+        skeletons_path = os.path.join(activity.get_bundle_path(), 'skeletons')
+        for dir_name in sorted(os.listdir(skeletons_path)):
+            skeletons_combo.append_item(0, dir_name)
 
     def _create_new_activity(self, button, name_entry):
         """create and open a new activity in working dir
