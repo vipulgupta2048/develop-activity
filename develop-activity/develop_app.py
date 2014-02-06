@@ -880,12 +880,15 @@ class DevelopSearchToolbar(gtk.Toolbar):
             iconentry.ICON_ENTRY_PRIMARY,
             SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
         self._settings.set_icon(CAP_ICONS[self.s_opts.ignore_caps])
-        self._replace_button.set_icon(REPLACE_ICONS[self.s_opts.replace_all])
+        #self._replace_button.set_icon(REPLACE_ICONS[self.s_opts.replace_all])
         self._reset_replace_sensitivity()
 
     def _reset_replace_sensitivity(self):
+        pass
+        """
         self._replace_button.set_sensitive(
             self.s_opts.where == S_WHERE.selection or self.s_opts.replace_all)
+        """
 
     def _set_where_options(self, menu, option):
         self.s_opts.where = option  # IGNORE:W0201
@@ -915,12 +918,15 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._set_cap_options(None, not self.s_opts.ignore_caps)
 
     def _replace_cb(self, button=None):
+        pass
+        """
         ftext = self._search_entry.props.text
         rtext = self._replace_entry.props.text
         __replaced, found = self._activity.editor.replace(ftext, rtext,
                                                           self.s_opts)
         if found:
             self._replace_button.set_sensitive(True)
+        """
 
     def _search_entry_activated_cb(self, entry):
         text = self._search_entry.props.text
@@ -936,27 +942,35 @@ class DevelopSearchToolbar(gtk.Toolbar):
         else:
             self._findprev.set_sensitive(True)
             self._findnext.set_sensitive(True)
+            """
             if not self.s_opts.use_regex:
                 #do not do partial searches for regex
                 if self._activity.editor.find_next(text):
                     #no multifile, or focus gets grabbed
                     self._replace_button.set_sensitive(True)
+            """
 
     def _replace_entry_changed_cb(self, entry):
         if self._replace_entry.props.text:
             self.safe_to_replace = True
 
     def _findprev_cb(self, button=None):
+        pass
+        """
         ftext = self._search_entry.props.text
         if ftext:
             if self._activity.editor.find_next(ftext, direction='backward'):
                 self._replace_button.set_sensitive(True)
+        """
 
     def _findnext_cb(self, button=None):
+        pass
+        """
         ftext = self._search_entry.props.text
         if ftext:
             if self._activity.editor.find_next(ftext, direction='forward'):
                 self._replace_button.set_sensitive(True)
+        """
 
     # bad paul! this function was copied from sugar's activity.py via Write
     def _add_widget(self, widget, expand=False):
