@@ -71,7 +71,7 @@ class GtkSourceview2Editor(gtk.Notebook):
         label = filename
         page.text_buffer.connect('changed', self._changed_cb)
 
-        tablabel = TabLabel(page, label)
+        tablabel = TabLabel(scrollwnd, label)
         tablabel.connect(
             'tab-close',
             lambda widget, child: self.remove_page(self.page_num(child)))
