@@ -941,35 +941,31 @@ class DevelopSearchToolbar(gtk.Toolbar):
         else:
             self._findprev.set_sensitive(True)
             self._findnext.set_sensitive(True)
-            """
             if not self.s_opts.use_regex:
                 #do not do partial searches for regex
                 if self._activity.editor.find_next(text):
                     #no multifile, or focus gets grabbed
-                    self._replace_button.set_sensitive(True)
-            """
+                    pass
+                    #self._replace_button.set_sensitive(True)
 
     def _replace_entry_changed_cb(self, entry):
         if self._replace_entry.props.text:
             self.safe_to_replace = True
 
     def _findprev_cb(self, button=None):
-        pass
-        """
         ftext = self._search_entry.props.text
         if ftext:
             if self._activity.editor.find_next(ftext, direction='backward'):
-                self._replace_button.set_sensitive(True)
-        """
+                pass
+                #self._replace_button.set_sensitive(True)
+
 
     def _findnext_cb(self, button=None):
-        pass
-        """
         ftext = self._search_entry.props.text
         if ftext:
             if self._activity.editor.find_next(ftext, direction='forward'):
-                self._replace_button.set_sensitive(True)
-        """
+                pass
+                #self._replace_button.set_sensitive(True)
 
     # bad paul! this function was copied from sugar's activity.py via Write
     def _add_widget(self, widget, expand=False):
