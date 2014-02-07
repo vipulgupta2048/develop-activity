@@ -219,7 +219,7 @@ class LogView(gtk.TextView):
             self.text_buffer = newbuffer
 
         # Set background color
-        bgcolor = gtk.gdk.color_parse("#FFFFFF")
+        bgcolor = gtk.gdk.color_parse("#EEEEEE")
         self.modify_base(gtk.STATE_NORMAL, bgcolor)
 
         self.set_editable(False)
