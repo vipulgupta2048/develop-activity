@@ -467,7 +467,6 @@ class DevelopActivity(activity.Activity):
             return
         path = activity_model.get_selected_file_path(self.treeview)
         if path and not os.path.isdir(path):
-            self.save()
             self.numb = True
             self.load_file(path)
             self.numb = False
