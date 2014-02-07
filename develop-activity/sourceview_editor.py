@@ -15,10 +15,11 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import logging
-import gtk
-import gobject
-import pango
-import gtksourceview2
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+from gi.repository import Pango
+from gi.repository import GtkSource
 import os.path
 import re
 import mimetypes
@@ -31,20 +32,24 @@ class S_WHERE:
     selection, file, multifile = range(3)  # an enum
 
 
-class GtkSourceview2Editor(gtk.Notebook):
+class GtkSourceview2Editor(Gtk.Notebook):
     __gsignals__ = {
-        'changed': (gobject.SIGNAL_RUN_FIRST, None, [])
+        'changed': (GObject.SignalFlags.RUN_FIRST, None, [])
     }
 
     def __init__(self, activity):
-        gtk.Notebook.__init__(self)
+        GObject.GObject.__init__(self)
         self.activity = activity
-        self.set_size_request(gtk.gdk.screen_width(), -1)
+        self.set_size_request(Gdk.Screen.width(), -1)
         self.connect('page-removed', self._page_removed_cb)
         self.connect('switch-page', self._switch_page_cb)
 
     def _page_removed_cb(self, __notebook, page, n):
-        page.page.remove()
+        try:
+            page.page.remove()
+        except:
+            pass
+            # the welcome page do not have a page property
 
     def _switch_page_cb(self, __notebook, page_gptr, page_num):
         self.activity.update_sidebar_to_page(self._get_page(page_num))
@@ -61,9 +66,9 @@ class GtkSourceview2Editor(gtk.Notebook):
     def load_object(self, full_path, filename):
         if self.set_to_page_like(full_path):
             return
-        scrollwnd = gtk.ScrolledWindow()
-        scrollwnd.set_policy(gtk.POLICY_AUTOMATIC,
-                             gtk.POLICY_AUTOMATIC)
+        scrollwnd = Gtk.ScrolledWindow()
+        scrollwnd.set_policy(Gtk.PolicyType.AUTOMATIC,
+                             Gtk.PolicyType.AUTOMATIC)
 
         page = GtkSourceview2Page(full_path)
         scrollwnd.add(page)
@@ -120,13 +125,13 @@ class GtkSourceview2Editor(gtk.Notebook):
     def copy(self):
         page = self._get_page()
         if page:
-            clip = gtk.Clipboard()
+            clip = Gtk.Clipboard()
             page.get_buffer().copy_clipboard(clip)
 
     def paste(self):
         page = self._get_page()
         if page:
-            clip = gtk.Clipboard()
+            clip = Gtk.Clipboard()
             text = clip.wait_for_text()
             page.get_buffer().insert_at_cursor(text)
 
@@ -216,13 +221,13 @@ class GtkSourceview2Editor(gtk.Notebook):
         page.scroll_to_iter(_iter, 0.0)
 
 
-class GtkSourceview2Page(gtksourceview2.View):
+class GtkSourceview2Page(GtkSource.View):
 
     def __init__(self, full_path):
         '''
         Do any initialization here.
         '''
-        gtksourceview2.View.__init__(self)
+        GtkSource.View.__init__(self)
 
         self.full_path = full_path
 
@@ -233,21 +238,21 @@ class GtkSourceview2Page(gtksourceview2.View):
         self.set_insert_spaces_instead_of_tabs(True)
 
         # Tags for search
-        tagtable = gtk.TextTagTable()
-        hilite_tag = gtk.TextTag('search-hilite')
+        tagtable = Gtk.TextTagTable()
+        hilite_tag = Gtk.TextTag('search-hilite')
         hilite_tag.props.background = '#FFFFB0'
         tagtable.add(hilite_tag)
-        select_tag = gtk.TextTag('search-select')
+        select_tag = Gtk.TextTag('search-select')
         select_tag.props.background = '#B0B0FF'
         tagtable.add(select_tag)
 
-        self.text_buffer = gtksourceview2.Buffer(tag_table=tagtable)
+        self.text_buffer = GtkSource.Buffer(tag_table=tagtable)
         self.set_buffer(self.text_buffer)
 
         self.set_tab_width(4)
         self.set_auto_indent(True)
 
-        self.modify_font(pango.FontDescription('Monospace 10'))
+        self.modify_font(Pango.FontDescription('Monospace 10'))
 
         self.load_text()
         self.show()
@@ -266,7 +271,7 @@ class GtkSourceview2Page(gtksourceview2.View):
         self.text_buffer.set_highlight_syntax(False)
         mime_type = mimetypes.guess_type(self.full_path)[0]
         if mime_type:
-            lang_manager = gtksourceview2.language_manager_get_default()
+            lang_manager = GtkSource.LanguageManager.get_default()
             lang_ids = lang_manager.get_language_ids()
             langs = [lang_manager.get_language(i) for i in lang_ids]
             for lang in langs:

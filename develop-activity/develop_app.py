@@ -13,32 +13,34 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 """Develop Activity: A programming activity."""
-import gtk
 import logging
 import os
 import os.path
-import gobject
 import simplejson
-
 from gettext import gettext as _
 
-from sugar import profile
-from sugar.graphics.toolbarbox import ToolbarBox
-from sugar.activity.widgets import ActivityToolbarButton
-from sugar.graphics.toolbarbox import ToolbarButton
-from sugar.graphics.radiotoolbutton import RadioToolButton
-from sugar.activity.widgets import StopButton
-from sugar.activity.bundlebuilder import XOPackager, Config, Builder
-from sugar.activity import activity
-from sugar.graphics.toolbutton import ToolButton
-from sugar.graphics.combobox import ComboBox
-from sugar.graphics.alert import ConfirmationAlert
-from sugar.graphics.alert import Alert
-from sugar.graphics import iconentry, notebook
-from sugar.graphics.icon import Icon
-from sugar.graphics import style
-from sugar.datastore import datastore
-from sugar.bundle.activitybundle import ActivityBundle
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+
+from sugar3 import profile
+from sugar3.graphics.toolbarbox import ToolbarBox
+from sugar3.graphics.toolbarbox import ToolbarButton
+from sugar3.graphics.radiotoolbutton import RadioToolButton
+from sugar3.activity.widgets import ActivityToolbarButton
+from sugar3.activity.widgets import EditToolbar
+from sugar3.activity.widgets import StopButton
+from sugar3.activity.bundlebuilder import XOPackager, Config, Builder
+from sugar3.activity import activity
+from sugar3.graphics.toolbutton import ToolButton
+from sugar3.graphics.combobox import ComboBox
+from sugar3.graphics.alert import ConfirmationAlert
+from sugar3.graphics.alert import Alert
+from sugar3.graphics import iconentry, notebook
+from sugar3.graphics.icon import Icon
+from sugar3.graphics import style
+from sugar3.datastore import datastore
+from sugar3.bundle.activitybundle import ActivityBundle
 
 import logviewer
 import sourceview_editor
@@ -117,7 +119,7 @@ class DevelopActivity(activity.Activity):
         search_btn.props.label = _('Search')
         toolbarbox.toolbar.insert(search_btn, -1)
 
-        toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
+        toolbarbox.toolbar.insert(Gtk.SeparatorToolItem(), -1)
 
         show_files_btn = RadioToolButton()
         show_files_btn.props.icon_name = 'sources'
@@ -143,7 +145,7 @@ class DevelopActivity(activity.Activity):
         toolbarbox.toolbar.insert(show_log_btn, -1)
         show_log_btn.connect('clicked', self._change_treenotebook_page, 2)
 
-        toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
+        toolbarbox.toolbar.insert(Gtk.SeparatorToolItem(), -1)
 
         create_file_btn = ToolButton('text-x-generic')
         create_file_btn.set_tooltip(_('Create empty file'))
@@ -157,7 +159,7 @@ class DevelopActivity(activity.Activity):
         erase_btn.show()
         erase_btn.connect('clicked', self.__remove_file_cb)
 
-        separator = gtk.SeparatorToolItem()
+        separator = Gtk.SeparatorToolItem()
         separator.set_draw(False)
         separator.set_expand(True)
         toolbarbox.toolbar.insert(separator, -1)
@@ -174,8 +176,8 @@ class DevelopActivity(activity.Activity):
         toolbarbox.show_all()
 
         # Main layout.
-        hbox = gtk.HPaned()
-        vbox = gtk.VBox()
+        hbox = Gtk.HPaned()
+        vbox = Gtk.VBox()
 
         #The treeview and selected pane reflect each other.
         self.numb = False
@@ -185,39 +187,39 @@ class DevelopActivity(activity.Activity):
         self.save_unchanged = False
 
         # The sidebar
-        sidebar = gtk.VBox()
+        sidebar = Gtk.VBox()
         self.treenotebook = notebook.Notebook(can_close_tabs=False)
         self.treenotebook.set_show_tabs(False)
-        sidebar.pack_start(self.treenotebook)
+        sidebar.pack_start(self.treenotebook, True, True, 0)
 
-        self.model = gtk.TreeStore(gobject.TYPE_PYOBJECT, gobject.TYPE_STRING)
-        self.treeview = gtk.TreeView(self.model)
-        cellrenderer = gtk.CellRendererText()
-        self.treecolumn = gtk.TreeViewColumn(_("Activities"), cellrenderer,
+        self.model = Gtk.TreeStore(GObject.TYPE_PYOBJECT, GObject.TYPE_STRING)
+        self.treeview = Gtk.TreeView(self.model)
+        cellrenderer = Gtk.CellRendererText()
+        self.treecolumn = Gtk.TreeViewColumn(_("Activities"), cellrenderer,
                                              text=1)
         self.treeview.append_column(self.treecolumn)
-        self.treeview.set_size_request(gtk.gdk.screen_width() / 4, -1)
+        self.treeview.set_size_request(Gdk.Screen.width() / 4, -1)
 
         # Create scrollbars around the tree view.
-        scrolled = gtk.ScrolledWindow()
+        scrolled = Gtk.ScrolledWindow()
         scrolled.add(self.treeview)
-        scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.treenotebook.add_page(_("Activity"), scrolled)
 
         # Symbols tree
         self._symbolstree = SymbolsTree()
         self._symbolstree.connect('symbol-selected',
                                   self.editor.symbol_selected_cb)
-        scrolled = gtk.ScrolledWindow()
+        scrolled = Gtk.ScrolledWindow()
         scrolled.add(self._symbolstree)
-        scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.treenotebook.add_page(_('Symbols Tree'), scrolled)
 
         hbox.pack1(sidebar, resize=True, shrink=True)
         sidebar.show()
 
         logging.info('finished check')
-        vbox.pack_start(self.editor)
+        vbox.pack_start(self.editor, True, True, 0)
         self.editor.show()
         hbox.pack2(vbox, resize=True, shrink=True)
         vbox.show()
@@ -228,7 +230,7 @@ class DevelopActivity(activity.Activity):
         self.show()
 
         if not handle.object_id or not self.metadata.get('source'):
-            gobject.timeout_add(10, self._show_welcome)
+            GObject.timeout_add(10, self._show_welcome)
 
     def _change_treenotebook_page(self, button, page):
         self.treenotebook.set_current_page(page)
@@ -266,9 +268,9 @@ class DevelopActivity(activity.Activity):
     def _show_welcome(self):
         """_show_welcome: when opened without a bundle, ask open/new/cancel
         """
-        vbox = gtk.VBox()
+        vbox = Gtk.VBox()
 
-        edit_label = gtk.Label(
+        edit_label = Gtk.Label(
             _('<span weight="bold" size="larger">'
               'Edit a installed activity</span>\n\n'
               'You can modify a activity, and if there are errors the '
@@ -278,23 +280,23 @@ class DevelopActivity(activity.Activity):
         edit_label.set_line_wrap(True)
         vbox.pack_start(edit_label, expand=False, fill=True, padding=10)
 
-        hbox_edit = gtk.HBox()
-        hbox_edit.pack_start(gtk.Label('Select the activity'), expand=False,
-                             fill=False, padding=10)
+        hbox_edit = Gtk.HBox()
+        hbox_edit.pack_start(Gtk.Label(_('Select the activity')), True,
+                             True, 10)
         activity_name_combo = ComboBox()
         self._load_activities_installed_combo(activity_name_combo)
         hbox_edit.pack_start(activity_name_combo, expand=False, fill=False,
                              padding=10)
-        edit_btn = gtk.Button(_('Start'))
+        edit_btn = Gtk.Button(_('Start'))
         edit_btn.connect('clicked', self._pick_existing_activity,
                          activity_name_combo)
         hbox_edit.pack_start(edit_btn, expand=False, fill=False,
                              padding=10)
-        align = gtk.Alignment(xalign=0.5, yalign=0.5)
+        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
         align.add(hbox_edit)
         vbox.pack_start(align, expand=False, fill=False, padding=10)
 
-        new_project_label = gtk.Label(
+        new_project_label = Gtk.Label(
             _('<span weight="bold" size="larger">'
               'Create a new activity</span>\n\n'
               'You can create something new, '
@@ -303,34 +305,34 @@ class DevelopActivity(activity.Activity):
         new_project_label.set_line_wrap(True)
         vbox.pack_start(new_project_label, expand=False, fill=True, padding=10)
 
-        hbox_create = gtk.HBox()
-        hbox_create.pack_start(gtk.Label('Select the type'),
+        hbox_create = Gtk.HBox()
+        hbox_create.pack_start(Gtk.Label(_('Select the type')),
                                expand=False, fill=False, padding=10)
         project_type_combo = ComboBox()
         self._load_skeletons_combo(project_type_combo)
         hbox_create.pack_start(project_type_combo, expand=False, fill=False,
                                padding=10)
-        align = gtk.Alignment(xalign=0.5, yalign=0.5)
+        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
         align.add(hbox_create)
         vbox.pack_start(align, expand=False, fill=False, padding=10)
 
-        hbox_name = gtk.HBox()
-        hbox_name.pack_start(gtk.Label(_('Name the activity')))
-        activity_name_entry = gtk.Entry()
+        hbox_name = Gtk.HBox()
+        hbox_name.pack_start(Gtk.Label(_('Name the activity')), True, True, 0)
+        activity_name_entry = Gtk.Entry()
         hbox_name.pack_start(activity_name_entry, expand=True, fill=True,
                              padding=10)
 
-        create_btn = gtk.Button(_('Start'))
+        create_btn = Gtk.Button(_('Start'))
         create_btn.connect('clicked', self._create_new_activity,
                            activity_name_entry, project_type_combo)
         hbox_name.pack_start(create_btn, expand=True, fill=True,
                              padding=10)
-        align = gtk.Alignment(xalign=0.5, yalign=0.5)
+        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
         align.add(hbox_name)
         vbox.pack_start(align, expand=False, fill=False, padding=10)
 
         vbox.show_all()
-        self.editor.append_page(vbox, gtk.Label(_('Start')))
+        self.editor.append_page(vbox, Gtk.Label(label=_('Start')))
         return False
 
     def _load_activities_installed_combo(self, activities_combo):
@@ -392,7 +394,7 @@ class DevelopActivity(activity.Activity):
             title = _('Atention')
         alert.props.title = title
         alert.props.msg = message
-        alert.add_button(gtk.RESPONSE_OK, _('Ok'))
+        alert.add_button(Gtk.ResponseType.OK, _('Ok'))
         self.add_alert(alert)
         alert.connect('response', self._alert_response_cb)
 
@@ -611,19 +613,19 @@ class DevelopActivity(activity.Activity):
 
         #HACK
         alert._hbox.remove(alert._buttons_box)
-        alert.entry = gtk.Entry()
-        alert._hbox.pack_start(alert.entry)
+        alert.entry = Gtk.Entry()
+        alert._hbox.pack_start(alert.entry, True, True, 0)
 
-        alert._buttons_box = gtk.HButtonBox()
-        alert._buttons_box.set_layout(gtk.BUTTONBOX_END)
+        alert._buttons_box = Gtk.HButtonBox()
+        alert._buttons_box.set_layout(Gtk.ButtonBoxStyle.END)
         alert._buttons_box.set_spacing(style.DEFAULT_SPACING)
-        alert._hbox.pack_start(alert._buttons_box)
+        alert._hbox.pack_start(alert._buttons_box, True, True, 0)
 
         icon = Icon(icon_name='dialog-cancel')
-        alert.add_button(gtk.RESPONSE_CANCEL, _('Cancel'), icon)
+        alert.add_button(Gtk.ResponseType.CANCEL, _('Cancel'), icon)
 
         icon = Icon(icon_name='dialog-ok')
-        alert.add_button(gtk.RESPONSE_OK, _('Ok'), icon)
+        alert.add_button(Gtk.ResponseType.OK, _('Ok'), icon)
         alert.show_all()
         #
 
@@ -655,7 +657,7 @@ class DevelopActivity(activity.Activity):
         alert.connect('response', self.__remove_file_alert_cb, file_path)
 
     def __remove_file_alert_cb(self, alert, response_id, file_path):
-        if response_id is gtk.RESPONSE_OK:
+        if response_id is Gtk.ResponseType.OK:
             if os.path.isfile(file_path):
                 os.unlink(file_path)
                 self.refresh_files()
@@ -663,10 +665,10 @@ class DevelopActivity(activity.Activity):
         self.remove_alert(alert)
 
 
-class DevelopEditToolbar(activity.EditToolbar):
+class DevelopEditToolbar(EditToolbar):
 
     def __init__(self, _activity):
-        activity.EditToolbar.__init__(self)
+        EditToolbar.__init__(self)
 
         self._activity = _activity
         self._activity.editor.connect('changed', self._changed_cb)
@@ -679,7 +681,7 @@ class DevelopEditToolbar(activity.EditToolbar):
 
         # make expanded non-drawn visible separator to make
         #the search stuff right-align
-        separator = gtk.SeparatorToolItem()
+        separator = Gtk.SeparatorToolItem()
         separator.props.draw = False
         separator.set_expand(True)
         self.insert(separator, -1)
@@ -706,7 +708,7 @@ class DevelopEditToolbar(activity.EditToolbar):
 
     # bad paul! this function was copied from sugar's activity.py via Write
     def _add_widget(self, widget, expand=False):
-        tool_item = gtk.ToolItem()
+        tool_item = Gtk.ToolItem()
         tool_item.set_expand(expand)
 
         tool_item.add(widget)
@@ -716,10 +718,10 @@ class DevelopEditToolbar(activity.EditToolbar):
         tool_item.show()
 
 
-class DevelopSearchToolbar(gtk.Toolbar):
+class DevelopSearchToolbar(Gtk.Toolbar):
 
     def __init__(self, _activity):
-        gtk.Toolbar.__init__(self)
+        GObject.GObject.__init__(self)
 
         self._activity = _activity
 
@@ -790,7 +792,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
                 (_('Advanced search'), ssho, True, "regex"),
                 ):
             if not name:
-                menuitem = gtk.SeparatorMenuItem()
+                menuitem = Gtk.SeparatorMenuItem()
             else:
                 menuitem = MenuItem(name, icon)
                 menuitem.connect('activate', function, options)
@@ -799,7 +801,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
 
         # make expanded non-drawn visible separator to make the replace
         #stuff right-align
-        separator = gtk.SeparatorToolItem()
+        separator = Gtk.SeparatorToolItem()
         separator.props.draw = False
         separator.set_expand(True)
         self.insert(separator, -1)
@@ -829,7 +831,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
                 (_('Replace all'), ssro, True, "multi-replace"),
                 ):
             if not name:
-                menuitem = gtk.SeparatorMenuItem()
+                menuitem = Gtk.SeparatorMenuItem()
             else:
                 menuitem = MenuItem(name, icon)
                 menuitem.connect('activate', function, options)
@@ -842,7 +844,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._activity.connect('key_press_event', self._on_key_press_event)
 
     def _on_key_press_event(self, widget, event):
-        keyname = gtk.gdk.keyval_name(event.keyval)
+        keyname = Gdk.keyval_name(event.keyval)
         if "F5" <= keyname and keyname <= "F8":
             if keyname == "F5":
                 self._go_to_search_entry_cb()
@@ -969,7 +971,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
 
     # bad paul! this function was copied from sugar's activity.py via Write
     def _add_widget(self, widget, expand=False):
-        tool_item = gtk.ToolItem()
+        tool_item = Gtk.ToolItem()
         tool_item.set_expand(expand)
 
         tool_item.add(widget)

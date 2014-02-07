@@ -22,8 +22,8 @@ import os.path
 import logging
 from gettext import gettext as _
 
-import gtk
-import gio
+from gi.repository import Gtk
+from gi.repository import Gio
 
 import activity_model
 from sourceview_editor import TabLabel
@@ -37,7 +37,7 @@ def _get_filename_from_path(path):
     return os.path.split(path)[-1]
 
 
-class LogMinder(gtk.VBox):
+class LogMinder(Gtk.VBox):
     def __init__(self, activity, namefilter, path=None, extra_files=None):
         self.activity = activity
         self._openlogs = []
@@ -61,18 +61,18 @@ class LogMinder(gtk.VBox):
         self._namefilter = namefilter
 
         # Creating Main treeview with Actitivities list
-        self._tv_menu = gtk.TreeView()
+        self._tv_menu = Gtk.TreeView()
         self._tv_menu.connect('cursor-changed', self._load_log)
         self._tv_menu.set_rules_hint(True)
-        cellrenderer = gtk.CellRendererText()
-        self.treecolumn = gtk.TreeViewColumn(_("Sugar logs"), cellrenderer,
+        cellrenderer = Gtk.CellRendererText()
+        self.treecolumn = Gtk.TreeViewColumn(_("Sugar logs"), cellrenderer,
                                              text=1)
         self._tv_menu.append_column(self.treecolumn)
         self._tv_menu.set_size_request(220, 900)
 
         # Create scrollbars around the tree view.
-        scrolled = gtk.ScrolledWindow()
-        scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scrolled.add(self._tv_menu)
 
         # the internals of the treeview
@@ -91,14 +91,18 @@ class LogMinder(gtk.VBox):
 
     def _configure_watcher(self):
         logging.error('Monitor directory %s', self._logs_path)
-        dir_monitor = gio.File(self._logs_path).monitor_directory()
+        directory = Gio.File.new_for_path(self._logs_path)
+        dir_monitor = directory.monitor_directory(
+            flags=Gio.FileMonitorFlags.NONE, cancellable=None)
         dir_monitor.set_rate_limit(2000)
         dir_monitor.connect('changed', self._log_file_changed_cb)
         self._monitors.append(dir_monitor)
 
         for f in self._extra_files:
             logging.error('Monitor file %s', f)
-            file_monitor = gio.File(f).monitor_file()
+            gio_file = Gio.File.new_for_path(f)
+            file_monitor = gio_file.monitor_file(
+                Gio.FileMonitorFlags.NONE, None)
             file_monitor.set_rate_limit(2000)
             file_monitor.connect('changed', self._log_file_changed_cb)
             self._monitors.append(file_monitor)
@@ -106,19 +110,22 @@ class LogMinder(gtk.VBox):
     def _log_file_changed_cb(self, monitor, path1, path2, event):
         _directory, logfile = os.path.split(str(path1))
 
-        if event == gio.FILE_MONITOR_EVENT_CHANGED:
+        if event == Gio.FileMonitorEvent.CHANGED:
             for log in self._openlogs:
                 if logfile in log.full_path:
                     log.update()
-        elif (event == gio.FILE_MONITOR_EVENT_DELETED
-                or event == gio.FILE_MONITOR_EVENT_CREATED):
+        elif (event == Gio.FileMonitorEvent.DELETED
+                or event == Gio.FileMonitorEvent.CREATED):
             self._model.refresh()
             #If the log is open, just leave it that way
 
     # Load the log information in View (text_view)
     def _load_log(self, treeview):
         node = activity_model.get_selected_file(self._tv_menu)
-        print node
+        logging.error('_load_log node:%s', node)
+        if node is None:
+            return
+
         path = node["path"]
 
         if os.path.isdir(path):
@@ -135,9 +142,9 @@ class LogMinder(gtk.VBox):
             return
         newlogview = LogView(path, self)
 
-        scrollwnd = gtk.ScrolledWindow()
-        scrollwnd.set_policy(gtk.POLICY_AUTOMATIC,
-                             gtk.POLICY_AUTOMATIC)
+        scrollwnd = Gtk.ScrolledWindow()
+        scrollwnd.set_policy(Gtk.PolicyType.AUTOMATIC,
+                             Gtk.PolicyType.AUTOMATIC)
         scrollwnd.add(newlogview)
         scrollwnd.page = newlogview
         tablabel = TabLabel(newlogview, label=node["name"])
@@ -168,9 +175,9 @@ class LogMinder(gtk.VBox):
             logging.debug("_remove_logview failed")
 
 
-class LogBuffer(gtk.TextBuffer):
+class LogBuffer(Gtk.TextBuffer):
     def __init__(self, logfile, tagtable):
-        gtk.TextBuffer.__init__(self, table=tagtable)
+        GObject.GObject.__init__(self, table=tagtable)
 
         self._logfile = logfile
         self._pos = 0
@@ -193,23 +200,23 @@ class LogBuffer(gtk.TextBuffer):
             self._written = 0
 
 
-class LogView(gtk.TextView):
+class LogView(Gtk.TextView):
 
     def __init__(self, full_path, logminder):
-        gtk.TextView.__init__(self)
+        GObject.GObject.__init__(self)
 
         self.logminder = logminder
         self.full_path = full_path
         self.logminder._openlogs.append(self)
 
-        self.set_wrap_mode(gtk.WRAP_WORD)
+        self.set_wrap_mode(Gtk.WrapMode.WORD)
 
         # Tags for search
-        tagtable = gtk.TextTagTable()
-        hilite_tag = gtk.TextTag('search-hilite')
+        tagtable = Gtk.TextTagTable()
+        hilite_tag = Gtk.TextTag('search-hilite')
         hilite_tag.props.background = '#FFFFB0'
         tagtable.add(hilite_tag)
-        select_tag = gtk.TextTag('search-select')
+        select_tag = Gtk.TextTag('search-select')
         select_tag.props.background = '#B0B0FF'
         tagtable.add(select_tag)
 
@@ -219,8 +226,8 @@ class LogView(gtk.TextView):
             self.text_buffer = newbuffer
 
         # Set background color
-        bgcolor = gtk.gdk.color_parse("#EEEEEE")
-        self.modify_base(gtk.STATE_NORMAL, bgcolor)
+        bgcolor = Gdk.color_parse("#EEEEEE")
+        self.modify_base(Gtk.StateType.NORMAL, bgcolor)
 
         self.set_editable(False)
 

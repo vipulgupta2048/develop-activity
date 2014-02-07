@@ -14,8 +14,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import os
 import os.path
 import logging
@@ -58,7 +58,7 @@ def inmanifestfn(bundle):
 
     os.path.walk(activity_path, walk_callback, allfiles)
 
-    #logging.error('allfiles %s', allfiles)
+    logging.error('allfiles %s', allfiles)
 
     #allfiles = bundle.get_files()
     def nodefilterfn(node):
@@ -86,16 +86,16 @@ def get_selected_file_path(treeview):
         return value['path']
 
 
-class DirectoryAndExtraModel(gtk.GenericTreeModel):
+class DirectoryAndExtraModel(Gtk.ListStore):
 
-    columns = (gobject.TYPE_PYOBJECT, gobject.TYPE_STRING)
+    columns = (GObject.TYPE_PYOBJECT, GObject.TYPE_STRING)
 
     def __init__(self, root, extra_paths=None, nodefilter=_nodefilter):
         self.root = root
         self.extra_paths = extra_paths
         self.nodefilter = nodefilter
         self.refresh()
-        gtk.GenericTreeModel.__init__(self)
+        Gtk.ListStore.__init__(self)
 
     def refresh(self):
         self.files = list(
@@ -108,6 +108,7 @@ class DirectoryAndExtraModel(gtk.GenericTreeModel):
             self.files.extend(ActivityNode(
                 filename, self, None,
                 self.nodefilter) for filename in self.extra_paths)
+        logging.error('DirectoryAndExtraModel refresh() %s', self.files)
 
     def get_iter_from_filepath(self, filepath):
         if filepath.startswith(self.root):
