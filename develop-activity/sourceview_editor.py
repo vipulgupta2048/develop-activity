@@ -50,10 +50,10 @@ class GtkSourceview2Editor(gtk.Notebook):
         self.activity.update_sidebar_to_page(self._get_page(page_num))
         self.activity.explore_code(None, switch_page=False)
 
-    def set_to_page_like(self, eq_to_page):
+    def set_to_page_like(self, full_path):
         for n in range(self.get_n_pages()):
             page = self._get_page(n)
-            if page == eq_to_page:
+            if page.fullPath == full_path:
                 self.set_current_page(n)
                 return True
         return False
