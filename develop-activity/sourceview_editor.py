@@ -79,9 +79,9 @@ class GtkSourceview2Editor(gtk.Notebook):
 
         self.append_page(scrollwnd, tablabel)
 
-        self.set_current_page(-1)
         self._changed_cb(page.text_buffer)
         self.show_all()
+        self.set_current_page(-1)
 
     def _changed_cb(self, buffer):
         if not buffer.can_undo():
