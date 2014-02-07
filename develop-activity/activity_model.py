@@ -261,9 +261,6 @@ class ActivityNode(object):
 
     __repr__ = __str__
 
-    def __eq__(self, other):
-        return other == self.path or other == self.filename
-
 
 class DummyActivityNode(ActivityNode):
     files = ()
