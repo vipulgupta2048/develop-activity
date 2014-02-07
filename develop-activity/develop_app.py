@@ -444,19 +444,19 @@ class DevelopActivity(activity.Activity):
             nodefilter=activity_model.inmanifestfn(self.bundle))
         self.treeview.set_model(self.model)
 
-    def load_file(self, fullPath):
+    def load_file(self, full_path):
         """Load one activity subfile into the editor view.
         """
-        logging.error('load_file fullPath %s', fullPath)
+        logging.error('load_file full_path %s', full_path)
         logging.error('load_file self.activity_dir %s', self.activity_dir)
 
-        if fullPath.startswith(self.activity_dir):
-            filename = fullPath[len(self.activity_dir):]
+        if full_path.startswith(self.activity_dir):
+            filename = full_path[len(self.activity_dir):]
         else:
-            filename = fullPath
-            fullPath = os.path.join(self.activity_dir, fullPath)
+            filename = full_path
+            full_path = os.path.join(self.activity_dir, full_path)
         logging.error('load_file filename %s', filename)
-        self.editor.load_object(fullPath, filename)
+        self.editor.load_object(full_path, filename)
 
     def selection_cb(self, column):
         """User selected an item in the treeview. Load it.
@@ -595,7 +595,7 @@ class DevelopActivity(activity.Activity):
             #avoid infinite recursion
             return
         if isinstance(page, sourceview_editor.GtkSourceview2Page):
-            source = page.fullPath
+            source = page.full_path
             tree_iter = self.model.get_iter_from_filepath(source)
             if tree_iter:
                 tree_selection = self.treeview.get_selection()

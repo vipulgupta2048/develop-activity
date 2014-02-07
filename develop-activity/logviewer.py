@@ -108,7 +108,7 @@ class LogMinder(gtk.VBox):
 
         if event == gio.FILE_MONITOR_EVENT_CHANGED:
             for log in self._openlogs:
-                if logfile in log.logpath:
+                if logfile in log.full_path:
                     log.update()
         elif (event == gio.FILE_MONITOR_EVENT_DELETED
                 or event == gio.FILE_MONITOR_EVENT_CREATED):
@@ -146,9 +146,9 @@ class LogMinder(gtk.VBox):
             lambda widget, child: self.activity.editor.remove_page(
                 self.activity.editor.page_num(child)))
         self.activity.editor.append_page(scrollwnd, tablabel)
-        self.activity.editor.set_current_page(-1)
         self._active_log = newlogview
         self.activity.editor.show_all()
+        self.activity.editor.set_current_page(-1)
 
     def _filter_by_name(self, node):
         return (self._namefilter in node.filename) or node.isDirectory
@@ -195,11 +195,11 @@ class LogBuffer(gtk.TextBuffer):
 
 class LogView(gtk.TextView):
 
-    def __init__(self, logpath, logminder):
+    def __init__(self, full_path, logminder):
         gtk.TextView.__init__(self)
 
         self.logminder = logminder
-        self.logpath = logpath
+        self.full_path = full_path
         self.logminder._openlogs.append(self)
 
         self.set_wrap_mode(gtk.WRAP_WORD)
@@ -213,7 +213,7 @@ class LogView(gtk.TextView):
         select_tag.props.background = '#B0B0FF'
         tagtable.add(select_tag)
 
-        newbuffer = self._create_log_buffer(logpath, tagtable)
+        newbuffer = self._create_log_buffer(full_path, tagtable)
         if newbuffer:
             self.set_buffer(newbuffer)
             self.text_buffer = newbuffer
@@ -249,9 +249,6 @@ class LogView(gtk.TextView):
         self._written = logbuffer._written
 
         return logbuffer
-
-    def __eq__(self, other):
-        return other == self.logpath or other == self.filename
 
     def replace(self, *args, **kw):
         return (False, False)

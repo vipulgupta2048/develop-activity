@@ -53,19 +53,19 @@ class GtkSourceview2Editor(gtk.Notebook):
     def set_to_page_like(self, full_path):
         for n in range(self.get_n_pages()):
             page = self._get_page(n)
-            if page.fullPath == full_path:
+            if page.full_path == full_path:
                 self.set_current_page(n)
                 return True
         return False
 
-    def load_object(self, fullPath, filename):
-        if self.set_to_page_like(fullPath):
+    def load_object(self, full_path, filename):
+        if self.set_to_page_like(full_path):
             return
         scrollwnd = gtk.ScrolledWindow()
         scrollwnd.set_policy(gtk.POLICY_AUTOMATIC,
                              gtk.POLICY_AUTOMATIC)
 
-        page = GtkSourceview2Page(fullPath)
+        page = GtkSourceview2Page(full_path)
         scrollwnd.add(page)
         scrollwnd.page = page
         label = filename
@@ -175,7 +175,7 @@ class GtkSourceview2Editor(gtk.Notebook):
         for i in range(self.get_n_pages()):
             page = self._get_page(i)
             if isinstance(page, GtkSourceview2Page):
-                filenames.append(page.fullPath)
+                filenames.append(page.full_path)
         return filenames
 
     def save_all(self):
@@ -183,7 +183,7 @@ class GtkSourceview2Editor(gtk.Notebook):
         for i in range(self.get_n_pages()):
             page = self._get_page(i)
             if isinstance(page, GtkSourceview2Page):
-                logging.info('%s', page.fullPath)
+                logging.info('%s', page.full_path)
                 page.save()
 
     def reroot(self, olddir, newdir):
@@ -192,9 +192,9 @@ class GtkSourceview2Editor(gtk.Notebook):
             page = self._get_page(i)
             if isinstance(page, GtkSourceview2Page):
                 if page.reroot(olddir, newdir):
-                    logging.info('rerooting page %s failed', page.fullPath)
+                    logging.info('rerooting page %s failed', page.full_path)
                 else:
-                    logging.info('rerooting page %s succeeded', page.fullPath)
+                    logging.info('rerooting page %s succeeded', page.full_path)
 
     def get_selected(self):
         return self._get_page().get_selected()
@@ -204,7 +204,7 @@ class GtkSourceview2Editor(gtk.Notebook):
         return buff.get_text(buff.get_start_iter(), buff.get_end_iter())
 
     def get_file_path(self):
-        return self._get_page().fullPath
+        return self._get_page().full_path
 
     def close_page(self):
         return self.remove_page(self.get_current_page())
@@ -218,13 +218,13 @@ class GtkSourceview2Editor(gtk.Notebook):
 
 class GtkSourceview2Page(gtksourceview2.View):
 
-    def __init__(self, fullPath):
+    def __init__(self, full_path):
         '''
         Do any initialization here.
         '''
         gtksourceview2.View.__init__(self)
 
-        self.fullPath = fullPath
+        self.full_path = full_path
 
         self.set_size_request(900, 350)
         self.set_editable(True)
@@ -257,14 +257,14 @@ class GtkSourceview2Page(gtksourceview2.View):
         Load the text, and optionally scroll to the given offset in the file.
         '''
         self.text_buffer.begin_not_undoable_action()
-        _file = file(self.fullPath)
+        _file = file(self.full_path)
         self.text_buffer.set_text(_file.read())
         _file.close()
         if offset is not None:
             self._scroll_to_offset(offset)
 
         self.text_buffer.set_highlight_syntax(False)
-        mime_type = mimetypes.guess_type(self.fullPath)[0]
+        mime_type = mimetypes.guess_type(self.full_path)[0]
         if mime_type:
             lang_manager = gtksourceview2.language_manager_get_default()
             lang_ids = lang_manager.get_language_ids()
@@ -285,7 +285,7 @@ class GtkSourceview2Page(gtksourceview2.View):
         if self.text_buffer.can_undo():  # only save if there's something to
             buff = self.text_buffer
             text = buff.get_text(buff.get_start_iter(), buff.get_end_iter())
-            _file = file(self.fullPath, 'w')
+            _file = file(self.full_path, 'w')
             try:
                 _file.write(text)
             except (IOError, OSError):
@@ -366,9 +366,9 @@ class GtkSourceview2Page(gtksourceview2.View):
 
     def reroot(self, olddir, newdir):
         '''Returns False if it works'''
-        oldpath = self.fullPath
+        oldpath = self.full_path
         if oldpath.startswith(olddir):
-            self.fullPath = os.path.join(newdir, oldpath[len(olddir):])
+            self.full_path = os.path.join(newdir, oldpath[len(olddir):])
             return False
         else:
             return True
