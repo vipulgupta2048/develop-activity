@@ -22,10 +22,13 @@ import os.path
 import logging
 from gettext import gettext as _
 
+from gi.repository import Gdk
 from gi.repository import Gtk
 from gi.repository import Gio
+from gi.repository import GObject
 
-import activity_model
+from sugar3.graphics import style
+
 from sourceview_editor import TabLabel
 
 #does not import develop_app, but references internals from the activity,
@@ -42,18 +45,11 @@ class LogMinder(Gtk.VBox):
         self.activity = activity
         self._openlogs = []
 
-        logging.info('creating MultiLogView')
+        logging.info('creating MultiLogView namefilter %s', namefilter)
         if not path:
             # Main path to watch: ~/.sugar/someuser/logs...
             path = os.path.join(os.path.expanduser("~"), ".sugar", "default",
                                 "logs")
-
-        if not extra_files:
-            # extra files to watch in logviewer
-            extra_files = []
-            extra_files.append("/var/log/Xorg.0.log")
-            extra_files.append("/var/log/syslog")
-            extra_files.append("/var/log/messages")
 
         self._logs_path = path + '/'
         self._active_log = None
@@ -61,31 +57,21 @@ class LogMinder(Gtk.VBox):
         self._namefilter = namefilter
 
         # Creating Main treeview with Actitivities list
-        self._tv_menu = Gtk.TreeView()
-        self._tv_menu.connect('cursor-changed', self._load_log)
-        self._tv_menu.set_rules_hint(True)
-        cellrenderer = Gtk.CellRendererText()
-        self.treecolumn = Gtk.TreeViewColumn(_("Sugar logs"), cellrenderer,
-                                             text=1)
-        self._tv_menu.append_column(self.treecolumn)
-        self._tv_menu.set_size_request(220, 900)
-
-        # Create scrollbars around the tree view.
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        scrolled.add(self._tv_menu)
+        self.file_viewer = FileViewer()
+        self.file_viewer.connect('file-selected', self._load_log)
+        self.file_viewer.set_title(_("Sugar logs"))
 
         # the internals of the treeview
-        self._model = activity_model.DirectoryAndExtraModel(
-            path, extra_files, self._filter_by_name)
+        self.file_viewer.load_logs(path, self._filter_by_name)
 
-        self._tv_menu.set_model(self._model)
+        #self._model = activity_model.DirectoryAndExtraModel(
+        #    path, extra_files, self._filter_by_name)
 
         self._logs = {}
         self._monitors = []
 
         # Activities menu
-        self.activity.treenotebook.add_page(_("Log"), scrolled)
+        self.activity.treenotebook.add_page(_("Log"), self.file_viewer)
 
         self._configure_watcher()
 
@@ -120,14 +106,7 @@ class LogMinder(Gtk.VBox):
             #If the log is open, just leave it that way
 
     # Load the log information in View (text_view)
-    def _load_log(self, treeview):
-        node = activity_model.get_selected_file(self._tv_menu)
-        logging.error('_load_log node:%s', node)
-        if node is None:
-            return
-
-        path = node["path"]
-
+    def _load_log(self, path):
         if os.path.isdir(path):
             #do not try to open folders
             logging.debug("Cannot open a folder as text :)")
@@ -157,8 +136,8 @@ class LogMinder(Gtk.VBox):
         self.activity.editor.show_all()
         self.activity.editor.set_current_page(-1)
 
-    def _filter_by_name(self, node):
-        return (self._namefilter in node.filename) or node.isDirectory
+    def _filter_by_name(self, filename):
+        return self._namefilter in filename
 
     # Insert a Row in our TreeView
     def _insert_row(self, store, parent, name):
@@ -173,6 +152,82 @@ class LogMinder(Gtk.VBox):
             self._openlogs.remove(logview)
         except ValueError:
             logging.debug("_remove_logview failed")
+
+
+class FileViewer(Gtk.ScrolledWindow):
+    __gtype_name__ = 'LogFileViewer'
+
+    __gsignals__ = {
+        'file-selected': (GObject.SignalFlags.RUN_FIRST,
+                          None,
+                          ([str])),
+    }
+
+    def __init__(self):
+        Gtk.ScrolledWindow.__init__(self)
+
+        self.props.hscrollbar_policy = Gtk.PolicyType.AUTOMATIC
+        self.props.vscrollbar_policy = Gtk.PolicyType.AUTOMATIC
+        self.set_size_request(style.GRID_CELL_SIZE * 3, -1)
+
+        self._path = None
+
+        self._tree_view = Gtk.TreeView()
+        self._tree_view.connect('cursor-changed', self.__cursor_changed_cb)
+        self.add(self._tree_view)
+        self._tree_view.show()
+
+        self._tree_view.props.headers_visible = False
+        selection = self._tree_view.get_selection()
+        selection.connect('changed', self.__selection_changed_cb)
+
+        cell = Gtk.CellRendererText()
+        self._column = Gtk.TreeViewColumn()
+        self._column.pack_start(cell, True)
+        self._column.add_attribute(cell, 'text', 0)
+        self._tree_view.append_column(self._column)
+        self._tree_view.set_search_column(0)
+
+    def load_logs(self, path, filter_function):
+        self._path = path
+
+        self._tree_view.set_model(Gtk.TreeStore(str, str))
+        self._model = self._tree_view.get_model()
+        self._add_dir_to_model(path, filter_function)
+
+    def _add_dir_to_model(self, dir_path, filter_function, parent=None):
+        for f in os.listdir(dir_path):
+            full_path = os.path.join(dir_path, f)
+            if os.path.isdir(full_path):
+                new_iter = self._model.append(parent, [f, full_path])
+                self._add_dir_to_model(full_path, filter_function, new_iter)
+            else:
+                if filter_function(full_path):
+                    self._model.append(parent, [f, full_path])
+
+    def __selection_changed_cb(self, selection):
+        model, tree_iter = selection.get_selected()
+        if tree_iter is None:
+            file_path = None
+        else:
+            file_path = model.get_value(tree_iter, 1)
+        self.emit('file-selected', file_path)
+
+    def __cursor_changed_cb(self, treeview):
+        selection = treeview.get_selection()
+        store, iter_ = selection.get_selected()
+        if iter_ is None:
+            # Nothing selected. This happens at startup
+            return
+        if store.iter_has_child(iter_):
+            path = store.get_path(iter_)
+            if treeview.row_expanded(path):
+                treeview.collapse_row(path)
+            else:
+                treeview.expand_row(path, False)
+
+    def set_title(self, title):
+        self._column.set_title(title)
 
 
 class LogBuffer(Gtk.TextBuffer):
