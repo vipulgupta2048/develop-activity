@@ -589,14 +589,9 @@ class DevelopActivity(activity.Activity):
             #avoid infinite recursion
             return
         if isinstance(page, sourceview_editor.GtkSourceview2Page):
-            source = page.full_path
-            tree_iter = self.model.get_iter_from_filepath(source)
-            if tree_iter:
-                tree_selection = self.treeview.get_selection()
-                tree_selection.unselect_all()
-                self.numb = True
-                tree_selection.select_iter(tree_iter)
-                self.numb = False
+            self.numb = True
+            self.activity_tree_view.select_by_file_path(page.full_path)
+            self.numb = False
 
     def __create_empty_file_cb(self, button):
         alert = Alert()
@@ -691,6 +686,8 @@ class FileViewer(Gtk.ScrolledWindow):
         self._column.add_attribute(cell, 'text', 0)
         self._tree_view.append_column(self._column)
         self._tree_view.set_search_column(0)
+        # map between file_path and iter
+        self._opened_files = {}
 
     def load_activity(self, path, bundle):
         self._search_initial_filename(path, bundle)
@@ -721,6 +718,7 @@ class FileViewer(Gtk.ScrolledWindow):
             file_path = None
         else:
             file_path = model.get_value(tree_iter, 1)
+        self._opened_files[file_path] = tree_iter
         self.emit('file-selected', file_path)
 
     def __cursor_changed_cb(self, treeview):
@@ -735,6 +733,13 @@ class FileViewer(Gtk.ScrolledWindow):
                 treeview.collapse_row(path)
             else:
                 treeview.expand_row(path, False)
+
+    def select_by_file_path(self, file_path):
+        if file_path in self._opened_files:
+            tree_iter = self._opened_files[file_path]
+            tree_selection = self._tree_view.get_selection()
+            tree_selection.unselect_all()
+            tree_selection.select_iter(tree_iter)
 
     def _search_initial_filename(self, activity_path, bundle):
         command = bundle.get_command()
