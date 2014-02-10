@@ -69,8 +69,6 @@ REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
 
 TOOLBAR_SEARCH = 2
 
-OPENFILE_SEPARATOR = u"@ @"
-
 _EXCLUDE_EXTENSIONS = ('.pyc', '.pyo', '.so', '.o', '.a', '.la', '.mo', '~',
                        '.xo', '.tar', '.bz2', '.zip', '.gz')
 _EXCLUDE_NAMES = ['.deps', '.libs']
@@ -542,9 +540,9 @@ class DevelopActivity(activity.Activity):
             return
         if not self.save_unchanged:
             self.editor.save_all()
-        filenames = OPENFILE_SEPARATOR.join(self.editor.get_all_filenames())
+        filenames = self.editor.get_all_filenames()
         logging.debug('activity_dir %s, file_path %s, filenames %s' %
-                      (self.activity_dir, file_path, len(filenames)))
+                      (self.activity_dir, file_path, filenames))
         self._jobject = self.save_source_jobject(
             self.activity_dir, file_path, filenames)
         self.metadata['source'] = self.activity_dir
@@ -558,8 +556,8 @@ class DevelopActivity(activity.Activity):
         f = open(file_path, 'r')
         try:
             session_data = simplejson.load(f)
-            for filename in \
-                    session_data['open_filenames'].split(OPENFILE_SEPARATOR):
+            logging.error('read_file session_data %s', session_data)
+            for filename in session_data['open_filenames']:
                 if filename:
                     logging.info('opening : %s', filename)
                     self.load_file(filename)
@@ -708,6 +706,7 @@ class FileViewer(Gtk.ScrolledWindow):
                 self._add_dir_to_model(full_path, new_iter)
             else:
                 current_iter = self._model.append(parent, [f, full_path])
+                self._opened_files[full_path] = current_iter
                 if full_path == self._initial_filename:
                     selection = self._tree_view.get_selection()
                     selection.select_iter(current_iter)
@@ -718,7 +717,6 @@ class FileViewer(Gtk.ScrolledWindow):
             file_path = None
         else:
             file_path = model.get_value(tree_iter, 1)
-        self._opened_files[file_path] = tree_iter
         self.emit('file-selected', file_path)
 
     def __cursor_changed_cb(self, tree_view):

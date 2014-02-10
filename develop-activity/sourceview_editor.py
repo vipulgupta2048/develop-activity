@@ -53,7 +53,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
 
     def _switch_page_cb(self, __notebook, page_gptr, page_num):
         self.activity.update_sidebar_to_page(self._get_page(page_num))
-        self.activity.explore_code(None, switch_page=False)
+        #self.activity.explore_code(None, switch_page=False)
 
     def set_to_page_like(self, full_path):
         for n in range(self.get_n_pages()):

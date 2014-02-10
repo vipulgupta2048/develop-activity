@@ -76,6 +76,9 @@ class LogMinder(Gtk.VBox):
         self._configure_watcher()
 
     def _configure_watcher(self):
+        # TODO
+        pass
+        """
         logging.error('Monitor directory %s', self._logs_path)
         directory = Gio.File.new_for_path(self._logs_path)
         dir_monitor = directory.monitor_directory(
@@ -92,6 +95,7 @@ class LogMinder(Gtk.VBox):
             file_monitor.set_rate_limit(2000)
             file_monitor.connect('changed', self._log_file_changed_cb)
             self._monitors.append(file_monitor)
+        """
 
     def _log_file_changed_cb(self, monitor, path1, path2, event):
         _directory, logfile = os.path.split(str(path1))
