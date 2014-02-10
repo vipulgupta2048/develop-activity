@@ -41,7 +41,7 @@ class TabLabel(Gtk.HBox):
         self.pack_start(self._label, True, True, 0)
         self._label.show()
 
-        self.modify_base(Gtk.StateType.NORMAL, Gdk.Color(0, 0, 0, 1))
+        #self.modify_base(Gtk.StateType.NORMAL, Gdk.Color(0, 0, 0, 1))
 
         close_tab_icon = Icon(icon_name='close-tab')
         button = Gtk.Button()

@@ -420,7 +420,8 @@ class DevelopActivity(activity.Activity):
         self.metadata['title'] = 'Develop %s' % name
         self.refresh_files()
 
-        #self.treeview.get_selection().connect("changed", self.selection_cb)
+        self.activity_tree_view.connect('file_selected',
+                                        self.__file_selected_cb)
         return name
 
     def first_open_activity(self, activity_dir):
@@ -452,14 +453,13 @@ class DevelopActivity(activity.Activity):
         logging.error('load_file filename %s', filename)
         self.editor.load_object(full_path, filename)
 
-    def selection_cb(self, column):
+    def __file_selected_cb(self, file_viewer, path):
         """User selected an item in the treeview. Load it.
         """
         if self.numb:
             #Choosing in the notebook selects in the list, and vice versa.
             #Avoid infinite recursion.
             return
-        path = activity_model.get_selected_file_path(self.treeview)
         if path and not os.path.isdir(path):
             self.numb = True
             self.load_file(path)
@@ -658,7 +658,7 @@ class DevelopActivity(activity.Activity):
 
 
 class FileViewer(Gtk.ScrolledWindow):
-    __gtype_name__ = 'SugarFileViewer'
+    __gtype_name__ = 'ActivityFileViewer'
 
     __gsignals__ = {
         'file-selected': (GObject.SignalFlags.RUN_FIRST,

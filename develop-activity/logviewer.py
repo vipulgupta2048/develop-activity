@@ -106,7 +106,7 @@ class LogMinder(Gtk.VBox):
             #If the log is open, just leave it that way
 
     # Load the log information in View (text_view)
-    def _load_log(self, path):
+    def _load_log(self, file_viewer, path):
         if os.path.isdir(path):
             #do not try to open folders
             logging.debug("Cannot open a folder as text :)")
@@ -126,7 +126,8 @@ class LogMinder(Gtk.VBox):
                              Gtk.PolicyType.AUTOMATIC)
         scrollwnd.add(newlogview)
         scrollwnd.page = newlogview
-        tablabel = TabLabel(newlogview, label=node["name"])
+        file_name = os.path.basename(path)
+        tablabel = TabLabel(newlogview, file_name)
         tablabel.connect(
             'tab-close',
             lambda widget, child: self.activity.editor.remove_page(
@@ -231,8 +232,8 @@ class FileViewer(Gtk.ScrolledWindow):
 
 
 class LogBuffer(Gtk.TextBuffer):
-    def __init__(self, logfile, tagtable):
-        GObject.GObject.__init__(self, table=tagtable)
+    def __init__(self, logfile):
+        Gtk.TextBuffer.__init__(self)
 
         self._logfile = logfile
         self._pos = 0
@@ -266,16 +267,7 @@ class LogView(Gtk.TextView):
 
         self.set_wrap_mode(Gtk.WrapMode.WORD)
 
-        # Tags for search
-        tagtable = Gtk.TextTagTable()
-        hilite_tag = Gtk.TextTag('search-hilite')
-        hilite_tag.props.background = '#FFFFB0'
-        tagtable.add(hilite_tag)
-        select_tag = Gtk.TextTag('search-select')
-        select_tag.props.background = '#B0B0FF'
-        tagtable.add(select_tag)
-
-        newbuffer = self._create_log_buffer(full_path, tagtable)
+        newbuffer = self._create_log_buffer(full_path)
         if newbuffer:
             self.set_buffer(newbuffer)
             self.text_buffer = newbuffer
@@ -291,7 +283,7 @@ class LogView(Gtk.TextView):
     def remove(self):
         self.logminder._remove_logview(self)
 
-    def _create_log_buffer(self, path, tagtable):
+    def _create_log_buffer(self, path):
         self._written = False
         if os.path.isdir(path):
             return False
@@ -306,11 +298,20 @@ class LogView(Gtk.TextView):
 
         self.filename = _get_filename_from_path(path)
 
-        self._logbuffer = logbuffer = LogBuffer(path, tagtable)
+        self._logbuffer = LogBuffer(path)
 
-        self._written = logbuffer._written
+        # Tags for search
+        tagtable = self._logbuffer.get_tag_table()
+        hilite_tag = Gtk.TextTag.new('search-hilite')
+        hilite_tag.props.background = '#FFFFB0'
+        tagtable.add(hilite_tag)
+        select_tag = Gtk.TextTag.new('search-select')
+        select_tag.props.background = '#B0B0FF'
+        tagtable.add(select_tag)
 
-        return logbuffer
+        self._written = self._logbuffer._written
+
+        return self._logbuffer
 
     def replace(self, *args, **kw):
         return (False, False)

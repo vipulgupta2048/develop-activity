@@ -237,16 +237,17 @@ class GtkSourceview2Page(GtkSource.View):
         self.set_show_line_numbers(True)
         self.set_insert_spaces_instead_of_tabs(True)
 
+        self.text_buffer = GtkSource.Buffer()
+
         # Tags for search
-        tagtable = Gtk.TextTagTable()
-        hilite_tag = Gtk.TextTag('search-hilite')
+        tagtable = self.text_buffer.get_tag_table()
+        hilite_tag = Gtk.TextTag.new('search-hilite')
         hilite_tag.props.background = '#FFFFB0'
         tagtable.add(hilite_tag)
-        select_tag = Gtk.TextTag('search-select')
+        select_tag = Gtk.TextTag.new('search-select')
         select_tag.props.background = '#B0B0FF'
         tagtable.add(select_tag)
 
-        self.text_buffer = GtkSource.Buffer(tag_table=tagtable)
         self.set_buffer(self.text_buffer)
 
         self.set_tab_width(4)
