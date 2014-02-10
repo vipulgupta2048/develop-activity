@@ -206,7 +206,8 @@ class GtkSourceview2Editor(Gtk.Notebook):
 
     def get_text(self):
         buff = self._get_page().text_buffer
-        return buff.get_text(buff.get_start_iter(), buff.get_end_iter())
+        return buff.get_text(buff.get_start_iter(), buff.get_end_iter(),
+                             False)
 
     def get_file_path(self):
         return self._get_page().full_path
@@ -390,7 +391,8 @@ class GtkSourceview2Page(GtkSource.View):
 
         text_iter = _buffer.get_start_iter()
         while True:
-            next_found = text_iter.forward_search(text, 0)
+            next_found = text_iter.forward_search(
+                text, Gtk.TextSearchFlags.CASE_INSENSITIVE, None)
             if next_found is None:
                 break
             start, end = next_found
@@ -406,6 +408,7 @@ class GtkSourceview2Page(GtkSource.View):
 
     def get_next_result(self, direction):
         _buffer = self.get_buffer()
+        end_text_iter = _buffer.get_end_iter()
 
         if direction == 'forward':
             text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
@@ -414,9 +417,11 @@ class GtkSourceview2Page(GtkSource.View):
             text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
 
         if direction == 'backward':
-            return text_iter.backward_search(self.search_text, 0)
+            return text_iter.backward_search(
+                self.search_text, Gtk.TextSearchFlags.CASE_INSENSITIVE, None)
         else:
-            return text_iter.forward_search(self.search_text, 0)
+            return text_iter.forward_search(
+                self.search_text, Gtk.TextSearchFlags.CASE_INSENSITIVE, None)
 
     def search_next(self, direction):
         next_found = self.get_next_result(direction)
@@ -429,5 +434,4 @@ class GtkSourceview2Page(GtkSource.View):
             _buffer.apply_tag_by_name('search-select', start, end)
             _buffer.place_cursor(start)
 
-            self.scroll_to_iter(start, 0.1)
-            self.scroll_to_iter(end, 0.1)
+            self.scroll_to_iter(start, 0.1, False, 0, 0)
