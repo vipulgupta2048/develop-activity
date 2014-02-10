@@ -721,18 +721,18 @@ class FileViewer(Gtk.ScrolledWindow):
         self._opened_files[file_path] = tree_iter
         self.emit('file-selected', file_path)
 
-    def __cursor_changed_cb(self, treeview):
-        selection = treeview.get_selection()
+    def __cursor_changed_cb(self, tree_view):
+        selection = tree_view.get_selection()
         store, iter_ = selection.get_selected()
         if iter_ is None:
             # Nothing selected. This happens at startup
             return
         if store.iter_has_child(iter_):
             path = store.get_path(iter_)
-            if treeview.row_expanded(path):
-                treeview.collapse_row(path)
+            if tree_view.row_expanded(path):
+                tree_view.collapse_row(path)
             else:
-                treeview.expand_row(path, False)
+                tree_view.expand_row(path, False)
 
     def select_by_file_path(self, file_path):
         if file_path in self._opened_files:
