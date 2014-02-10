@@ -45,7 +45,6 @@ from sugar3.bundle.activitybundle import ActivityBundle
 import logviewer
 import sourceview_editor
 S_WHERE = sourceview_editor.S_WHERE
-import activity_model
 import new_activity
 
 from symbols_tree import SymbolsTree
@@ -71,6 +70,10 @@ REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
 TOOLBAR_SEARCH = 2
 
 OPENFILE_SEPARATOR = u"@ @"
+
+_EXCLUDE_EXTENSIONS = ('.pyc', '.pyo', '.so', '.o', '.a', '.la', '.mo', '~',
+                       '.xo', '.tar', '.bz2', '.zip', '.gz')
+_EXCLUDE_NAMES = ['.deps', '.libs']
 
 
 class Options:
@@ -192,19 +195,10 @@ class DevelopActivity(activity.Activity):
         self.treenotebook.set_show_tabs(False)
         sidebar.pack_start(self.treenotebook, True, True, 0)
 
-        self.model = Gtk.TreeStore(GObject.TYPE_PYOBJECT, GObject.TYPE_STRING)
-        self.treeview = Gtk.TreeView(self.model)
-        cellrenderer = Gtk.CellRendererText()
-        self.treecolumn = Gtk.TreeViewColumn(_("Activities"), cellrenderer,
-                                             text=1)
-        self.treeview.append_column(self.treecolumn)
-        self.treeview.set_size_request(Gdk.Screen.width() / 4, -1)
-
-        # Create scrollbars around the tree view.
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.add(self.treeview)
-        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.treenotebook.add_page(_("Activity"), scrolled)
+        self.activity_tree_view = FileViewer()
+        #self.activity_tree_view = ActivityTreeView()
+        self.treenotebook.add_page(_("Activity"), self.activity_tree_view)
+        self.treenotebook.set_size_request(Gdk.Screen.width() / 5, -1)
 
         # Symbols tree
         self._symbolstree = SymbolsTree()
@@ -215,7 +209,7 @@ class DevelopActivity(activity.Activity):
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.treenotebook.add_page(_('Symbols Tree'), scrolled)
 
-        hbox.pack1(sidebar, resize=True, shrink=True)
+        hbox.pack1(sidebar, resize=True, shrink=False)
         sidebar.show()
 
         logging.info('finished check')
@@ -422,10 +416,11 @@ class DevelopActivity(activity.Activity):
             activity_dir = activity_dir + '/'
         self.activity_dir = activity_dir
         name = os.path.basename(activity_dir)
-        self.treecolumn.set_title(name)
+        self.activity_tree_view.set_title(name)
         self.metadata['title'] = 'Develop %s' % name
         self.refresh_files()
-        self.treeview.get_selection().connect("changed", self.selection_cb)
+
+        #self.treeview.get_selection().connect("changed", self.selection_cb)
         return name
 
     def first_open_activity(self, activity_dir):
@@ -441,10 +436,7 @@ class DevelopActivity(activity.Activity):
         """Refresh the treeview of activity files.
         """
         self.bundle = ActivityBundle(self.activity_dir)
-        self.model = activity_model.DirectoryAndExtraModel(
-            self.activity_dir,
-            nodefilter=activity_model.inmanifestfn(self.bundle))
-        self.treeview.set_model(self.model)
+        self.activity_tree_view.load_activity(self.activity_dir, self.bundle)
 
     def load_file(self, full_path):
         """Load one activity subfile into the editor view.
@@ -663,6 +655,109 @@ class DevelopActivity(activity.Activity):
                 self.refresh_files()
                 self.editor.close_page()
         self.remove_alert(alert)
+
+
+class FileViewer(Gtk.ScrolledWindow):
+    __gtype_name__ = 'SugarFileViewer'
+
+    __gsignals__ = {
+        'file-selected': (GObject.SignalFlags.RUN_FIRST,
+                          None,
+                          ([str])),
+    }
+
+    def __init__(self):
+        Gtk.ScrolledWindow.__init__(self)
+
+        self.props.hscrollbar_policy = Gtk.PolicyType.AUTOMATIC
+        self.props.vscrollbar_policy = Gtk.PolicyType.AUTOMATIC
+        self.set_size_request(style.GRID_CELL_SIZE * 3, -1)
+
+        self._path = None
+        self._initial_filename = None
+
+        self._tree_view = Gtk.TreeView()
+        self._tree_view.connect('cursor-changed', self.__cursor_changed_cb)
+        self.add(self._tree_view)
+        self._tree_view.show()
+
+        self._tree_view.props.headers_visible = False
+        selection = self._tree_view.get_selection()
+        selection.connect('changed', self.__selection_changed_cb)
+
+        cell = Gtk.CellRendererText()
+        self._column = Gtk.TreeViewColumn()
+        self._column.pack_start(cell, True)
+        self._column.add_attribute(cell, 'text', 0)
+        self._tree_view.append_column(self._column)
+        self._tree_view.set_search_column(0)
+
+    def load_activity(self, path, bundle):
+        self._search_initial_filename(path, bundle)
+        self._path = path
+
+        self._tree_view.set_model(Gtk.TreeStore(str, str))
+        self._model = self._tree_view.get_model()
+        self._add_dir_to_model(path)
+
+    def _add_dir_to_model(self, dir_path, parent=None):
+        for f in os.listdir(dir_path):
+            if f.endswith(_EXCLUDE_EXTENSIONS) or f in _EXCLUDE_NAMES:
+                continue
+
+            full_path = os.path.join(dir_path, f)
+            if os.path.isdir(full_path):
+                new_iter = self._model.append(parent, [f, full_path])
+                self._add_dir_to_model(full_path, new_iter)
+            else:
+                current_iter = self._model.append(parent, [f, full_path])
+                if full_path == self._initial_filename:
+                    selection = self._tree_view.get_selection()
+                    selection.select_iter(current_iter)
+
+    def __selection_changed_cb(self, selection):
+        model, tree_iter = selection.get_selected()
+        if tree_iter is None:
+            file_path = None
+        else:
+            file_path = model.get_value(tree_iter, 1)
+        self.emit('file-selected', file_path)
+
+    def __cursor_changed_cb(self, treeview):
+        selection = treeview.get_selection()
+        store, iter_ = selection.get_selected()
+        if iter_ is None:
+            # Nothing selected. This happens at startup
+            return
+        if store.iter_has_child(iter_):
+            path = store.get_path(iter_)
+            if treeview.row_expanded(path):
+                treeview.collapse_row(path)
+            else:
+                treeview.expand_row(path, False)
+
+    def _search_initial_filename(self, activity_path, bundle):
+        command = bundle.get_command()
+
+        if self._is_web_activity(bundle):
+            file_name = 'index.html'
+
+        elif len(command.split(' ')) > 1:
+            name = command.split(' ')[1].split('.')[-1]
+            tmppath = command.split(' ')[1].replace('.', '/')
+            file_name = tmppath[0:-(len(name) + 1)] + '.py'
+
+        if file_name:
+            path = os.path.join(activity_path, file_name)
+            if os.path.exists(path):
+                logging.error('INITIAL_FILENAME %s', path)
+                self._initial_filename = path
+
+    def set_title(self, title):
+        self._column.set_title(title)
+
+    def _is_web_activity(self, activity_bundle):
+        return activity_bundle.get_command() == 'sugar-activity-web'
 
 
 class DevelopEditToolbar(EditToolbar):
@@ -960,7 +1055,6 @@ class DevelopSearchToolbar(Gtk.Toolbar):
             if self._activity.editor.find_next(ftext, direction='backward'):
                 pass
                 #self._replace_button.set_sensitive(True)
-
 
     def _findnext_cb(self, button=None):
         ftext = self._search_entry.props.text
