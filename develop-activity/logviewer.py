@@ -41,6 +41,7 @@ def _get_filename_from_path(path):
 
 
 class LogMinder(Gtk.VBox):
+
     def __init__(self, activity, namefilter, path=None, extra_files=None):
         self.activity = activity
         self._openlogs = []
@@ -57,17 +58,13 @@ class LogMinder(Gtk.VBox):
         self._namefilter = namefilter
 
         # Creating Main treeview with Actitivities list
-        self.file_viewer = FileViewer()
+        self.file_viewer = LogFileViewer()
         self.file_viewer.connect('file-selected', self._load_log)
         self.file_viewer.set_title(_("Sugar logs"))
 
         # the internals of the treeview
-        self.file_viewer.load_logs(path, self._filter_by_name)
+        self.file_viewer.init_logs(path, self._filter_by_name)
 
-        #self._model = activity_model.DirectoryAndExtraModel(
-        #    path, extra_files, self._filter_by_name)
-
-        self._logs = {}
         self._monitors = []
 
         # Activities menu
@@ -76,9 +73,6 @@ class LogMinder(Gtk.VBox):
         self._configure_watcher()
 
     def _configure_watcher(self):
-        # TODO
-        pass
-        """
         logging.error('Monitor directory %s', self._logs_path)
         directory = Gio.File.new_for_path(self._logs_path)
         dir_monitor = directory.monitor_directory(
@@ -86,7 +80,7 @@ class LogMinder(Gtk.VBox):
         dir_monitor.set_rate_limit(2000)
         dir_monitor.connect('changed', self._log_file_changed_cb)
         self._monitors.append(dir_monitor)
-
+        """
         for f in self._extra_files:
             logging.error('Monitor file %s', f)
             gio_file = Gio.File.new_for_path(f)
@@ -106,18 +100,16 @@ class LogMinder(Gtk.VBox):
                     log.update()
         elif (event == Gio.FileMonitorEvent.DELETED
                 or event == Gio.FileMonitorEvent.CREATED):
-            self._model.refresh()
+            self.file_viewer.load_model()
             #If the log is open, just leave it that way
 
     # Load the log information in View (text_view)
     def _load_log(self, file_viewer, path):
-        if os.path.isdir(path):
-            #do not try to open folders
-            logging.debug("Cannot open a folder as text :)")
+        if not path:
             return
 
-        if not path:
-            #DummyActivityNode
+        if os.path.isdir(path):
+            #do not try to open folders
             return
 
         # Set buffer and scroll down
@@ -144,14 +136,6 @@ class LogMinder(Gtk.VBox):
     def _filter_by_name(self, filename):
         return self._namefilter in filename
 
-    # Insert a Row in our TreeView
-    def _insert_row(self, store, parent, name):
-        iter = store.insert_before(parent, None)
-        index = 0
-        store.set_value(iter, index, name)
-
-        return iter
-
     def _remove_logview(self, logview):
         try:
             self._openlogs.remove(logview)
@@ -159,7 +143,7 @@ class LogMinder(Gtk.VBox):
             logging.debug("_remove_logview failed")
 
 
-class FileViewer(Gtk.ScrolledWindow):
+class LogFileViewer(Gtk.ScrolledWindow):
     __gtype_name__ = 'LogFileViewer'
 
     __gsignals__ = {
@@ -193,12 +177,15 @@ class FileViewer(Gtk.ScrolledWindow):
         self._tree_view.append_column(self._column)
         self._tree_view.set_search_column(0)
 
-    def load_logs(self, path, filter_function):
+    def init_logs(self, path, filter_function):
         self._path = path
+        self._filter_function = filter_function
+        self.load_model()
 
+    def load_model(self):
         self._tree_view.set_model(Gtk.TreeStore(str, str))
         self._model = self._tree_view.get_model()
-        self._add_dir_to_model(path, filter_function)
+        self._add_dir_to_model(self._path, self._filter_function)
 
     def _add_dir_to_model(self, dir_path, filter_function, parent=None):
         for f in os.listdir(dir_path):
