@@ -28,6 +28,7 @@ from gi.repository import Gio
 from gi.repository import GObject
 
 from sugar3.graphics import style
+from sugar3 import env
 
 from sourceview_editor import TabLabel
 
@@ -50,12 +51,10 @@ class LogFilesViewer(Gtk.ScrolledWindow):
         self._openlogs = []
 
         logging.info('creating LogFilesViewer namefilter %s', namefilter)
-        # Main path to watch: ~/.sugar/someuser/logs...
-        path = os.path.join(os.path.expanduser("~"), ".sugar", "default",
-                            "logs")
+        self._path = env.get_logs_path()
+        logging.error('LOGS PATH %s', self._path)
 
-        self._logs_path = path + '/'
-        self._extra_files = ['shell.log']
+        self._extra_files = [os.path.join(self._path, 'shell.log')]
         self._namefilter = namefilter
 
         Gtk.ScrolledWindow.__init__(self)
@@ -63,8 +62,6 @@ class LogFilesViewer(Gtk.ScrolledWindow):
         self.props.hscrollbar_policy = Gtk.PolicyType.AUTOMATIC
         self.props.vscrollbar_policy = Gtk.PolicyType.AUTOMATIC
         self.set_size_request(style.GRID_CELL_SIZE * 3, -1)
-
-        self._path = None
 
         self._tree_view = Gtk.TreeView()
         self._tree_view.connect('cursor-changed', self.__cursor_changed_cb)
@@ -84,20 +81,19 @@ class LogFilesViewer(Gtk.ScrolledWindow):
 
         # Configuration
         self.set_title(_("Sugar logs"))
-        self.init_logs(path, self._filter_by_name)
+        self.init_logs(self._filter_by_name)
         self._monitors = []
 
         self._configure_watcher()
 
     def _configure_watcher(self):
-        logging.error('Monitor directory %s', self._logs_path)
-        directory = Gio.File.new_for_path(self._logs_path)
+        logging.error('Monitor directory %s', self._path)
+        directory = Gio.File.new_for_path(self._path)
         dir_monitor = directory.monitor_directory(
             flags=Gio.FileMonitorFlags.NONE, cancellable=None)
         dir_monitor.set_rate_limit(2000)
         dir_monitor.connect('changed', self._log_file_changed_cb)
         self._monitors.append(dir_monitor)
-        """
         for f in self._extra_files:
             logging.error('Monitor file %s', f)
             gio_file = Gio.File.new_for_path(f)
@@ -106,7 +102,6 @@ class LogFilesViewer(Gtk.ScrolledWindow):
             file_monitor.set_rate_limit(2000)
             file_monitor.connect('changed', self._log_file_changed_cb)
             self._monitors.append(file_monitor)
-        """
 
     def _log_file_changed_cb(self, monitor, path1, path2, event):
         if event == Gio.FileMonitorEvent.CHANGED:
@@ -119,10 +114,9 @@ class LogFilesViewer(Gtk.ScrolledWindow):
             self.load_model()
 
     def _filter_by_name(self, filename):
-        return self._namefilter in filename
+        return self._namefilter in filename or filename in self._extra_files
 
-    def init_logs(self, path, filter_function):
-        self._path = path
+    def init_logs(self, filter_function):
         self._filter_function = filter_function
         self.load_model()
 
