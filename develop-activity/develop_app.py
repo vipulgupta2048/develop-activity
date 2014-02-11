@@ -46,7 +46,7 @@ import logviewer
 import sourceview_editor
 S_WHERE = sourceview_editor.S_WHERE
 import new_activity
-
+from widgets import TabLabel
 from symbols_tree import SymbolsTree
 
 DEBUG_FILTER_LEVEL = 1
@@ -428,7 +428,11 @@ class DevelopActivity(activity.Activity):
         """
         self.open_activity(activity_dir)
         namefilter = ActivityBundle(activity_dir).get_bundle_id()
-        self.logview = logviewer.LogMinder(self, namefilter)
+        self._log_files_viewer = logviewer.LogFilesViewer(namefilter)
+        self._log_files_viewer.connect('file-selected',
+                                       self.__log_file_selected_cb)
+        self.treenotebook.add_page(_("Log"), self._log_files_viewer)
+
         self.set_dirty(False)
 
     def refresh_files(self):
@@ -462,6 +466,31 @@ class DevelopActivity(activity.Activity):
             self.numb = True
             self.load_file(path)
             self.numb = False
+
+    def __log_file_selected_cb(self, log_file_viewer, path):
+        if not path:
+            return
+
+        if os.path.isdir(path):
+            #do not try to open folders
+            return
+
+        # Set buffer and scroll down
+        if self.editor.set_to_page_like(path):
+            return
+        newlogview = logviewer.LogView(path, log_file_viewer)
+        scrollwnd = Gtk.ScrolledWindow()
+        scrollwnd.set_policy(Gtk.PolicyType.AUTOMATIC,
+                             Gtk.PolicyType.AUTOMATIC)
+        scrollwnd.add(newlogview)
+        scrollwnd.page = newlogview
+        tablabel = TabLabel(newlogview, os.path.basename(path))
+        tablabel.connect(
+            'tab-close', lambda widget, child:
+            self.editor.remove_page(self.editor.page_num(child)))
+        self.editor.append_page(scrollwnd, tablabel)
+        self.editor.show_all()
+        self.editor.set_current_page(-1)
 
     def save_bundle(self, btn):
         #create bundle
