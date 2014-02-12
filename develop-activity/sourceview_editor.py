@@ -25,6 +25,9 @@ import re
 import mimetypes
 from exceptions import ValueError, TypeError, IOError, OSError
 
+from sugar3 import profile
+from sugar3.graphics.icon import Icon
+
 from widgets import TabLabel
 import logviewer
 
@@ -71,8 +74,16 @@ class GtkSourceview2Editor(Gtk.Notebook):
                              Gtk.PolicyType.AUTOMATIC)
 
         page = GtkSourceview2Page(full_path)
+
+        vbox = Gtk.VBox()
+        if full_path.endswith('.svg'):
+            icon = Icon(file=full_path, pixel_size=100,
+                        xo_color=profile.get_color())
+            vbox.pack_start(icon, False, False, 0)
+
+        vbox.pack_start(scrollwnd, True, True, 0)
         scrollwnd.add(page)
-        scrollwnd.page = page
+        vbox.page = page
         label = filename
         page.text_buffer.connect('changed', self.__text_changed_cb)
 
@@ -82,7 +93,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
             lambda widget, child: self.remove_page(self.page_num(child)))
         tablabel.page = page
 
-        self.append_page(scrollwnd, tablabel)
+        self.append_page(vbox, tablabel)
 
         self.__text_changed_cb(page.text_buffer)
         self.show_all()
@@ -114,7 +125,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
         else:
             n = order
         if self.get_nth_page(n) is not None:
-            return self.get_nth_page(n).get_children()[0]
+            return self.get_nth_page(n).page
         else:
             return None
 
