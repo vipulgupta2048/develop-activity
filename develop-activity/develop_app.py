@@ -639,26 +639,27 @@ class DevelopActivity(activity.Activity):
         alert.connect('response', self.__create_file_alert_cb)
 
     def __create_file_alert_cb(self, alert, response_id):
-        file_name = alert.entry.get_text()
-        try:
-            path = os.path.dirname(self.editor.get_file_path())
-        except:
-            path = self.activity_dir
+        if response_id is Gtk.ResponseType.OK:
+            file_name = alert.entry.get_text()
+            try:
+                path = os.path.dirname(self.editor.get_file_path())
+            except:
+                path = self.activity_dir
 
-        file_path = os.path.join(path, file_name)
-        with open(file_path, 'w') as new_file:
-            new_file.write('')
+            file_path = os.path.join(path, file_name)
+            with open(file_path, 'w') as new_file:
+                new_file.write('')
 
-        self.refresh_files()
-        self.editor.load_object(file_path, file_name)
+            self.refresh_files()
+            self.editor.load_object(file_path, file_name)
 
         self.remove_alert(alert)
 
     def __remove_file_cb(self, button):
         file_path = self.editor.get_file_path()
-        msg = _('The action you will do can not be revereted.\n'
-                'Do you want remove the file %s?') % file_path
-        alert = self.create_confirmation_alert(msg, _('WARNING'))
+        title = _('WARNING: The action you will do can not be reverted.')
+        msg = _('Do you want remove the file %s?') % file_path
+        alert = self.create_confirmation_alert(msg, title)
         alert.show()
         alert.connect('response', self.__remove_file_alert_cb, file_path)
 
