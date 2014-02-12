@@ -26,6 +26,7 @@ import mimetypes
 from exceptions import ValueError, TypeError, IOError, OSError
 
 from widgets import TabLabel
+import logviewer
 
 
 class S_WHERE:
@@ -85,6 +86,21 @@ class GtkSourceview2Editor(Gtk.Notebook):
         self.append_page(scrollwnd, tablabel)
 
         self._changed_cb(page.text_buffer)
+        self.show_all()
+        self.set_current_page(-1)
+
+    def load_log_file(self, full_path, log_files_viewer):
+        logview = logviewer.LogView(full_path, log_files_viewer)
+        scrollwnd = Gtk.ScrolledWindow()
+        scrollwnd.set_policy(Gtk.PolicyType.AUTOMATIC,
+                             Gtk.PolicyType.AUTOMATIC)
+        scrollwnd.add(logview)
+        scrollwnd.page = logview
+        tablabel = TabLabel(logview, os.path.basename(full_path))
+        tablabel.connect(
+            'tab-close', lambda widget, child:
+            self.remove_page(self.page_num(child)))
+        self.append_page(scrollwnd, tablabel)
         self.show_all()
         self.set_current_page(-1)
 
@@ -408,7 +424,6 @@ class GtkSourceview2Page(GtkSource.View):
 
     def get_next_result(self, direction):
         _buffer = self.get_buffer()
-        end_text_iter = _buffer.get_end_iter()
 
         if direction == 'forward':
             text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())

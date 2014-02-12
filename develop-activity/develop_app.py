@@ -46,7 +46,6 @@ import logviewer
 import sourceview_editor
 S_WHERE = sourceview_editor.S_WHERE
 import new_activity
-from widgets import TabLabel
 from symbols_tree import SymbolsTree
 
 DEBUG_FILTER_LEVEL = 1
@@ -467,7 +466,7 @@ class DevelopActivity(activity.Activity):
             self.load_file(path)
             self.numb = False
 
-    def __log_file_selected_cb(self, log_file_viewer, path):
+    def __log_file_selected_cb(self, log_files_viewer, path):
         if not path:
             return
 
@@ -478,19 +477,8 @@ class DevelopActivity(activity.Activity):
         # Set buffer and scroll down
         if self.editor.set_to_page_like(path):
             return
-        newlogview = logviewer.LogView(path, log_file_viewer)
-        scrollwnd = Gtk.ScrolledWindow()
-        scrollwnd.set_policy(Gtk.PolicyType.AUTOMATIC,
-                             Gtk.PolicyType.AUTOMATIC)
-        scrollwnd.add(newlogview)
-        scrollwnd.page = newlogview
-        tablabel = TabLabel(newlogview, os.path.basename(path))
-        tablabel.connect(
-            'tab-close', lambda widget, child:
-            self.editor.remove_page(self.editor.page_num(child)))
-        self.editor.append_page(scrollwnd, tablabel)
-        self.editor.show_all()
-        self.editor.set_current_page(-1)
+
+        self.editor.load_log_file(path, log_files_viewer)
 
     def save_bundle(self, btn):
         #create bundle
