@@ -93,7 +93,7 @@ class DevelopActivity(activity.Activity):
 
     def __init__(self, handle):
         """Set up the Develop activity."""
-        self.dirty = False
+        self._dirty = False
         super(DevelopActivity, self).__init__(handle)
         self.max_participants = 1
 
@@ -435,7 +435,7 @@ class DevelopActivity(activity.Activity):
                                        self.__log_file_selected_cb)
         self.treenotebook.add_page(_("Log"), self._log_files_viewer)
 
-        self.set_dirty(False)
+        self._set_dirty(False)
 
     def refresh_files(self):
         """Refresh the treeview of activity files.
@@ -556,9 +556,10 @@ class DevelopActivity(activity.Activity):
     def write_file(self, file_path):
         """Wrap up the activity as a bundle and save it to journal.
         """
+        logging.error('WRITE_FILE')
         if self.activity_dir is None:
             return
-        if not self.save_unchanged:
+        if self.save_unchanged:
             self.editor.save_all()
         filenames = self.editor.get_all_filenames()
         logging.debug('activity_dir %s, file_path %s, filenames %s' %
@@ -566,7 +567,8 @@ class DevelopActivity(activity.Activity):
         self._jobject = self.save_source_jobject(
             self.activity_dir, file_path, filenames)
         self.metadata['source'] = self.activity_dir
-        self.set_dirty(False)
+        self._set_dirty(False)
+        self.save_unchanged = False
 
     def read_file(self, file_path):
         self.activity_dir = self.metadata['source']
@@ -584,23 +586,14 @@ class DevelopActivity(activity.Activity):
         finally:
             f.close()
 
-        self.set_dirty(False)
+        self._set_dirty(False)
 
-    def is_dirty(self):
-        return self.dirty
-
-    def set_dirty(self, dirty):
+    def _set_dirty(self, dirty):
         logging.debug("Setting dirty to %s; activity_dir is %s" %
                       (str(dirty), str(self.activity_dir)))
-        self.dirty = dirty
+        self._dirty = dirty
         if dirty:
             self.save_unchanged = True
-            try:
-                logging.debug("Saving a pristine copy for safety")
-                self.save()
-            finally:
-                self.save_unchanged = False
-                self.dirty = dirty
 
     def __editor_tab_changed_cb(self, editor, new_full_path):
         if self.numb:
@@ -617,7 +610,7 @@ class DevelopActivity(activity.Activity):
 
     def __editor_changed_cb(self, editor):
         logging.error('Editor text changed')
-        self.set_dirty(True)
+        self._set_dirty(True)
 
     def __create_empty_file_cb(self, button):
         alert = Alert()
