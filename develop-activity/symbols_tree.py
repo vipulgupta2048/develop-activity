@@ -21,7 +21,8 @@ from gi.repository import GObject
 
 class SymbolsTree(Gtk.TreeView):
 
-    __gsignals__ = {'symbol-selected': (GObject.SignalFlags.RUN_FIRST, None, [int])}
+    __gsignals__ = {'symbol-selected': (GObject.SignalFlags.RUN_FIRST, None,
+                                        [int])}
 
     def __init__(self):
         GObject.GObject.__init__(self)
@@ -48,18 +49,18 @@ class SymbolsTree(Gtk.TreeView):
 
     def _add_class(self, name, line):
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size('icons/class.png', 24,
-                                                      24)
+                                                        24)
         parent = self._model.append(None, (pixbuf, name, line))
         return parent
 
     def _add_method(self, name, line, parent=None):
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size('icons/function.png',
-                                                      24, 24)
+                                                        24, 24)
         self._model.append(parent, (pixbuf, name, line))
 
     def _add_attribute(self, name, line, parent=None):
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size('icons/attribute.png',
-                                                      24, 24)
+                                                        24, 24)
         self._model.append(parent, (pixbuf, name, line))
 
     def _symbol_selected_cb(self, widget):
