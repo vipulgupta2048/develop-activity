@@ -100,7 +100,9 @@ class DevelopActivity(activity.Activity):
         logging.info(repr(handle.get_dict()))
 
         # Source buffer
-        self.editor = sourceview_editor.GtkSourceview2Editor(self)
+        self.editor = sourceview_editor.GtkSourceview2Editor()
+        self.editor.connect('tab-changed', self.__editor_tab_changed_cb)
+        self.editor.connect('changed', self.__editor_changed_cb)
 
         toolbarbox = ToolbarBox()
         activity_button = ActivityToolbarButton(self)
@@ -135,7 +137,7 @@ class DevelopActivity(activity.Activity):
         show_symbols_btn.set_active(False)
         show_symbols_btn.set_tooltip(_('Show file symbols'))
         toolbarbox.toolbar.insert(show_symbols_btn, -1)
-        show_symbols_btn.connect('clicked', self.explore_code)
+        show_symbols_btn.connect('clicked', self._explore_code)
 
         show_log_btn = RadioToolButton()
         show_log_btn.props.icon_name = 'logs'
@@ -203,7 +205,7 @@ class DevelopActivity(activity.Activity):
                                   self.editor.symbol_selected_cb)
         scrolled = Gtk.ScrolledWindow()
         scrolled.add(self._symbolstree)
-        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.treenotebook.add_page(_('Symbols Tree'), scrolled)
 
         hbox.pack1(sidebar, resize=True, shrink=False)
@@ -226,10 +228,11 @@ class DevelopActivity(activity.Activity):
     def _change_treenotebook_page(self, button, page):
         self.treenotebook.set_current_page(page)
 
-    def explore_code(self, btn, switch_page=True):
+    def _explore_code(self, btn, switch_page=True):
         from ninja import introspection
         text = self.editor.get_text()
         path = self.editor.get_file_path()
+        logging.error('Analyzing %s', path)
         symbols = introspection.obtain_symbols(text, filename=path)
         self._symbolstree.load_symbols(symbols)
         if switch_page:
@@ -599,14 +602,22 @@ class DevelopActivity(activity.Activity):
                 self.save_unchanged = False
                 self.dirty = dirty
 
-    def update_sidebar_to_page(self, page):
+    def __editor_tab_changed_cb(self, editor, new_full_path):
         if self.numb:
             #avoid infinite recursion
             return
-        if isinstance(page, sourceview_editor.GtkSourceview2Page):
-            self.numb = True
-            self.activity_tree_view.select_by_file_path(page.full_path)
-            self.numb = False
+        self.numb = True
+        self.activity_tree_view.select_by_file_path(new_full_path)
+        logging.error('new tab %s', new_full_path)
+        self.numb = False
+
+        # TODO: change by a constant
+        if self.treenotebook.get_current_page() == 1:  # symbols
+            GObject.idle_add(self._explore_code, None)
+
+    def __editor_changed_cb(self, editor):
+        logging.error('Editor text changed')
+        self.set_dirty(True)
 
     def __create_empty_file_cb(self, button):
         alert = Alert()

@@ -64,11 +64,12 @@ class SymbolsTree(Gtk.TreeView):
 
     def _symbol_selected_cb(self, widget):
         selection = self.get_selection()
-        model, _iter = selection.get_selected()
-        line = model.get_value(_iter, 2)
-        if line is 0:
-            return
-        self.emit('symbol-selected', line)
+        model, iter = selection.get_selected()
+        if iter is not None:
+            line = model.get_value(iter, 2)
+            if line is 0:
+                return
+            self.emit('symbol-selected', line)
 
     def load_symbols(self, data):
         self._model.clear()

@@ -35,12 +35,12 @@ class S_WHERE:
 
 class GtkSourceview2Editor(Gtk.Notebook):
     __gsignals__ = {
-        'changed': (GObject.SignalFlags.RUN_FIRST, None, [])
+        'changed': (GObject.SignalFlags.RUN_FIRST, None, []),
+        'tab-changed': (GObject.SignalFlags.RUN_FIRST, None, [str])
     }
 
-    def __init__(self, activity):
+    def __init__(self):
         GObject.GObject.__init__(self)
-        self.activity = activity
         self.set_size_request(Gdk.Screen.width(), -1)
         self.connect('page-removed', self._page_removed_cb)
         self.connect('switch-page', self._switch_page_cb)
@@ -53,8 +53,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
             # the welcome page do not have a page property
 
     def _switch_page_cb(self, __notebook, page_gptr, page_num):
-        self.activity.update_sidebar_to_page(self._get_page(page_num))
-        #self.activity.explore_code(None, switch_page=False)
+        self.emit('tab-changed', self._get_page(page_num).full_path)
 
     def set_to_page_like(self, full_path):
         for n in range(self.get_n_pages()):
@@ -75,7 +74,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
         scrollwnd.add(page)
         scrollwnd.page = page
         label = filename
-        page.text_buffer.connect('changed', self._changed_cb)
+        page.text_buffer.connect('changed', self.__text_changed_cb)
 
         tablabel = TabLabel(scrollwnd, label)
         tablabel.connect(
@@ -85,7 +84,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
 
         self.append_page(scrollwnd, tablabel)
 
-        self._changed_cb(page.text_buffer)
+        self.__text_changed_cb(page.text_buffer)
         self.show_all()
         self.set_current_page(-1)
 
@@ -104,11 +103,9 @@ class GtkSourceview2Editor(Gtk.Notebook):
         self.show_all()
         self.set_current_page(-1)
 
-    def _changed_cb(self, buffer):
+    def __text_changed_cb(self, buffer):
         if not buffer.can_undo():
             buffer.set_modified(False)
-        elif not self.activity.dirty:
-            self.activity.set_dirty(True)
         self.emit('changed')
 
     def _get_page(self, order=-1):
@@ -307,7 +304,8 @@ class GtkSourceview2Page(GtkSource.View):
     def save(self):
         if self.text_buffer.can_undo():  # only save if there's something to
             buff = self.text_buffer
-            text = buff.get_text(buff.get_start_iter(), buff.get_end_iter())
+            text = buff.get_text(buff.get_start_iter(), buff.get_end_iter(),
+                                 False)
             _file = file(self.full_path, 'w')
             try:
                 _file.write(text)
