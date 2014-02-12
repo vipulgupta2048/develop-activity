@@ -219,7 +219,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
         page = self._get_page()
         _buffer = page.get_buffer()
         _iter = _buffer.get_iter_at_line(line - 1)
-        page.scroll_to_iter(_iter, 0.0)
+        page.scroll_to_iter(_iter, 0.1, False, 0, 0)
 
 
 class GtkSourceview2Page(GtkSource.View):

@@ -26,7 +26,7 @@ class SymbolsTree(Gtk.TreeView):
     def __init__(self):
         GObject.GObject.__init__(self)
 
-        self._model = Gtk.TreeStore(GdkPixbuf.Pixbuf, str, str)
+        self._model = Gtk.TreeStore(GdkPixbuf.Pixbuf, str, int)
         self.set_model(self._model)
 
         column = Gtk.TreeViewColumn('Symbols')
@@ -65,7 +65,7 @@ class SymbolsTree(Gtk.TreeView):
     def _symbol_selected_cb(self, widget):
         selection = self.get_selection()
         model, _iter = selection.get_selected()
-        line = int(model.get_value(_iter, 2))
+        line = model.get_value(_iter, 2)
         if line is 0:
             return
         self.emit('symbol-selected', line)
