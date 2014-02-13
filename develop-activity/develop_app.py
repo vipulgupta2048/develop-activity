@@ -402,21 +402,20 @@ class DevelopActivity(activity.Activity):
         if not activity_dir.endswith('/'):
             activity_dir = activity_dir + '/'
         self.activity_dir = activity_dir
-        name = os.path.basename(activity_dir)
-        self.activity_tree_view.set_title(name)
-        self.metadata['title'] = 'Develop %s' % name
         self.refresh_files()
-
         self.activity_tree_view.connect('file_selected',
                                         self.__file_selected_cb)
-        return name
 
     def first_open_activity(self, activity_dir):
         """Open an activity for the first time.
            Subsequently, use open_activity.
         """
         self.open_activity(activity_dir)
-        namefilter = ActivityBundle(activity_dir).get_bundle_id()
+        self.bundle = ActivityBundle(self.activity_dir)
+        name = self.bundle.get_name()
+        self.activity_tree_view.set_title(name)
+        self.metadata['title'] = _('Develop %s') % name
+        namefilter = self.bundle.get_bundle_id()
         self._log_files_viewer = logviewer.LogFilesViewer(namefilter)
         self._log_files_viewer.connect('file-selected',
                                        self.__log_file_selected_cb)
@@ -683,7 +682,6 @@ class FileViewer(Gtk.ScrolledWindow):
         self.add(self._tree_view)
         self._tree_view.show()
 
-        self._tree_view.props.headers_visible = False
         selection = self._tree_view.get_selection()
         selection.connect('changed', self.__selection_changed_cb)
 
