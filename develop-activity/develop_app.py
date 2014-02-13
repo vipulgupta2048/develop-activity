@@ -255,72 +255,19 @@ class DevelopActivity(activity.Activity):
     def _show_welcome(self):
         """_show_welcome: when opened without a bundle, ask open/new/cancel
         """
-        vbox = Gtk.VBox()
+        welcome_page = WelcomePage()
+        welcome_page.connect('open-activity', self.__welcome_open_activity_cb)
+        welcome_page.connect('show-alert', self.__welcome_show_alert_cb)
 
-        edit_label = Gtk.Label(
-            _('<span weight="bold" size="larger">'
-              'Edit a installed activity</span>\n\n'
-              'You can modify a activity, and if there are errors the '
-              'activity can stop working. If you are not sure, clone the '
-              'activity to have a backup.'))
-        edit_label.set_use_markup(True)
-        edit_label.set_line_wrap(True)
-        vbox.pack_start(edit_label, expand=False, fill=True, padding=10)
+        self.editor.append_page(welcome_page, Gtk.Label(label=_('Start')))
 
-        hbox_edit = Gtk.HBox()
-        hbox_edit.pack_start(Gtk.Label(_('Select the activity')), True,
-                             True, 10)
-        activity_name_combo = ComboBox()
-        self._load_activities_installed_combo(activity_name_combo)
-        hbox_edit.pack_start(activity_name_combo, expand=False, fill=False,
-                             padding=10)
-        edit_btn = Gtk.Button(_('Start'))
-        edit_btn.connect('clicked', self._pick_existing_activity,
-                         activity_name_combo)
-        hbox_edit.pack_start(edit_btn, expand=False, fill=False,
-                             padding=10)
-        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
-        align.add(hbox_edit)
-        vbox.pack_start(align, expand=False, fill=False, padding=10)
+    def __welcome_open_activity_cb(self, welcome_page, activity_dir):
+        self.first_open_activity(activity_dir)
+        # remove the welcome tab
+        self.editor.remove_page(0)
 
-        new_project_label = Gtk.Label(
-            _('<span weight="bold" size="larger">'
-              'Create a new activity</span>\n\n'
-              'You can create something new, '
-              'just select the type of project.'))
-        new_project_label.set_use_markup(True)
-        new_project_label.set_line_wrap(True)
-        vbox.pack_start(new_project_label, expand=False, fill=True, padding=10)
-
-        hbox_create = Gtk.HBox()
-        hbox_create.pack_start(Gtk.Label(_('Select the type')),
-                               expand=False, fill=False, padding=10)
-        project_type_combo = ComboBox()
-        self._load_skeletons_combo(project_type_combo)
-        hbox_create.pack_start(project_type_combo, expand=False, fill=False,
-                               padding=10)
-        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
-        align.add(hbox_create)
-        vbox.pack_start(align, expand=False, fill=False, padding=10)
-
-        hbox_name = Gtk.HBox()
-        hbox_name.pack_start(Gtk.Label(_('Name the activity')), True, True, 0)
-        activity_name_entry = Gtk.Entry()
-        hbox_name.pack_start(activity_name_entry, expand=True, fill=True,
-                             padding=10)
-
-        create_btn = Gtk.Button(_('Start'))
-        create_btn.connect('clicked', self._create_new_activity,
-                           activity_name_entry, project_type_combo)
-        hbox_name.pack_start(create_btn, expand=True, fill=True,
-                             padding=10)
-        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
-        align.add(hbox_name)
-        vbox.pack_start(align, expand=False, fill=False, padding=10)
-
-        vbox.show_all()
-        self.editor.append_page(vbox, Gtk.Label(label=_('Start')))
-        return False
+    def __welcome_show_alert_cb(self, welcome_page, message):
+        self._show_alert(message)
 
     def __run_actvity_cb(self, run_button):
         if self.save_unchanged:
@@ -329,59 +276,6 @@ class DevelopActivity(activity.Activity):
         registry = bundleregistry.get_registry()
         bundle = registry.get_bundle(self.bundle.get_bundle_id())
         activityfactory.create(bundle)
-
-    def _load_activities_installed_combo(self, activities_combo):
-        activities_path = os.path.join(os.path.expanduser("~"), "Activities")
-        for dir_name in sorted(os.listdir(activities_path)):
-            if dir_name.endswith('.activity'):
-                activity_name = dir_name[:- len('.activity')]
-                # search the icon
-                info_file_name = os.path.join(activities_path, dir_name,
-                                              'activity/activity.info')
-                try:
-                    info_file = open(info_file_name, 'r')
-                    icon_name = None
-                    for line in info_file.readlines():
-                        if line.strip().startswith('icon'):
-                            icon_name = line.split()[-1]
-                    info_file.close()
-                    icon_file_name = None
-                    if icon_name is not None:
-                        icon_file_name = os.path.join(
-                            activities_path, dir_name, 'activity',
-                            '%s.svg' % icon_name)
-                    activities_combo.append_item(0, activity_name,
-                                                 file_name=icon_file_name)
-                except:
-                    logging.error('Error trying to read information about %s',
-                                  activity_name)
-
-    def _load_skeletons_combo(self, skeletons_combo):
-        skeletons_path = os.path.join(activity.get_bundle_path(), 'skeletons')
-        for dir_name in sorted(os.listdir(skeletons_path)):
-            skeletons_combo.append_item(0, dir_name)
-
-    def _create_new_activity(self, button, name_entry, combo_skeletons):
-        """create and open a new activity in working dir
-        """
-        if name_entry.get_text() == '':
-            self._show_alert(_('You must type the name for the new activity'))
-            return
-        if combo_skeletons.get_active() == -1:
-            self._show_alert(_('You must select the project type'))
-            return
-
-        activity_name = name_entry.get_text().strip()
-        activities_path = os.path.join(os.path.expanduser("~"),
-                                       "Activities")
-        skel_iter = combo_skeletons.get_active_iter()
-        skeleton = combo_skeletons.get_model().get_value(skel_iter, 1)
-
-        activityDir = new_activity.create_activity(activity_name,
-                                                   activities_path, skeleton)
-        self.first_open_activity(activityDir)
-        # remove the welcome tab
-        self.editor.remove_page(0)
 
     def _show_alert(self, message, title=None):
         alert = Alert()
@@ -395,21 +289,6 @@ class DevelopActivity(activity.Activity):
 
     def _alert_response_cb(self, alert, response_id):
         self.remove_alert(alert)
-
-    def _pick_existing_activity(self, button, combo_activities):
-        if combo_activities.get_active() == -1:
-            self._show_alert(_('You must select the activity'))
-        else:
-            activities_path = os.path.join(os.path.expanduser("~"),
-                                           "Activities")
-            selected = combo_activities.get_active_iter()
-            activity_name = combo_activities.get_model().get_value(selected, 1)
-            logging.error('Activity selected %s', activity_name)
-            activity_dir = os.path.join(activities_path,
-                                        "%s.activity" % activity_name)
-            self.first_open_activity(activity_dir)
-            # remove the welcome tab
-            self.editor.remove_page(0)
 
     def open_activity(self, activity_dir):
         logging.info('opening %s', activity_dir)
@@ -670,6 +549,149 @@ class DevelopActivity(activity.Activity):
                 self.refresh_files()
                 self.editor.close_page()
         self.remove_alert(alert)
+
+
+class WelcomePage(Gtk.VBox):
+
+    __gsignals__ = {
+        'open-activity': (GObject.SignalFlags.RUN_FIRST,
+                          None,
+                          ([str])),
+        'show-alert': (GObject.SignalFlags.RUN_FIRST,
+                       None,
+                       ([str])),
+    }
+
+    def __init__(self):
+        Gtk.VBox.__init__(self)
+
+        edit_label = Gtk.Label(
+            _('<span weight="bold" size="larger">'
+              'Edit a installed activity</span>\n\n'
+              'You can modify a activity, and if there are errors the '
+              'activity can stop working. If you are not sure, clone the '
+              'activity to have a backup.'))
+        edit_label.set_use_markup(True)
+        edit_label.set_line_wrap(True)
+        self.pack_start(edit_label, expand=False, fill=True, padding=10)
+
+        hbox_edit = Gtk.HBox()
+        hbox_edit.pack_start(Gtk.Label(_('Select the activity')), True,
+                             True, 10)
+        activity_name_combo = ComboBox()
+        self._load_activities_installed_combo(activity_name_combo)
+        hbox_edit.pack_start(activity_name_combo, expand=False, fill=False,
+                             padding=10)
+        edit_btn = Gtk.Button(_('Start'))
+        edit_btn.connect('clicked', self._pick_existing_activity,
+                         activity_name_combo)
+        hbox_edit.pack_start(edit_btn, expand=False, fill=False,
+                             padding=10)
+        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
+        align.add(hbox_edit)
+        self.pack_start(align, expand=False, fill=False, padding=10)
+
+        new_project_label = Gtk.Label(
+            _('<span weight="bold" size="larger">'
+              'Create a new activity</span>\n\n'
+              'You can create something new, '
+              'just select the type of project.'))
+        new_project_label.set_use_markup(True)
+        new_project_label.set_line_wrap(True)
+        self.pack_start(new_project_label, expand=False, fill=True, padding=10)
+
+        hbox_create = Gtk.HBox()
+        hbox_create.pack_start(Gtk.Label(_('Select the type')),
+                               expand=False, fill=False, padding=10)
+        project_type_combo = ComboBox()
+        self._load_skeletons_combo(project_type_combo)
+        hbox_create.pack_start(project_type_combo, expand=False, fill=False,
+                               padding=10)
+        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
+        align.add(hbox_create)
+        self.pack_start(align, expand=False, fill=False, padding=10)
+
+        hbox_name = Gtk.HBox()
+        hbox_name.pack_start(Gtk.Label(_('Name the activity')), True, True, 0)
+        activity_name_entry = Gtk.Entry()
+        hbox_name.pack_start(activity_name_entry, expand=True, fill=True,
+                             padding=10)
+
+        create_btn = Gtk.Button(_('Start'))
+        create_btn.connect('clicked', self._create_new_activity,
+                           activity_name_entry, project_type_combo)
+        hbox_name.pack_start(create_btn, expand=True, fill=True,
+                             padding=10)
+        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
+        align.add(hbox_name)
+        self.pack_start(align, expand=False, fill=False, padding=10)
+
+        self.show_all()
+
+    def _load_activities_installed_combo(self, activities_combo):
+        activities_path = os.path.join(os.path.expanduser("~"), "Activities")
+        for dir_name in sorted(os.listdir(activities_path)):
+            if dir_name.endswith('.activity'):
+                activity_name = dir_name[:- len('.activity')]
+                # search the icon
+                info_file_name = os.path.join(activities_path, dir_name,
+                                              'activity/activity.info')
+                try:
+                    info_file = open(info_file_name, 'r')
+                    icon_name = None
+                    for line in info_file.readlines():
+                        if line.strip().startswith('icon'):
+                            icon_name = line.split()[-1]
+                    info_file.close()
+                    icon_file_name = None
+                    if icon_name is not None:
+                        icon_file_name = os.path.join(
+                            activities_path, dir_name, 'activity',
+                            '%s.svg' % icon_name)
+                    activities_combo.append_item(0, activity_name,
+                                                 file_name=icon_file_name)
+                except:
+                    logging.error('Error trying to read information about %s',
+                                  activity_name)
+
+    def _load_skeletons_combo(self, skeletons_combo):
+        skeletons_path = os.path.join(activity.get_bundle_path(), 'skeletons')
+        for dir_name in sorted(os.listdir(skeletons_path)):
+            skeletons_combo.append_item(0, dir_name)
+
+    def _create_new_activity(self, button, name_entry, combo_skeletons):
+        """create and open a new activity in working dir
+        """
+        if name_entry.get_text() == '':
+            self.emit('show-alert',
+                      _('You must type the name for the new activity'))
+            return
+        if combo_skeletons.get_active() == -1:
+            self.emit('show-alert', _('You must select the project type'))
+            return
+
+        activity_name = name_entry.get_text().strip()
+        activities_path = os.path.join(os.path.expanduser("~"),
+                                       "Activities")
+        skel_iter = combo_skeletons.get_active_iter()
+        skeleton = combo_skeletons.get_model().get_value(skel_iter, 1)
+
+        activity_dir = new_activity.create_activity(activity_name,
+                                                    activities_path, skeleton)
+        self.emit('open-activity', activity_dir)
+
+    def _pick_existing_activity(self, button, combo_activities):
+        if combo_activities.get_active() == -1:
+            self.emit('show-alert', _('You must select the activity'))
+        else:
+            activities_path = os.path.join(os.path.expanduser("~"),
+                                           "Activities")
+            selected = combo_activities.get_active_iter()
+            activity_name = combo_activities.get_model().get_value(selected, 1)
+            logging.error('Activity selected %s', activity_name)
+            activity_dir = os.path.join(activities_path,
+                                        "%s.activity" % activity_name)
+            self.emit('open-activity', activity_dir)
 
 
 class FileViewer(Gtk.ScrolledWindow):
