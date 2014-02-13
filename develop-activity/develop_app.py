@@ -407,23 +407,23 @@ class DevelopActivity(activity.Activity):
             self.editor.remove_page(0)
 
     def open_activity(self, activity_dir):
-        logging.debug('opening %s', activity_dir)
+        logging.info('opening %s', activity_dir)
         if not activity_dir.endswith('/'):
             activity_dir = activity_dir + '/'
         self.activity_dir = activity_dir
+        name = os.path.basename(activity_dir)
+        self.treecolumn.set_title(name)
+        self.metadata['title'] = 'Develop %s' % name
         self.refresh_files()
         self.treeview.get_selection().connect("changed", self.selection_cb)
+        return name
 
     def first_open_activity(self, activity_dir):
         """Open an activity for the first time.
            Subsequently, use open_activity.
         """
         self.open_activity(activity_dir)
-        self.bundle = ActivityBundle(activity_dir)
-        self.treecolumn.set_title(self.bundle.get_name())
-        self.metadata['title'] = 'Develop %s' % self.bundle.get_name()
-
-        namefilter = self.bundle.get_bundle_id()
+        namefilter = ActivityBundle(activity_dir).get_bundle_id()
         self.logview = logviewer.LogMinder(self, namefilter)
         self.set_dirty(False)
 
@@ -928,6 +928,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
             if self._activity.editor.find_next(ftext, direction='backward'):
                 pass
                 #self._replace_button.set_sensitive(True)
+
 
     def _findnext_cb(self, button=None):
         ftext = self._search_entry.props.text
