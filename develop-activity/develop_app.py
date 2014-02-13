@@ -42,6 +42,9 @@ from sugar3.graphics import style
 from sugar3.datastore import datastore
 from sugar3.bundle.activitybundle import ActivityBundle
 
+from jarabe.model import bundleregistry
+from sugar3.activity import activityfactory
+
 import logviewer
 import sourceview_editor
 S_WHERE = sourceview_editor.S_WHERE
@@ -147,6 +150,13 @@ class DevelopActivity(activity.Activity):
         toolbarbox.toolbar.insert(erase_btn, -1)
         erase_btn.show()
         erase_btn.connect('clicked', self.__remove_file_cb)
+
+        toolbarbox.toolbar.insert(Gtk.SeparatorToolItem(), -1)
+
+        run_btn = ToolButton('activity-start')
+        run_btn.set_tooltip(_('Run activity'))
+        toolbarbox.toolbar.insert(run_btn, -1)
+        run_btn.connect('clicked', self.__run_actvity_cb)
 
         separator = Gtk.SeparatorToolItem()
         separator.set_draw(False)
@@ -315,6 +325,14 @@ class DevelopActivity(activity.Activity):
         vbox.show_all()
         self.editor.append_page(vbox, Gtk.Label(label=_('Start')))
         return False
+
+    def __run_actvity_cb(self, run_button):
+        if self.save_unchanged:
+            self.editor.save_all()
+
+        registry = bundleregistry.get_registry()
+        bundle = registry.get_bundle(self.bundle.get_bundle_id())
+        activityfactory.create(bundle)
 
     def _load_activities_installed_combo(self, activities_combo):
         activities_path = os.path.join(os.path.expanduser("~"), "Activities")
