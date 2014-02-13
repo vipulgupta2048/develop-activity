@@ -44,9 +44,10 @@ class GtkSourceview2Editor(Gtk.Notebook):
 
     def __init__(self):
         GObject.GObject.__init__(self)
-        self.set_size_request(Gdk.Screen.width(), -1)
+        self.set_size_request(Gdk.Screen.width() / 5 * 4, -1)
         self.connect('page-removed', self._page_removed_cb)
         self.connect('switch-page', self._switch_page_cb)
+        self.set_scrollable(True)
 
     def _page_removed_cb(self, __notebook, page, n):
         try:

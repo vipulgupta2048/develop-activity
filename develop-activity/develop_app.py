@@ -176,7 +176,6 @@ class DevelopActivity(activity.Activity):
 
         # Main layout.
         hbox = Gtk.HPaned()
-        vbox = Gtk.VBox()
 
         #The treeview and selected pane reflect each other.
         self.numb = False
@@ -192,7 +191,6 @@ class DevelopActivity(activity.Activity):
         sidebar.pack_start(self.treenotebook, True, True, 0)
 
         self.activity_tree_view = FileViewer()
-        #self.activity_tree_view = ActivityTreeView()
         self.treenotebook.add_page(_("Activity"), self.activity_tree_view)
         self.treenotebook.set_size_request(Gdk.Screen.width() / 5, -1)
 
@@ -209,10 +207,8 @@ class DevelopActivity(activity.Activity):
         sidebar.show()
 
         logging.info('finished check')
-        vbox.pack_start(self.editor, True, True, 0)
         self.editor.show()
-        hbox.pack2(vbox, resize=True, shrink=True)
-        vbox.show()
+        hbox.pack2(self.editor, resize=True, shrink=True)
         self.set_canvas(hbox)
         hbox.show()
         logging.critical('finished initialization')
