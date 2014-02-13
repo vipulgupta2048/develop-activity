@@ -13,39 +13,39 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 """Develop Activity: A programming activity."""
-import gtk
 import logging
 import os
 import os.path
-import gobject
 import simplejson
-
 from gettext import gettext as _
 
-from sugar import profile
-from sugar.graphics.toolbarbox import ToolbarBox
-from sugar.activity.widgets import ActivityToolbarButton
-from sugar.graphics.toolbarbox import ToolbarButton
-from sugar.graphics.radiotoolbutton import RadioToolButton
-from sugar.activity.widgets import StopButton
-from sugar.activity.bundlebuilder import XOPackager, Config, Builder
-from sugar.activity import activity
-from sugar.graphics.toolbutton import ToolButton
-from sugar.graphics.combobox import ComboBox
-from sugar.graphics.alert import ConfirmationAlert
-from sugar.graphics.alert import Alert
-from sugar.graphics import iconentry, notebook
-from sugar.graphics.icon import Icon
-from sugar.graphics import style
-from sugar.datastore import datastore
-from sugar.bundle.activitybundle import ActivityBundle
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+
+from sugar3 import profile
+from sugar3.graphics.toolbarbox import ToolbarBox
+from sugar3.graphics.toolbarbox import ToolbarButton
+from sugar3.graphics.radiotoolbutton import RadioToolButton
+from sugar3.activity.widgets import ActivityToolbarButton
+from sugar3.activity.widgets import EditToolbar
+from sugar3.activity.widgets import StopButton
+from sugar3.activity.bundlebuilder import XOPackager, Config, Builder
+from sugar3.activity import activity
+from sugar3.graphics.toolbutton import ToolButton
+from sugar3.graphics.combobox import ComboBox
+from sugar3.graphics.alert import ConfirmationAlert
+from sugar3.graphics.alert import Alert
+from sugar3.graphics import iconentry, notebook
+from sugar3.graphics.icon import Icon
+from sugar3.graphics import style
+from sugar3.datastore import datastore
+from sugar3.bundle.activitybundle import ActivityBundle
 
 import logviewer
 import sourceview_editor
 S_WHERE = sourceview_editor.S_WHERE
-import activity_model
 import new_activity
-
 from symbols_tree import SymbolsTree
 
 DEBUG_FILTER_LEVEL = 1
@@ -68,7 +68,9 @@ REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
 
 TOOLBAR_SEARCH = 2
 
-OPENFILE_SEPARATOR = u"@ @"
+_EXCLUDE_EXTENSIONS = ('.pyc', '.pyo', '.so', '.o', '.a', '.la', '.mo', '~',
+                       '.xo', '.tar', '.bz2', '.zip', '.gz')
+_EXCLUDE_NAMES = ['.deps', '.libs']
 
 
 class Options:
@@ -91,14 +93,16 @@ class DevelopActivity(activity.Activity):
 
     def __init__(self, handle):
         """Set up the Develop activity."""
-        self.dirty = False
+        self._dirty = False
         super(DevelopActivity, self).__init__(handle)
         self.max_participants = 1
 
         logging.info(repr(handle.get_dict()))
 
         # Source buffer
-        self.editor = sourceview_editor.GtkSourceview2Editor(self)
+        self.editor = sourceview_editor.GtkSourceview2Editor()
+        self.editor.connect('tab-changed', self.__editor_tab_changed_cb)
+        self.editor.connect('changed', self.__editor_changed_cb)
 
         toolbarbox = ToolbarBox()
         activity_button = ActivityToolbarButton(self)
@@ -117,7 +121,7 @@ class DevelopActivity(activity.Activity):
         search_btn.props.label = _('Search')
         toolbarbox.toolbar.insert(search_btn, -1)
 
-        toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
+        toolbarbox.toolbar.insert(Gtk.SeparatorToolItem(), -1)
 
         show_files_btn = RadioToolButton()
         show_files_btn.props.icon_name = 'sources'
@@ -133,7 +137,7 @@ class DevelopActivity(activity.Activity):
         show_symbols_btn.set_active(False)
         show_symbols_btn.set_tooltip(_('Show file symbols'))
         toolbarbox.toolbar.insert(show_symbols_btn, -1)
-        show_symbols_btn.connect('clicked', self.explore_code)
+        show_symbols_btn.connect('clicked', self._explore_code)
 
         show_log_btn = RadioToolButton()
         show_log_btn.props.icon_name = 'logs'
@@ -143,7 +147,7 @@ class DevelopActivity(activity.Activity):
         toolbarbox.toolbar.insert(show_log_btn, -1)
         show_log_btn.connect('clicked', self._change_treenotebook_page, 2)
 
-        toolbarbox.toolbar.insert(gtk.SeparatorToolItem(), -1)
+        toolbarbox.toolbar.insert(Gtk.SeparatorToolItem(), -1)
 
         create_file_btn = ToolButton('text-x-generic')
         create_file_btn.set_tooltip(_('Create empty file'))
@@ -157,7 +161,7 @@ class DevelopActivity(activity.Activity):
         erase_btn.show()
         erase_btn.connect('clicked', self.__remove_file_cb)
 
-        separator = gtk.SeparatorToolItem()
+        separator = Gtk.SeparatorToolItem()
         separator.set_draw(False)
         separator.set_expand(True)
         toolbarbox.toolbar.insert(separator, -1)
@@ -174,8 +178,8 @@ class DevelopActivity(activity.Activity):
         toolbarbox.show_all()
 
         # Main layout.
-        hbox = gtk.HPaned()
-        vbox = gtk.VBox()
+        hbox = Gtk.HPaned()
+        vbox = Gtk.VBox()
 
         #The treeview and selected pane reflect each other.
         self.numb = False
@@ -185,39 +189,30 @@ class DevelopActivity(activity.Activity):
         self.save_unchanged = False
 
         # The sidebar
-        sidebar = gtk.VBox()
+        sidebar = Gtk.VBox()
         self.treenotebook = notebook.Notebook(can_close_tabs=False)
         self.treenotebook.set_show_tabs(False)
-        sidebar.pack_start(self.treenotebook)
+        sidebar.pack_start(self.treenotebook, True, True, 0)
 
-        self.model = gtk.TreeStore(gobject.TYPE_PYOBJECT, gobject.TYPE_STRING)
-        self.treeview = gtk.TreeView(self.model)
-        cellrenderer = gtk.CellRendererText()
-        self.treecolumn = gtk.TreeViewColumn(_("Activities"), cellrenderer,
-                                             text=1)
-        self.treeview.append_column(self.treecolumn)
-        self.treeview.set_size_request(gtk.gdk.screen_width() / 4, -1)
-
-        # Create scrollbars around the tree view.
-        scrolled = gtk.ScrolledWindow()
-        scrolled.add(self.treeview)
-        scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-        self.treenotebook.add_page(_("Activity"), scrolled)
+        self.activity_tree_view = FileViewer()
+        #self.activity_tree_view = ActivityTreeView()
+        self.treenotebook.add_page(_("Activity"), self.activity_tree_view)
+        self.treenotebook.set_size_request(Gdk.Screen.width() / 5, -1)
 
         # Symbols tree
         self._symbolstree = SymbolsTree()
         self._symbolstree.connect('symbol-selected',
                                   self.editor.symbol_selected_cb)
-        scrolled = gtk.ScrolledWindow()
+        scrolled = Gtk.ScrolledWindow()
         scrolled.add(self._symbolstree)
-        scrolled.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        scrolled.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.treenotebook.add_page(_('Symbols Tree'), scrolled)
 
-        hbox.pack1(sidebar, resize=True, shrink=True)
+        hbox.pack1(sidebar, resize=True, shrink=False)
         sidebar.show()
 
         logging.info('finished check')
-        vbox.pack_start(self.editor)
+        vbox.pack_start(self.editor, True, True, 0)
         self.editor.show()
         hbox.pack2(vbox, resize=True, shrink=True)
         vbox.show()
@@ -228,15 +223,16 @@ class DevelopActivity(activity.Activity):
         self.show()
 
         if not handle.object_id or not self.metadata.get('source'):
-            gobject.timeout_add(10, self._show_welcome)
+            GObject.timeout_add(10, self._show_welcome)
 
     def _change_treenotebook_page(self, button, page):
         self.treenotebook.set_current_page(page)
 
-    def explore_code(self, btn, switch_page=True):
+    def _explore_code(self, btn, switch_page=True):
         from ninja import introspection
         text = self.editor.get_text()
         path = self.editor.get_file_path()
+        logging.error('Analyzing %s', path)
         symbols = introspection.obtain_symbols(text, filename=path)
         self._symbolstree.load_symbols(symbols)
         if switch_page:
@@ -266,9 +262,9 @@ class DevelopActivity(activity.Activity):
     def _show_welcome(self):
         """_show_welcome: when opened without a bundle, ask open/new/cancel
         """
-        vbox = gtk.VBox()
+        vbox = Gtk.VBox()
 
-        edit_label = gtk.Label(
+        edit_label = Gtk.Label(
             _('<span weight="bold" size="larger">'
               'Edit a installed activity</span>\n\n'
               'You can modify a activity, and if there are errors the '
@@ -278,23 +274,23 @@ class DevelopActivity(activity.Activity):
         edit_label.set_line_wrap(True)
         vbox.pack_start(edit_label, expand=False, fill=True, padding=10)
 
-        hbox_edit = gtk.HBox()
-        hbox_edit.pack_start(gtk.Label('Select the activity'), expand=False,
-                             fill=False, padding=10)
+        hbox_edit = Gtk.HBox()
+        hbox_edit.pack_start(Gtk.Label(_('Select the activity')), True,
+                             True, 10)
         activity_name_combo = ComboBox()
         self._load_activities_installed_combo(activity_name_combo)
         hbox_edit.pack_start(activity_name_combo, expand=False, fill=False,
                              padding=10)
-        edit_btn = gtk.Button(_('Start'))
+        edit_btn = Gtk.Button(_('Start'))
         edit_btn.connect('clicked', self._pick_existing_activity,
                          activity_name_combo)
         hbox_edit.pack_start(edit_btn, expand=False, fill=False,
                              padding=10)
-        align = gtk.Alignment(xalign=0.5, yalign=0.5)
+        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
         align.add(hbox_edit)
         vbox.pack_start(align, expand=False, fill=False, padding=10)
 
-        new_project_label = gtk.Label(
+        new_project_label = Gtk.Label(
             _('<span weight="bold" size="larger">'
               'Create a new activity</span>\n\n'
               'You can create something new, '
@@ -303,34 +299,34 @@ class DevelopActivity(activity.Activity):
         new_project_label.set_line_wrap(True)
         vbox.pack_start(new_project_label, expand=False, fill=True, padding=10)
 
-        hbox_create = gtk.HBox()
-        hbox_create.pack_start(gtk.Label('Select the type'),
+        hbox_create = Gtk.HBox()
+        hbox_create.pack_start(Gtk.Label(_('Select the type')),
                                expand=False, fill=False, padding=10)
         project_type_combo = ComboBox()
         self._load_skeletons_combo(project_type_combo)
         hbox_create.pack_start(project_type_combo, expand=False, fill=False,
                                padding=10)
-        align = gtk.Alignment(xalign=0.5, yalign=0.5)
+        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
         align.add(hbox_create)
         vbox.pack_start(align, expand=False, fill=False, padding=10)
 
-        hbox_name = gtk.HBox()
-        hbox_name.pack_start(gtk.Label(_('Name the activity')))
-        activity_name_entry = gtk.Entry()
+        hbox_name = Gtk.HBox()
+        hbox_name.pack_start(Gtk.Label(_('Name the activity')), True, True, 0)
+        activity_name_entry = Gtk.Entry()
         hbox_name.pack_start(activity_name_entry, expand=True, fill=True,
                              padding=10)
 
-        create_btn = gtk.Button(_('Start'))
+        create_btn = Gtk.Button(_('Start'))
         create_btn.connect('clicked', self._create_new_activity,
                            activity_name_entry, project_type_combo)
         hbox_name.pack_start(create_btn, expand=True, fill=True,
                              padding=10)
-        align = gtk.Alignment(xalign=0.5, yalign=0.5)
+        align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
         align.add(hbox_name)
         vbox.pack_start(align, expand=False, fill=False, padding=10)
 
         vbox.show_all()
-        self.editor.append_page(vbox, gtk.Label(_('Start')))
+        self.editor.append_page(vbox, Gtk.Label(label=_('Start')))
         return False
 
     def _load_activities_installed_combo(self, activities_combo):
@@ -392,7 +388,7 @@ class DevelopActivity(activity.Activity):
             title = _('Atention')
         alert.props.title = title
         alert.props.msg = message
-        alert.add_button(gtk.RESPONSE_OK, _('Ok'))
+        alert.add_button(Gtk.ResponseType.OK, _('Ok'))
         self.add_alert(alert)
         alert.connect('response', self._alert_response_cb)
 
@@ -420,10 +416,12 @@ class DevelopActivity(activity.Activity):
             activity_dir = activity_dir + '/'
         self.activity_dir = activity_dir
         name = os.path.basename(activity_dir)
-        self.treecolumn.set_title(name)
+        self.activity_tree_view.set_title(name)
         self.metadata['title'] = 'Develop %s' % name
         self.refresh_files()
-        self.treeview.get_selection().connect("changed", self.selection_cb)
+
+        self.activity_tree_view.connect('file_selected',
+                                        self.__file_selected_cb)
         return name
 
     def first_open_activity(self, activity_dir):
@@ -432,17 +430,18 @@ class DevelopActivity(activity.Activity):
         """
         self.open_activity(activity_dir)
         namefilter = ActivityBundle(activity_dir).get_bundle_id()
-        self.logview = logviewer.LogMinder(self, namefilter)
-        self.set_dirty(False)
+        self._log_files_viewer = logviewer.LogFilesViewer(namefilter)
+        self._log_files_viewer.connect('file-selected',
+                                       self.__log_file_selected_cb)
+        self.treenotebook.add_page(_("Log"), self._log_files_viewer)
+
+        self._set_dirty(False)
 
     def refresh_files(self):
         """Refresh the treeview of activity files.
         """
         self.bundle = ActivityBundle(self.activity_dir)
-        self.model = activity_model.DirectoryAndExtraModel(
-            self.activity_dir,
-            nodefilter=activity_model.inmanifestfn(self.bundle))
-        self.treeview.set_model(self.model)
+        self.activity_tree_view.load_activity(self.activity_dir, self.bundle)
 
     def load_file(self, full_path):
         """Load one activity subfile into the editor view.
@@ -458,18 +457,31 @@ class DevelopActivity(activity.Activity):
         logging.error('load_file filename %s', filename)
         self.editor.load_object(full_path, filename)
 
-    def selection_cb(self, column):
+    def __file_selected_cb(self, file_viewer, path):
         """User selected an item in the treeview. Load it.
         """
         if self.numb:
             #Choosing in the notebook selects in the list, and vice versa.
             #Avoid infinite recursion.
             return
-        path = activity_model.get_selected_file_path(self.treeview)
         if path and not os.path.isdir(path):
             self.numb = True
             self.load_file(path)
             self.numb = False
+
+    def __log_file_selected_cb(self, log_files_viewer, path):
+        if not path:
+            return
+
+        if os.path.isdir(path):
+            #do not try to open folders
+            return
+
+        # Set buffer and scroll down
+        if self.editor.set_to_page_like(path):
+            return
+
+        self.editor.load_log_file(path, log_files_viewer)
 
     def save_bundle(self, btn):
         #create bundle
@@ -544,17 +556,19 @@ class DevelopActivity(activity.Activity):
     def write_file(self, file_path):
         """Wrap up the activity as a bundle and save it to journal.
         """
+        logging.error('WRITE_FILE')
         if self.activity_dir is None:
             return
-        if not self.save_unchanged:
+        if self.save_unchanged:
             self.editor.save_all()
-        filenames = OPENFILE_SEPARATOR.join(self.editor.get_all_filenames())
+        filenames = self.editor.get_all_filenames()
         logging.debug('activity_dir %s, file_path %s, filenames %s' %
-                      (self.activity_dir, file_path, len(filenames)))
+                      (self.activity_dir, file_path, filenames))
         self._jobject = self.save_source_jobject(
             self.activity_dir, file_path, filenames)
         self.metadata['source'] = self.activity_dir
-        self.set_dirty(False)
+        self._set_dirty(False)
+        self.save_unchanged = False
 
     def read_file(self, file_path):
         self.activity_dir = self.metadata['source']
@@ -564,45 +578,39 @@ class DevelopActivity(activity.Activity):
         f = open(file_path, 'r')
         try:
             session_data = simplejson.load(f)
-            for filename in \
-                    session_data['open_filenames'].split(OPENFILE_SEPARATOR):
+            logging.error('read_file session_data %s', session_data)
+            for filename in session_data['open_filenames']:
                 if filename:
                     logging.info('opening : %s', filename)
                     self.load_file(filename)
         finally:
             f.close()
 
-        self.set_dirty(False)
+        self._set_dirty(False)
 
-    def is_dirty(self):
-        return self.dirty
-
-    def set_dirty(self, dirty):
+    def _set_dirty(self, dirty):
         logging.debug("Setting dirty to %s; activity_dir is %s" %
                       (str(dirty), str(self.activity_dir)))
-        self.dirty = dirty
+        self._dirty = dirty
         if dirty:
             self.save_unchanged = True
-            try:
-                logging.debug("Saving a pristine copy for safety")
-                self.save()
-            finally:
-                self.save_unchanged = False
-                self.dirty = dirty
 
-    def update_sidebar_to_page(self, page):
+    def __editor_tab_changed_cb(self, editor, new_full_path):
         if self.numb:
             #avoid infinite recursion
             return
-        if isinstance(page, sourceview_editor.GtkSourceview2Page):
-            source = page.full_path
-            tree_iter = self.model.get_iter_from_filepath(source)
-            if tree_iter:
-                tree_selection = self.treeview.get_selection()
-                tree_selection.unselect_all()
-                self.numb = True
-                tree_selection.select_iter(tree_iter)
-                self.numb = False
+        self.numb = True
+        self.activity_tree_view.select_by_file_path(new_full_path)
+        logging.error('new tab %s', new_full_path)
+        self.numb = False
+
+        # TODO: change by a constant
+        if self.treenotebook.get_current_page() == 1:  # symbols
+            GObject.idle_add(self._explore_code, None)
+
+    def __editor_changed_cb(self, editor):
+        logging.error('Editor text changed')
+        self._set_dirty(True)
 
     def __create_empty_file_cb(self, button):
         alert = Alert()
@@ -611,19 +619,19 @@ class DevelopActivity(activity.Activity):
 
         #HACK
         alert._hbox.remove(alert._buttons_box)
-        alert.entry = gtk.Entry()
-        alert._hbox.pack_start(alert.entry)
+        alert.entry = Gtk.Entry()
+        alert._hbox.pack_start(alert.entry, True, True, 0)
 
-        alert._buttons_box = gtk.HButtonBox()
-        alert._buttons_box.set_layout(gtk.BUTTONBOX_END)
+        alert._buttons_box = Gtk.HButtonBox()
+        alert._buttons_box.set_layout(Gtk.ButtonBoxStyle.END)
         alert._buttons_box.set_spacing(style.DEFAULT_SPACING)
-        alert._hbox.pack_start(alert._buttons_box)
+        alert._hbox.pack_start(alert._buttons_box, True, True, 0)
 
         icon = Icon(icon_name='dialog-cancel')
-        alert.add_button(gtk.RESPONSE_CANCEL, _('Cancel'), icon)
+        alert.add_button(Gtk.ResponseType.CANCEL, _('Cancel'), icon)
 
         icon = Icon(icon_name='dialog-ok')
-        alert.add_button(gtk.RESPONSE_OK, _('Ok'), icon)
+        alert.add_button(Gtk.ResponseType.OK, _('Ok'), icon)
         alert.show_all()
         #
 
@@ -631,31 +639,32 @@ class DevelopActivity(activity.Activity):
         alert.connect('response', self.__create_file_alert_cb)
 
     def __create_file_alert_cb(self, alert, response_id):
-        file_name = alert.entry.get_text()
-        try:
-            path = os.path.dirname(self.editor.get_file_path())
-        except:
-            path = self.activity_dir
+        if response_id is Gtk.ResponseType.OK:
+            file_name = alert.entry.get_text()
+            try:
+                path = os.path.dirname(self.editor.get_file_path())
+            except:
+                path = self.activity_dir
 
-        file_path = os.path.join(path, file_name)
-        with open(file_path, 'w') as new_file:
-            new_file.write('')
+            file_path = os.path.join(path, file_name)
+            with open(file_path, 'w') as new_file:
+                new_file.write('')
 
-        self.refresh_files()
-        self.editor.load_object(file_path, file_name)
+            self.refresh_files()
+            self.editor.load_object(file_path, file_name)
 
         self.remove_alert(alert)
 
     def __remove_file_cb(self, button):
         file_path = self.editor.get_file_path()
-        msg = _('The action you will do can not be revereted.\n'
-                'Do you want remove the file %s?') % file_path
-        alert = self.create_confirmation_alert(msg, _('WARNING'))
+        title = _('WARNING: The action you will do can not be reverted.')
+        msg = _('Do you want remove the file %s?') % file_path
+        alert = self.create_confirmation_alert(msg, title)
         alert.show()
         alert.connect('response', self.__remove_file_alert_cb, file_path)
 
     def __remove_file_alert_cb(self, alert, response_id, file_path):
-        if response_id is gtk.RESPONSE_OK:
+        if response_id is Gtk.ResponseType.OK:
             if os.path.isfile(file_path):
                 os.unlink(file_path)
                 self.refresh_files()
@@ -663,10 +672,123 @@ class DevelopActivity(activity.Activity):
         self.remove_alert(alert)
 
 
-class DevelopEditToolbar(activity.EditToolbar):
+class FileViewer(Gtk.ScrolledWindow):
+    __gtype_name__ = 'ActivityFileViewer'
+
+    __gsignals__ = {
+        'file-selected': (GObject.SignalFlags.RUN_FIRST,
+                          None,
+                          ([str])),
+    }
+
+    def __init__(self):
+        Gtk.ScrolledWindow.__init__(self)
+
+        self.props.hscrollbar_policy = Gtk.PolicyType.AUTOMATIC
+        self.props.vscrollbar_policy = Gtk.PolicyType.AUTOMATIC
+        self.set_size_request(style.GRID_CELL_SIZE * 3, -1)
+
+        self._path = None
+        self._initial_filename = None
+
+        self._tree_view = Gtk.TreeView()
+        self._tree_view.connect('cursor-changed', self.__cursor_changed_cb)
+        self.add(self._tree_view)
+        self._tree_view.show()
+
+        self._tree_view.props.headers_visible = False
+        selection = self._tree_view.get_selection()
+        selection.connect('changed', self.__selection_changed_cb)
+
+        cell = Gtk.CellRendererText()
+        self._column = Gtk.TreeViewColumn()
+        self._column.pack_start(cell, True)
+        self._column.add_attribute(cell, 'text', 0)
+        self._tree_view.append_column(self._column)
+        self._tree_view.set_search_column(0)
+        # map between file_path and iter
+        self._opened_files = {}
+
+    def load_activity(self, path, bundle):
+        self._search_initial_filename(path, bundle)
+        self._path = path
+
+        self._tree_view.set_model(Gtk.TreeStore(str, str))
+        self._model = self._tree_view.get_model()
+        self._add_dir_to_model(path)
+
+    def _add_dir_to_model(self, dir_path, parent=None):
+        for f in os.listdir(dir_path):
+            if f.endswith(_EXCLUDE_EXTENSIONS) or f in _EXCLUDE_NAMES:
+                continue
+
+            full_path = os.path.join(dir_path, f)
+            if os.path.isdir(full_path):
+                new_iter = self._model.append(parent, [f, full_path])
+                self._add_dir_to_model(full_path, new_iter)
+            else:
+                current_iter = self._model.append(parent, [f, full_path])
+                self._opened_files[full_path] = current_iter
+                if full_path == self._initial_filename:
+                    selection = self._tree_view.get_selection()
+                    selection.select_iter(current_iter)
+
+    def __selection_changed_cb(self, selection):
+        model, tree_iter = selection.get_selected()
+        if tree_iter is None:
+            file_path = None
+        else:
+            file_path = model.get_value(tree_iter, 1)
+        self.emit('file-selected', file_path)
+
+    def __cursor_changed_cb(self, tree_view):
+        selection = tree_view.get_selection()
+        store, iter_ = selection.get_selected()
+        if iter_ is None:
+            # Nothing selected. This happens at startup
+            return
+        if store.iter_has_child(iter_):
+            path = store.get_path(iter_)
+            if tree_view.row_expanded(path):
+                tree_view.collapse_row(path)
+            else:
+                tree_view.expand_row(path, False)
+
+    def select_by_file_path(self, file_path):
+        if file_path in self._opened_files:
+            tree_iter = self._opened_files[file_path]
+            tree_selection = self._tree_view.get_selection()
+            tree_selection.unselect_all()
+            tree_selection.select_iter(tree_iter)
+
+    def _search_initial_filename(self, activity_path, bundle):
+        command = bundle.get_command()
+
+        if self._is_web_activity(bundle):
+            file_name = 'index.html'
+
+        elif len(command.split(' ')) > 1:
+            name = command.split(' ')[1].split('.')[-1]
+            tmppath = command.split(' ')[1].replace('.', '/')
+            file_name = tmppath[0:-(len(name) + 1)] + '.py'
+
+        if file_name:
+            path = os.path.join(activity_path, file_name)
+            if os.path.exists(path):
+                logging.error('INITIAL_FILENAME %s', path)
+                self._initial_filename = path
+
+    def set_title(self, title):
+        self._column.set_title(title)
+
+    def _is_web_activity(self, activity_bundle):
+        return activity_bundle.get_command() == 'sugar-activity-web'
+
+
+class DevelopEditToolbar(EditToolbar):
 
     def __init__(self, _activity):
-        activity.EditToolbar.__init__(self)
+        EditToolbar.__init__(self)
 
         self._activity = _activity
         self._activity.editor.connect('changed', self._changed_cb)
@@ -679,7 +801,7 @@ class DevelopEditToolbar(activity.EditToolbar):
 
         # make expanded non-drawn visible separator to make
         #the search stuff right-align
-        separator = gtk.SeparatorToolItem()
+        separator = Gtk.SeparatorToolItem()
         separator.props.draw = False
         separator.set_expand(True)
         self.insert(separator, -1)
@@ -706,7 +828,7 @@ class DevelopEditToolbar(activity.EditToolbar):
 
     # bad paul! this function was copied from sugar's activity.py via Write
     def _add_widget(self, widget, expand=False):
-        tool_item = gtk.ToolItem()
+        tool_item = Gtk.ToolItem()
         tool_item.set_expand(expand)
 
         tool_item.add(widget)
@@ -716,10 +838,10 @@ class DevelopEditToolbar(activity.EditToolbar):
         tool_item.show()
 
 
-class DevelopSearchToolbar(gtk.Toolbar):
+class DevelopSearchToolbar(Gtk.Toolbar):
 
     def __init__(self, _activity):
-        gtk.Toolbar.__init__(self)
+        GObject.GObject.__init__(self)
 
         self._activity = _activity
 
@@ -790,7 +912,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
                 (_('Advanced search'), ssho, True, "regex"),
                 ):
             if not name:
-                menuitem = gtk.SeparatorMenuItem()
+                menuitem = Gtk.SeparatorMenuItem()
             else:
                 menuitem = MenuItem(name, icon)
                 menuitem.connect('activate', function, options)
@@ -799,7 +921,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
 
         # make expanded non-drawn visible separator to make the replace
         #stuff right-align
-        separator = gtk.SeparatorToolItem()
+        separator = Gtk.SeparatorToolItem()
         separator.props.draw = False
         separator.set_expand(True)
         self.insert(separator, -1)
@@ -829,7 +951,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
                 (_('Replace all'), ssro, True, "multi-replace"),
                 ):
             if not name:
-                menuitem = gtk.SeparatorMenuItem()
+                menuitem = Gtk.SeparatorMenuItem()
             else:
                 menuitem = MenuItem(name, icon)
                 menuitem.connect('activate', function, options)
@@ -842,7 +964,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._activity.connect('key_press_event', self._on_key_press_event)
 
     def _on_key_press_event(self, widget, event):
-        keyname = gtk.gdk.keyval_name(event.keyval)
+        keyname = Gdk.keyval_name(event.keyval)
         if "F5" <= keyname and keyname <= "F8":
             if keyname == "F5":
                 self._go_to_search_entry_cb()
@@ -959,7 +1081,6 @@ class DevelopSearchToolbar(gtk.Toolbar):
                 pass
                 #self._replace_button.set_sensitive(True)
 
-
     def _findnext_cb(self, button=None):
         ftext = self._search_entry.props.text
         if ftext:
@@ -969,7 +1090,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
 
     # bad paul! this function was copied from sugar's activity.py via Write
     def _add_widget(self, widget, expand=False):
-        tool_item = gtk.ToolItem()
+        tool_item = Gtk.ToolItem()
         tool_item.set_expand(expand)
 
         tool_item.add(widget)

@@ -17,7 +17,7 @@ import os
 import shutil
 import logging
 
-from sugar.activity import activity
+from sugar3.activity import activity
 
 
 def class_template(name):

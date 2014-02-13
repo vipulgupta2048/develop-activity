@@ -17,37 +17,37 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 
-from sugar.graphics.icon import Icon
+from sugar3.graphics.icon import Icon
 
 
-class TabLabel(gtk.HBox):
+class TabLabel(Gtk.HBox):
     __gtype_name__ = 'BrowseTabLabel'
 
     __gsignals__ = {
-        'tab-close': (gobject.SIGNAL_RUN_FIRST,
+        'tab-close': (GObject.SignalFlags.RUN_FIRST,
                       None,
                       ([object])),
     }
 
     def __init__(self, child, label=""):
-        gtk.HBox.__init__(self)
+        GObject.GObject.__init__(self)
 
         self._child = child
-        self._label = gtk.Label(label)
+        self._label = Gtk.Label(label=label)
         self._label.set_alignment(0, 0.5)
         self.pack_start(self._label, True, True, 0)
         self._label.show()
 
-        self.modify_base(gtk.STATE_NORMAL, gtk.gdk.Color(0, 0, 0, 1))
+        #self.modify_base(Gtk.StateType.NORMAL, Gdk.Color(0, 0, 0, 1))
 
         close_tab_icon = Icon(icon_name='close-tab')
-        button = gtk.Button()
-        button.props.relief = gtk.RELIEF_NONE
+        button = Gtk.Button()
+        button.props.relief = Gtk.ReliefStyle.NONE
         button.props.focus_on_click = False
-        icon_box = gtk.HBox()
+        icon_box = Gtk.HBox()
         icon_box.pack_start(close_tab_icon, True, False, 0)
         button.add(icon_box)
         button.connect('clicked', self.__button_clicked_cb)

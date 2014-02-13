@@ -15,40 +15,48 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 import logging
-import gtk
-import gobject
-import pango
-import gtksourceview2
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GObject
+from gi.repository import Pango
+from gi.repository import GtkSource
 import os.path
 import re
 import mimetypes
 from exceptions import ValueError, TypeError, IOError, OSError
 
+from sugar3 import profile
+from sugar3.graphics.icon import Icon
+
 from widgets import TabLabel
+import logviewer
 
 
 class S_WHERE:
     selection, file, multifile = range(3)  # an enum
 
 
-class GtkSourceview2Editor(gtk.Notebook):
+class GtkSourceview2Editor(Gtk.Notebook):
     __gsignals__ = {
-        'changed': (gobject.SIGNAL_RUN_FIRST, None, [])
+        'changed': (GObject.SignalFlags.RUN_FIRST, None, []),
+        'tab-changed': (GObject.SignalFlags.RUN_FIRST, None, [str])
     }
 
-    def __init__(self, activity):
-        gtk.Notebook.__init__(self)
-        self.activity = activity
-        self.set_size_request(gtk.gdk.screen_width(), -1)
+    def __init__(self):
+        GObject.GObject.__init__(self)
+        self.set_size_request(Gdk.Screen.width(), -1)
         self.connect('page-removed', self._page_removed_cb)
         self.connect('switch-page', self._switch_page_cb)
 
     def _page_removed_cb(self, __notebook, page, n):
-        page.page.remove()
+        try:
+            page.page.remove()
+        except:
+            pass
+            # the welcome page do not have a page property
 
     def _switch_page_cb(self, __notebook, page_gptr, page_num):
-        self.activity.update_sidebar_to_page(self._get_page(page_num))
-        self.activity.explore_code(None, switch_page=False)
+        self.emit('tab-changed', self._get_page(page_num).full_path)
 
     def set_to_page_like(self, full_path):
         for n in range(self.get_n_pages()):
@@ -61,15 +69,23 @@ class GtkSourceview2Editor(gtk.Notebook):
     def load_object(self, full_path, filename):
         if self.set_to_page_like(full_path):
             return
-        scrollwnd = gtk.ScrolledWindow()
-        scrollwnd.set_policy(gtk.POLICY_AUTOMATIC,
-                             gtk.POLICY_AUTOMATIC)
+        scrollwnd = Gtk.ScrolledWindow()
+        scrollwnd.set_policy(Gtk.PolicyType.AUTOMATIC,
+                             Gtk.PolicyType.AUTOMATIC)
 
         page = GtkSourceview2Page(full_path)
+
+        vbox = Gtk.VBox()
+        if full_path.endswith('.svg'):
+            icon = Icon(file=full_path, pixel_size=100,
+                        xo_color=profile.get_color())
+            vbox.pack_start(icon, False, False, 0)
+
+        vbox.pack_start(scrollwnd, True, True, 0)
         scrollwnd.add(page)
-        scrollwnd.page = page
+        vbox.page = page
         label = filename
-        page.text_buffer.connect('changed', self._changed_cb)
+        page.text_buffer.connect('changed', self.__text_changed_cb)
 
         tablabel = TabLabel(scrollwnd, label)
         tablabel.connect(
@@ -77,17 +93,30 @@ class GtkSourceview2Editor(gtk.Notebook):
             lambda widget, child: self.remove_page(self.page_num(child)))
         tablabel.page = page
 
-        self.append_page(scrollwnd, tablabel)
+        self.append_page(vbox, tablabel)
 
-        self._changed_cb(page.text_buffer)
+        self.__text_changed_cb(page.text_buffer)
         self.show_all()
         self.set_current_page(-1)
 
-    def _changed_cb(self, buffer):
+    def load_log_file(self, full_path, log_files_viewer):
+        logview = logviewer.LogView(full_path, log_files_viewer)
+        scrollwnd = Gtk.ScrolledWindow()
+        scrollwnd.set_policy(Gtk.PolicyType.AUTOMATIC,
+                             Gtk.PolicyType.AUTOMATIC)
+        scrollwnd.add(logview)
+        scrollwnd.page = logview
+        tablabel = TabLabel(logview, os.path.basename(full_path))
+        tablabel.connect(
+            'tab-close', lambda widget, child:
+            self.remove_page(self.page_num(child)))
+        self.append_page(scrollwnd, tablabel)
+        self.show_all()
+        self.set_current_page(-1)
+
+    def __text_changed_cb(self, buffer):
         if not buffer.can_undo():
             buffer.set_modified(False)
-        elif not self.activity.dirty:
-            self.activity.set_dirty(True)
         self.emit('changed')
 
     def _get_page(self, order=-1):
@@ -96,7 +125,7 @@ class GtkSourceview2Editor(gtk.Notebook):
         else:
             n = order
         if self.get_nth_page(n) is not None:
-            return self.get_nth_page(n).get_children()[0]
+            return self.get_nth_page(n).page
         else:
             return None
 
@@ -120,13 +149,13 @@ class GtkSourceview2Editor(gtk.Notebook):
     def copy(self):
         page = self._get_page()
         if page:
-            clip = gtk.Clipboard()
+            clip = Gtk.Clipboard()
             page.get_buffer().copy_clipboard(clip)
 
     def paste(self):
         page = self._get_page()
         if page:
-            clip = gtk.Clipboard()
+            clip = Gtk.Clipboard()
             text = clip.wait_for_text()
             page.get_buffer().insert_at_cursor(text)
 
@@ -201,7 +230,8 @@ class GtkSourceview2Editor(gtk.Notebook):
 
     def get_text(self):
         buff = self._get_page().text_buffer
-        return buff.get_text(buff.get_start_iter(), buff.get_end_iter())
+        return buff.get_text(buff.get_start_iter(), buff.get_end_iter(),
+                             False)
 
     def get_file_path(self):
         return self._get_page().full_path
@@ -213,16 +243,16 @@ class GtkSourceview2Editor(gtk.Notebook):
         page = self._get_page()
         _buffer = page.get_buffer()
         _iter = _buffer.get_iter_at_line(line - 1)
-        page.scroll_to_iter(_iter, 0.0)
+        page.scroll_to_iter(_iter, 0.1, False, 0, 0)
 
 
-class GtkSourceview2Page(gtksourceview2.View):
+class GtkSourceview2Page(GtkSource.View):
 
     def __init__(self, full_path):
         '''
         Do any initialization here.
         '''
-        gtksourceview2.View.__init__(self)
+        GtkSource.View.__init__(self)
 
         self.full_path = full_path
 
@@ -232,22 +262,23 @@ class GtkSourceview2Page(gtksourceview2.View):
         self.set_show_line_numbers(True)
         self.set_insert_spaces_instead_of_tabs(True)
 
+        self.text_buffer = GtkSource.Buffer()
+
         # Tags for search
-        tagtable = gtk.TextTagTable()
-        hilite_tag = gtk.TextTag('search-hilite')
+        tagtable = self.text_buffer.get_tag_table()
+        hilite_tag = Gtk.TextTag.new('search-hilite')
         hilite_tag.props.background = '#FFFFB0'
         tagtable.add(hilite_tag)
-        select_tag = gtk.TextTag('search-select')
+        select_tag = Gtk.TextTag.new('search-select')
         select_tag.props.background = '#B0B0FF'
         tagtable.add(select_tag)
 
-        self.text_buffer = gtksourceview2.Buffer(tag_table=tagtable)
         self.set_buffer(self.text_buffer)
 
         self.set_tab_width(4)
         self.set_auto_indent(True)
 
-        self.modify_font(pango.FontDescription('Monospace 10'))
+        self.modify_font(Pango.FontDescription('Monospace 10'))
 
         self.load_text()
         self.show()
@@ -266,7 +297,7 @@ class GtkSourceview2Page(gtksourceview2.View):
         self.text_buffer.set_highlight_syntax(False)
         mime_type = mimetypes.guess_type(self.full_path)[0]
         if mime_type:
-            lang_manager = gtksourceview2.language_manager_get_default()
+            lang_manager = GtkSource.LanguageManager.get_default()
             lang_ids = lang_manager.get_language_ids()
             langs = [lang_manager.get_language(i) for i in lang_ids]
             for lang in langs:
@@ -284,7 +315,8 @@ class GtkSourceview2Page(gtksourceview2.View):
     def save(self):
         if self.text_buffer.can_undo():  # only save if there's something to
             buff = self.text_buffer
-            text = buff.get_text(buff.get_start_iter(), buff.get_end_iter())
+            text = buff.get_text(buff.get_start_iter(), buff.get_end_iter(),
+                                 False)
             _file = file(self.full_path, 'w')
             try:
                 _file.write(text)
@@ -384,7 +416,8 @@ class GtkSourceview2Page(gtksourceview2.View):
 
         text_iter = _buffer.get_start_iter()
         while True:
-            next_found = text_iter.forward_search(text, 0)
+            next_found = text_iter.forward_search(
+                text, Gtk.TextSearchFlags.CASE_INSENSITIVE, None)
             if next_found is None:
                 break
             start, end = next_found
@@ -408,9 +441,11 @@ class GtkSourceview2Page(gtksourceview2.View):
             text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
 
         if direction == 'backward':
-            return text_iter.backward_search(self.search_text, 0)
+            return text_iter.backward_search(
+                self.search_text, Gtk.TextSearchFlags.CASE_INSENSITIVE, None)
         else:
-            return text_iter.forward_search(self.search_text, 0)
+            return text_iter.forward_search(
+                self.search_text, Gtk.TextSearchFlags.CASE_INSENSITIVE, None)
 
     def search_next(self, direction):
         next_found = self.get_next_result(direction)
@@ -423,5 +458,4 @@ class GtkSourceview2Page(gtksourceview2.View):
             _buffer.apply_tag_by_name('search-select', start, end)
             _buffer.place_cursor(start)
 
-            self.scroll_to_iter(start, 0.1)
-            self.scroll_to_iter(end, 0.1)
+            self.scroll_to_iter(start, 0.1, False, 0, 0)

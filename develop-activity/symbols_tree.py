@@ -14,30 +14,32 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import gtk
-import gobject
+from gi.repository import Gtk
+from gi.repository import GdkPixbuf
+from gi.repository import GObject
 
 
-class SymbolsTree(gtk.TreeView):
+class SymbolsTree(Gtk.TreeView):
 
-    __gsignals__ = {'symbol-selected': (gobject.SIGNAL_RUN_FIRST, None, [int])}
+    __gsignals__ = {'symbol-selected': (GObject.SignalFlags.RUN_FIRST, None,
+                                        [int])}
 
     def __init__(self):
-        gtk.TreeView.__init__(self)
+        GObject.GObject.__init__(self)
 
-        self._model = gtk.TreeStore(gtk.gdk.Pixbuf, str, str)
+        self._model = Gtk.TreeStore(GdkPixbuf.Pixbuf, str, int)
         self.set_model(self._model)
 
-        column = gtk.TreeViewColumn('Symbols')
-        icon_cell = gtk.CellRendererPixbuf()
+        column = Gtk.TreeViewColumn('Symbols')
+        icon_cell = Gtk.CellRendererPixbuf()
         column.pack_start(icon_cell, False)
         column.add_attribute(icon_cell, 'pixbuf', 0)
 
-        name_cell = gtk.CellRendererText()
+        name_cell = Gtk.CellRendererText()
         column.pack_start(name_cell, True)
         column.add_attribute(name_cell, 'text', 1)
 
-        line_cell = gtk.CellRendererText()
+        line_cell = Gtk.CellRendererText()
         line_cell.props.visible = False
         column.pack_start(line_cell, False)
         column.add_attribute(line_cell, 'text', 2)
@@ -46,28 +48,29 @@ class SymbolsTree(gtk.TreeView):
         self.connect('cursor-changed', self._symbol_selected_cb)
 
     def _add_class(self, name, line):
-        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('icons/class.png', 24,
-                                                      24)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size('icons/class.png', 24,
+                                                        24)
         parent = self._model.append(None, (pixbuf, name, line))
         return parent
 
     def _add_method(self, name, line, parent=None):
-        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('icons/function.png',
-                                                      24, 24)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size('icons/function.png',
+                                                        24, 24)
         self._model.append(parent, (pixbuf, name, line))
 
     def _add_attribute(self, name, line, parent=None):
-        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size('icons/attribute.png',
-                                                      24, 24)
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size('icons/attribute.png',
+                                                        24, 24)
         self._model.append(parent, (pixbuf, name, line))
 
     def _symbol_selected_cb(self, widget):
         selection = self.get_selection()
-        model, _iter = selection.get_selected()
-        line = int(model.get_value(_iter, 2))
-        if line is 0:
-            return
-        self.emit('symbol-selected', line)
+        model, iter = selection.get_selected()
+        if iter is not None:
+            line = model.get_value(iter, 2)
+            if line is 0:
+                return
+            self.emit('symbol-selected', line)
 
     def load_symbols(self, data):
         self._model.clear()
