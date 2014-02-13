@@ -281,8 +281,9 @@ class LogView(Gtk.TextView):
 
     def get_next_result(self, direction):
         _buffer = self.get_buffer()
-
-        if direction == 'forward':
+        if direction == 'current':
+            text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
+        elif direction == 'forward':
             text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
             text_iter.forward_char()
         else:
