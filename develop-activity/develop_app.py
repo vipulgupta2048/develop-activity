@@ -48,6 +48,12 @@ import new_activity
 
 from symbols_tree import SymbolsTree
 
+DEBUG_FILTER_LEVEL = 1
+
+SERVICE = "org.laptop.Develop"
+IFACE = SERVICE
+PATH = "/org/laptop/Develop"
+WORKING_SOURCE_DIR = 'source'
 
 SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
                         S_WHERE.file: "system-search",
@@ -57,8 +63,10 @@ SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
                        S_WHERE.file: "regex",
                        S_WHERE.multifile: "multi-regex",
                        }}
-# CAP_ICONS = {False: "use-caps", True: "ignore-caps"}
-# REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
+CAP_ICONS = {False: "use-caps", True: "ignore-caps"}
+REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
+
+TOOLBAR_SEARCH = 2
 
 OPENFILE_SEPARATOR = u"@ @"
 
@@ -566,6 +574,9 @@ class DevelopActivity(activity.Activity):
 
         self.set_dirty(False)
 
+    def is_dirty(self):
+        return self.dirty
+
     def set_dirty(self, dirty):
         logging.debug("Setting dirty to %s; activity_dir is %s" %
                       (str(dirty), str(self.activity_dir)))
@@ -666,6 +677,14 @@ class DevelopEditToolbar(activity.EditToolbar):
         self.copy.connect('clicked', self._copy_cb)
         self.paste.connect('clicked', self._paste_cb)
 
+        # make expanded non-drawn visible separator to make
+        #the search stuff right-align
+        separator = gtk.SeparatorToolItem()
+        separator.props.draw = False
+        separator.set_expand(True)
+        self.insert(separator, -1)
+        separator.show()
+
     def _changed_cb(self, _buffer):
         can_undo, can_redo = self._activity.editor.can_undo_redo()
         self.undo.set_sensitive(can_undo)
@@ -684,6 +703,17 @@ class DevelopEditToolbar(activity.EditToolbar):
 
     def _paste_cb(self, button):
         self._activity.editor.paste()
+
+    # bad paul! this function was copied from sugar's activity.py via Write
+    def _add_widget(self, widget, expand=False):
+        tool_item = gtk.ToolItem()
+        tool_item.set_expand(expand)
+
+        tool_item.add(widget)
+        widget.show()
+
+        self.insert(tool_item, -1)
+        tool_item.show()
 
 
 class DevelopSearchToolbar(gtk.Toolbar):
@@ -848,7 +878,7 @@ class DevelopSearchToolbar(gtk.Toolbar):
         self._search_entry.set_icon_from_name(
             iconentry.ICON_ENTRY_PRIMARY,
             SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
-        #self._settings.set_icon(CAP_ICONS[self.s_opts.ignore_caps])
+        self._settings.set_icon(CAP_ICONS[self.s_opts.ignore_caps])
         #self._replace_button.set_icon(REPLACE_ICONS[self.s_opts.replace_all])
         self._reset_replace_sensitivity()
 
