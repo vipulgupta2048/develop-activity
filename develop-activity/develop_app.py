@@ -262,9 +262,9 @@ class DevelopActivity(activity.Activity):
         self.editor.append_page(welcome_page, Gtk.Label(label=_('Start')))
 
     def __welcome_open_activity_cb(self, welcome_page, activity_dir):
-        self.first_open_activity(activity_dir)
         # remove the welcome tab
         self.editor.remove_page(0)
+        self.first_open_activity(activity_dir)
 
     def __welcome_show_alert_cb(self, welcome_page, message):
         self._show_alert(message)
@@ -290,21 +290,17 @@ class DevelopActivity(activity.Activity):
     def _alert_response_cb(self, alert, response_id):
         self.remove_alert(alert)
 
-    def open_activity(self, activity_dir):
-        logging.info('opening %s', activity_dir)
-        if not activity_dir.endswith('/'):
-            activity_dir = activity_dir + '/'
-        self.activity_dir = activity_dir
-        self.refresh_files()
-        self.activity_tree_view.connect('file_selected',
-                                        self.__file_selected_cb)
-
     def first_open_activity(self, activity_dir):
         """Open an activity for the first time.
            Subsequently, use open_activity.
         """
-        self.open_activity(activity_dir)
-        self.bundle = ActivityBundle(self.activity_dir)
+        logging.info('opening %s', activity_dir)
+        if not activity_dir.endswith('/'):
+            activity_dir = activity_dir + '/'
+        self.activity_dir = activity_dir
+        self.activity_tree_view.connect('file_selected',
+                                        self.__file_selected_cb)
+        self.refresh_files()
         name = self.bundle.get_name()
         self.activity_tree_view.set_title(name)
         self.metadata['title'] = _('Develop %s') % name
@@ -798,6 +794,7 @@ class FileViewer(Gtk.ScrolledWindow):
             if os.path.exists(path):
                 logging.error('INITIAL_FILENAME %s', path)
                 self._initial_filename = path
+                self.emit('file-selected', path)
 
     def set_title(self, title):
         self._column.set_title(title)
