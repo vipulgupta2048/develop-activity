@@ -425,14 +425,14 @@ class GtkSourceview2Page(GtkSource.View):
             _buffer.apply_tag_by_name('search-hilite', start, end)
             text_iter = end
 
-        if self.get_next_result('current'):
+        if self._get_next_result('current'):
             self.search_next('current')
-        elif self.get_next_result('backward'):
+        elif self._get_next_result('backward'):
             self.search_next('backward')
 
         return True
 
-    def get_next_result(self, direction):
+    def _get_next_result(self, direction):
         _buffer = self.get_buffer()
         if direction == 'current':
             text_iter = _buffer.get_iter_at_mark(_buffer.get_insert())
@@ -450,7 +450,7 @@ class GtkSourceview2Page(GtkSource.View):
                 self.search_text, Gtk.TextSearchFlags.CASE_INSENSITIVE, None)
 
     def search_next(self, direction):
-        next_found = self.get_next_result(direction)
+        next_found = self._get_next_result(direction)
         if next_found:
             _buffer = self.get_buffer()
 
