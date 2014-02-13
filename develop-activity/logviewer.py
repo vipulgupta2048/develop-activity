@@ -30,8 +30,6 @@ from gi.repository import GObject
 from sugar3.graphics import style
 from sugar3 import env
 
-from sourceview_editor import TabLabel
-
 
 def _get_filename_from_path(path):
     return os.path.split(path)[-1]

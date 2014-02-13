@@ -966,7 +966,7 @@ class DevelopSearchToolbar(Gtk.Toolbar):
         self._search_entry.set_icon_from_name(
             iconentry.ICON_ENTRY_PRIMARY,
             SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
-        self._settings.set_icon(CAP_ICONS[self.s_opts.ignore_caps])
+        #self._settings.set_icon(CAP_ICONS[self.s_opts.ignore_caps])
         #self._replace_button.set_icon(REPLACE_ICONS[self.s_opts.replace_all])
         self._reset_replace_sensitivity()
 
