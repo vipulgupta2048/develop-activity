@@ -48,13 +48,6 @@ S_WHERE = sourceview_editor.S_WHERE
 import new_activity
 from symbols_tree import SymbolsTree
 
-DEBUG_FILTER_LEVEL = 1
-
-SERVICE = "org.laptop.Develop"
-IFACE = SERVICE
-PATH = "/org/laptop/Develop"
-WORKING_SOURCE_DIR = 'source'
-
 SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
                         S_WHERE.file: "system-search",
                         S_WHERE.multifile: "multi-search",
@@ -63,17 +56,15 @@ SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
                        S_WHERE.file: "regex",
                        S_WHERE.multifile: "multi-regex",
                        }}
-CAP_ICONS = {False: "use-caps", True: "ignore-caps"}
-REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
-
-TOOLBAR_SEARCH = 2
+#CAP_ICONS = {False: "use-caps", True: "ignore-caps"}
+#REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
 
 _EXCLUDE_EXTENSIONS = ('.pyc', '.pyo', '.so', '.o', '.a', '.la', '.mo', '~',
                        '.xo', '.tar', '.bz2', '.zip', '.gz')
 _EXCLUDE_NAMES = ['.deps', '.libs']
 
 
-class Options:
+class SearchOptions:
 
     def __init__(self, template=None, **kw):
         if template:
@@ -81,10 +72,6 @@ class Options:
         else:
             self.__dict__ = {}
         self.__dict__.update(kw)
-
-
-class SearchOptions(Options):
-    pass
 
 
 class DevelopActivity(activity.Activity):
@@ -799,14 +786,6 @@ class DevelopEditToolbar(EditToolbar):
         self.copy.connect('clicked', self._copy_cb)
         self.paste.connect('clicked', self._paste_cb)
 
-        # make expanded non-drawn visible separator to make
-        #the search stuff right-align
-        separator = Gtk.SeparatorToolItem()
-        separator.props.draw = False
-        separator.set_expand(True)
-        self.insert(separator, -1)
-        separator.show()
-
     def _changed_cb(self, _buffer):
         can_undo, can_redo = self._activity.editor.can_undo_redo()
         self.undo.set_sensitive(can_undo)
@@ -825,17 +804,6 @@ class DevelopEditToolbar(EditToolbar):
 
     def _paste_cb(self, button):
         self._activity.editor.paste()
-
-    # bad paul! this function was copied from sugar's activity.py via Write
-    def _add_widget(self, widget, expand=False):
-        tool_item = Gtk.ToolItem()
-        tool_item.set_expand(expand)
-
-        tool_item.add(widget)
-        widget.show()
-
-        self.insert(tool_item, -1)
-        tool_item.show()
 
 
 class DevelopSearchToolbar(Gtk.Toolbar):
