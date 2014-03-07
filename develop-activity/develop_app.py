@@ -788,6 +788,8 @@ class FileViewer(Gtk.ScrolledWindow):
             name = command.split(' ')[1].split('.')[-1]
             tmppath = command.split(' ')[1].replace('.', '/')
             file_name = tmppath[0:-(len(name) + 1)] + '.py'
+        else:
+            file_name = command
 
         if file_name:
             path = os.path.join(activity_path, file_name)
