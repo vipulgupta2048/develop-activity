@@ -16,7 +16,7 @@
 import logging
 import os
 import os.path
-import simplejson
+import json
 from gettext import gettext as _
 
 from gi.repository import Gtk
@@ -420,7 +420,7 @@ class DevelopActivity(activity.Activity):
 
         f = open(file_path, 'w')
         try:
-            simplejson.dump(dev_session_data, f)
+            json.dump(dev_session_data, f)
         finally:
             f.close()
         jobject.file_path = file_path
@@ -452,7 +452,7 @@ class DevelopActivity(activity.Activity):
 
         f = open(file_path, 'r')
         try:
-            session_data = simplejson.load(f)
+            session_data = json.load(f)
             logging.error('read_file session_data %s', session_data)
             for filename in session_data['open_filenames']:
                 if filename:
