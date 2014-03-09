@@ -567,8 +567,8 @@ class WelcomePage(Gtk.VBox):
 
         edit_label = Gtk.Label(
             _('<span weight="bold" size="larger">'
-              'Edit a installed activity</span>\n\n'
-              'You can modify a activity, and if there are errors the '
+              'Edit an installed activity</span>\n\n'
+              'You can modify an activity, and if there are errors the '
               'activity can stop working. If you are not sure, clone the '
               'activity to have a backup.'))
         edit_label.set_use_markup(True)
