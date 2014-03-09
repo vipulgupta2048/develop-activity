@@ -66,6 +66,10 @@ _EXCLUDE_EXTENSIONS = ('.pyc', '.pyo', '.so', '.o', '.a', '.la', '.mo', '~',
                        '.xo', '.tar', '.bz2', '.zip', '.gz')
 _EXCLUDE_NAMES = ['.deps', '.libs']
 
+try:
+    activities_path = os.environ['SUGAR_ACTIVITIES_PATH']
+except KeyError:
+    activities_path = os.path.join(os.path.expanduser("~"), "Activities")
 
 class SearchOptions:
 
@@ -625,7 +629,6 @@ class WelcomePage(Gtk.VBox):
         self.show_all()
 
     def _load_activities_installed_combo(self, activities_combo):
-        activities_path = os.path.join(os.path.expanduser("~"), "Activities")
         for dir_name in sorted(os.listdir(activities_path)):
             if dir_name.endswith('.activity'):
                 activity_name = dir_name[:- len('.activity')]
@@ -667,8 +670,6 @@ class WelcomePage(Gtk.VBox):
             return
 
         activity_name = name_entry.get_text().strip()
-        activities_path = os.path.join(os.path.expanduser("~"),
-                                       "Activities")
         skel_iter = combo_skeletons.get_active_iter()
         skeleton = combo_skeletons.get_model().get_value(skel_iter, 1)
 
@@ -680,8 +681,6 @@ class WelcomePage(Gtk.VBox):
         if combo_activities.get_active() == -1:
             self.emit('show-alert', _('You must select the activity'))
         else:
-            activities_path = os.path.join(os.path.expanduser("~"),
-                                           "Activities")
             selected = combo_activities.get_active_iter()
             activity_name = combo_activities.get_model().get_value(selected, 1)
             logging.error('Activity selected %s', activity_name)
