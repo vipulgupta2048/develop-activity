@@ -49,6 +49,7 @@ import sourceview_editor
 S_WHERE = sourceview_editor.S_WHERE
 from symbols_tree import SymbolsTree
 from toolbars import DevelopEditToolbar, DevelopSearchToolbar
+from toolbars import DevelopViewToolbar
 from widgets import FileViewer, WelcomePage
 
 SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
@@ -73,6 +74,8 @@ class DevelopActivity(activity.Activity):
         super(DevelopActivity, self).__init__(handle)
         self.max_participants = 1
 
+        self.current_theme = "light"
+
         logging.info(repr(handle.get_dict()))
 
         # Source buffer
@@ -84,6 +87,15 @@ class DevelopActivity(activity.Activity):
         activity_button = ActivityToolbarButton(self)
         toolbarbox.toolbar.insert(activity_button, 0)
         self.set_toolbar_box(toolbarbox)
+
+        view_btn = ToolbarButton()
+        view_toolbar = DevelopViewToolbar(self)
+        view_btn.props.page = view_toolbar
+        view_btn.props.icon_name = 'toolbar-view'
+        view_btn.props.label = _('View')
+        view_toolbar.connect('theme-changed',
+                             self.editor.theme_changed_cb)
+        toolbarbox.toolbar.insert(view_btn, -1)
 
         edit_btn = ToolbarButton()
         edit_btn.props.page = DevelopEditToolbar(self)

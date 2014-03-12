@@ -37,11 +37,35 @@ SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
 
 
 class DevelopViewToolbar(Gtk.Toolbar):
+    __gsignals__ = {
+        'theme-changed': (GObject.SIGNAL_RUN_FIRST, None,
+                         (str,))
+    }
 
     def __init__(self, _activity):
+        GObject.GObject.__init__(self)
+
         self._activity = _activity
 
-        # theme_toggler = ToggleToolButton()
+        self.theme_toggler = ToolButton('dark-theme')
+        self.theme_state = "light"
+        self.theme_toggler.connect('clicked', self._toggled_theme)
+        self.insert(self.theme_toggler, -1)
+        self.theme_toggler.show()
+
+        self.show()
+
+    def _toggled_theme(self, button):
+        if self.theme_state == "dark":
+            self.theme_state = "light"
+            self.theme_toggler.set_icon_name('dark-theme')
+            self.theme_toggler.set_tooltip('Switch to Dark Theme')
+        elif self.theme_state == "light":
+            self.theme_state = "dark"
+            self.theme_toggler.set_icon_name('light-theme')
+            self.theme_toggler.set_tooltip('Switch to Light Theme')
+
+        self.emit('theme-changed', self.theme_state)
 
 
 class DevelopEditToolbar(EditToolbar):

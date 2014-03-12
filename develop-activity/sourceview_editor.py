@@ -49,6 +49,18 @@ class GtkSourceview2Editor(Gtk.Notebook):
         self.connect('switch-page', self._switch_page_cb)
         self.set_scrollable(True)
 
+        self.theme_state = "light"
+
+    def theme_changed_cb(self, widget, theme_name):
+        self.theme_state = theme_name
+        for i in range(0, self.get_n_pages()):
+            page = self.get_nth_page(i)
+            children = page.get_children()
+            if isinstance(children[0], Icon):
+                children[1].get_children()[0].set_theme(theme_name)
+            else:
+                children[0].get_children()[0].set_theme(theme_name)
+
     def _page_removed_cb(self, __notebook, page, n):
         try:
             page.page.remove()
@@ -75,6 +87,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
                              Gtk.PolicyType.AUTOMATIC)
 
         page = GtkSourceview2Page(full_path)
+        page.set_theme(self.theme_state)
 
         vbox = Gtk.VBox()
         if full_path.endswith('.svg'):
@@ -262,8 +275,14 @@ class GtkSourceview2Page(GtkSource.View):
         self.set_cursor_visible(True)
         self.set_show_line_numbers(True)
         self.set_insert_spaces_instead_of_tabs(True)
+        self.set_highlight_current_line(True)
 
         self.text_buffer = GtkSource.Buffer()
+
+        stylemanager = GtkSource.StyleSchemeManager()
+        self.light_theme = stylemanager.get_scheme('classic')
+        self.dark_theme = stylemanager.get_scheme('oblivion')
+        self.text_buffer.set_style_scheme(self.light_theme)
 
         # Tags for search
         tagtable = self.text_buffer.get_tag_table()
@@ -283,6 +302,14 @@ class GtkSourceview2Page(GtkSource.View):
 
         self.load_text()
         self.show()
+
+    def set_theme(self, theme):
+        if theme == "light":
+            self.text_buffer.set_style_scheme(self.light_theme)
+            # print "light"
+        elif theme == "dark":
+            self.text_buffer.set_style_scheme(self.dark_theme)
+            # print "dark"
 
     def load_text(self, offset=None):
         '''
