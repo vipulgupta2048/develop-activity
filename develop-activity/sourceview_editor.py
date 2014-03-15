@@ -31,6 +31,9 @@ from sugar3.graphics.icon import Icon
 from widgets import TabLabel
 import logviewer
 
+FONT_CHANGE_STEP = 2
+DEFAULT_FONT_SIZE = 10
+
 
 class S_WHERE:
     selection, file, multifile = range(3)  # an enum
@@ -50,6 +53,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
         self.set_scrollable(True)
 
         self.theme_state = "light"
+        self.font_size = DEFAULT_FONT_SIZE
 
     def theme_changed_cb(self, widget, theme_name):
         self.theme_state = theme_name
@@ -60,6 +64,16 @@ class GtkSourceview2Editor(Gtk.Notebook):
                 children[1].get_children()[0].set_theme(theme_name)
             else:
                 children[0].get_children()[0].set_theme(theme_name)
+
+    def font_changed_cb(self, widget, size):
+        self.font_size = size
+        for i in range(0, self.get_n_pages()):
+            page = self.get_nth_page(i)
+            children = page.get_children()
+            if isinstance(children[0], Icon):
+                children[1].get_children()[0].set_font_size(size)
+            else:
+                children[0].get_children()[0].set_font_size(size)
 
     def _page_removed_cb(self, __notebook, page, n):
         try:
@@ -88,6 +102,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
 
         page = GtkSourceview2Page(full_path)
         page.set_theme(self.theme_state)
+        page.set_font_size(self.font_size)
 
         vbox = Gtk.VBox()
         if full_path.endswith('.svg'):
@@ -298,10 +313,14 @@ class GtkSourceview2Page(GtkSource.View):
         self.set_tab_width(4)
         self.set_auto_indent(True)
 
-        self.modify_font(Pango.FontDescription('Monospace 10'))
-
         self.load_text()
         self.show()
+
+    def set_font_size(self, size):
+        desc = Pango.FontDescription(
+            'Monospace %d' % size)
+        # print 'Monospace %d' % size
+        self.modify_font(desc)
 
     def set_theme(self, theme):
         if theme == "light":

@@ -34,26 +34,55 @@ SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
                        S_WHERE.file: "regex",
                        S_WHERE.multifile: "multi-regex",
                        }}
+from sourceview_editor import FONT_CHANGE_STEP, DEFAULT_FONT_SIZE
 
 
 class DevelopViewToolbar(Gtk.Toolbar):
     __gsignals__ = {
         'theme-changed': (GObject.SIGNAL_RUN_FIRST, None,
-                         (str,))
+                         (str,)),
+        'font-size-changed': (GObject.SIGNAL_RUN_FIRST, None,
+                             (int,)),
     }
 
     def __init__(self, _activity):
         GObject.GObject.__init__(self)
 
         self._activity = _activity
+        self.theme_state = "light"
+        self.font_size = DEFAULT_FONT_SIZE
 
         self.theme_toggler = ToolButton('dark-theme')
-        self.theme_state = "light"
         self.theme_toggler.connect('clicked', self._toggled_theme)
+        self.theme_toggler.set_tooltip('Switch to Dark Theme')
         self.insert(self.theme_toggler, -1)
         self.theme_toggler.show()
 
+        sep = Gtk.SeparatorToolItem()
+        self.insert(sep, -1)
+        sep.show()
+
+        self.font_plus = ToolButton('gtk-add')
+        self.font_plus.connect('clicked', self._font_size_increase)
+        self.font_plus.set_tooltip('Increase Font Size')
+        self.insert(self.font_plus, -1)
+        self.font_plus.show()
+
+        self.font_minus = ToolButton('gtk-remove')
+        self.font_minus.connect('clicked', self._font_size_decrease)
+        self.font_minus.set_tooltip('Decrease Font Size')
+        self.insert(self.font_minus, -1)
+        self.font_minus.show()
+
         self.show()
+
+    def _font_size_increase(self, button):
+        self.font_size += FONT_CHANGE_STEP
+        self.emit('font-size-changed', self.font_size)
+
+    def _font_size_decrease(self, button):
+        self.font_size -= FONT_CHANGE_STEP
+        self.emit('font-size-changed', self.font_size)
 
     def _toggled_theme(self, button):
         if self.theme_state == "dark":

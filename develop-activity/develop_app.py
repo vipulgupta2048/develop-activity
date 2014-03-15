@@ -95,6 +95,8 @@ class DevelopActivity(activity.Activity):
         view_btn.props.label = _('View')
         view_toolbar.connect('theme-changed',
                              self.editor.theme_changed_cb)
+        view_toolbar.connect('font-size-changed',
+                             self.editor.font_changed_cb)
         toolbarbox.toolbar.insert(view_btn, -1)
 
         edit_btn = ToolbarButton()
