@@ -93,7 +93,7 @@ class TabLabel(Gtk.HBox):
         self.emit('tab-close', self._child)
 
 
-class WelcomePage(Gtk.VBox):
+class WelcomePage(Gtk.EventBox):
 
     __gsignals__ = {
         'open-activity': (GObject.SignalFlags.RUN_FIRST,
@@ -105,7 +105,10 @@ class WelcomePage(Gtk.VBox):
     }
 
     def __init__(self):
-        Gtk.VBox.__init__(self)
+        Gtk.EventBox.__init__(self)
+
+        vbox_outer = Gtk.VBox()
+        vbox = Gtk.VBox()
 
         edit_label = Gtk.Label(
             _('<span weight="bold" size="larger">'
@@ -115,7 +118,7 @@ class WelcomePage(Gtk.VBox):
               'activity to have a backup.'))
         edit_label.set_use_markup(True)
         edit_label.set_line_wrap(True)
-        self.pack_start(edit_label, expand=False, fill=True, padding=10)
+        vbox.pack_start(edit_label, expand=False, fill=True, padding=10)
 
         hbox_edit = Gtk.HBox()
         hbox_edit.pack_start(Gtk.Label(_('Select the activity')), True,
@@ -131,7 +134,7 @@ class WelcomePage(Gtk.VBox):
                              padding=10)
         align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
         align.add(hbox_edit)
-        self.pack_start(align, expand=False, fill=False, padding=10)
+        vbox.pack_start(align, expand=False, fill=False, padding=10)
 
         new_project_label = Gtk.Label(
             _('<span weight="bold" size="larger">'
@@ -140,7 +143,7 @@ class WelcomePage(Gtk.VBox):
               'just select the type of project.'))
         new_project_label.set_use_markup(True)
         new_project_label.set_line_wrap(True)
-        self.pack_start(new_project_label, expand=False, fill=True, padding=10)
+        vbox.pack_start(new_project_label, expand=False, fill=True, padding=10)
 
         hbox_create = Gtk.HBox()
         hbox_create.pack_start(Gtk.Label(_('Select the type')),
@@ -151,7 +154,7 @@ class WelcomePage(Gtk.VBox):
                                padding=10)
         align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
         align.add(hbox_create)
-        self.pack_start(align, expand=False, fill=False, padding=10)
+        vbox.pack_start(align, expand=False, fill=False, padding=10)
 
         hbox_name = Gtk.HBox()
         hbox_name.pack_start(Gtk.Label(_('Name the activity')), True, True, 0)
@@ -166,8 +169,13 @@ class WelcomePage(Gtk.VBox):
                              padding=10)
         align = Gtk.Alignment.new(0.5, 0.5, 0, 0)
         align.add(hbox_name)
-        self.pack_start(align, expand=False, fill=False, padding=10)
+        vbox.pack_start(align, expand=False, fill=False, padding=10)
 
+        self.modify_bg(Gtk.StateType.NORMAL,
+                       style.COLOR_WHITE.get_gdk_color())
+
+        vbox_outer.pack_start(vbox, expand=True, fill=False, padding=0)
+        self.add(vbox_outer)
         self.show_all()
 
     def _load_activities_installed_combo(self, activities_combo):

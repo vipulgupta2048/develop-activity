@@ -82,6 +82,8 @@ class DevelopActivity(activity.Activity):
         self.editor = sourceview_editor.GtkSourceview2Editor()
         self.editor.connect('tab-changed', self.__editor_tab_changed_cb)
         self.editor.connect('changed', self.__editor_changed_cb)
+        # Show tabs after Welcome Page
+        self.editor.set_show_tabs(False)
 
         toolbarbox = ToolbarBox()
         activity_button = ActivityToolbarButton(self)
@@ -204,7 +206,9 @@ class DevelopActivity(activity.Activity):
         self.treenotebook.add_page(_('Symbols Tree'), scrolled)
 
         hbox.pack1(sidebar, resize=True, shrink=False)
-        sidebar.show()
+        # Show sidebar after welcome page ends
+        # sidebar.show()
+        self.sidebar = sidebar
 
         logging.info('finished check')
         self.editor.show()
@@ -266,8 +270,15 @@ class DevelopActivity(activity.Activity):
         self.editor.remove_page(0)
         self.first_open_activity(activity_dir)
 
+        # Show hidden stuff
+        self._show_hidden_ui()
+
     def __welcome_show_alert_cb(self, welcome_page, message):
         self._show_alert(message)
+
+    def _show_hidden_ui(self):
+        self.sidebar.show()
+        self.editor.set_show_tabs(True)
 
     def __run_actvity_cb(self, run_button):
         if self.save_unchanged:
@@ -460,6 +471,8 @@ class DevelopActivity(activity.Activity):
                     self.load_file(filename)
         finally:
             f.close()
+
+        self._show_hidden_ui()
 
         self._set_dirty(False)
 
