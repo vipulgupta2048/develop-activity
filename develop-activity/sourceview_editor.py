@@ -49,7 +49,6 @@ class GtkSourceview2Editor(Gtk.Notebook):
         GObject.GObject.__init__(self)
         self.set_size_request(Gdk.Screen.width() / 5 * 4, -1)
         self.connect('page-removed', self._page_removed_cb)
-        self.connect('switch-page', self._switch_page_cb)
         self.set_scrollable(True)
 
         self.theme_state = "light"
@@ -81,6 +80,9 @@ class GtkSourceview2Editor(Gtk.Notebook):
         except:
             pass
             # the welcome page do not have a page property
+        # Connect this only after the welcome page is removed
+        # Or it causes a error since welcome page has no 'page'
+        self.connect('switch-page', self._switch_page_cb)
 
     def _switch_page_cb(self, __notebook, page_gptr, page_num):
         self.emit('tab-changed', self._get_page(page_num).full_path)
