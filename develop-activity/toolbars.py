@@ -62,15 +62,15 @@ class DevelopViewToolbar(Gtk.Toolbar):
         self.insert(sep, -1)
         sep.show()
 
-        self.font_plus = ToolButton('gtk-add')
+        self.font_plus = ToolButton('zoom-in')
         self.font_plus.connect('clicked', self._font_size_increase)
-        self.font_plus.set_tooltip('Increase Font Size')
+        self.font_plus.set_tooltip('Zoom out')
         self.insert(self.font_plus, -1)
         self.font_plus.show()
 
-        self.font_minus = ToolButton('gtk-remove')
+        self.font_minus = ToolButton('zoom-out')
         self.font_minus.connect('clicked', self._font_size_decrease)
-        self.font_minus.set_tooltip('Decrease Font Size')
+        self.font_minus.set_tooltip('Zoom in')
         self.insert(self.font_minus, -1)
         self.font_minus.show()
 
