@@ -76,6 +76,22 @@ class DevelopViewToolbar(Gtk.Toolbar):
 
         self.show()
 
+    def set_theme(self, theme_name):
+        self.theme_state = theme_name
+
+        if self.theme_state == "light":
+            self.theme_toggler.set_icon_name('dark-theme')
+            self.theme_toggler.set_tooltip('Switch to Dark Theme')
+        elif self.theme_state == "dark":
+            self.theme_toggler.set_icon_name('light-theme')
+            self.theme_toggler.set_tooltip('Switch to Light Theme')
+
+        self.emit('theme-changed', self.theme_state)
+
+    def set_font_size(self, font_size):
+        self.font_size = font_size
+        self.emit('font-size-changed', self.font_size)
+
     def _font_size_increase(self, button):
         self.font_size += FONT_CHANGE_STEP
         self.emit('font-size-changed', self.font_size)

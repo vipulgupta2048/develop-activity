@@ -54,7 +54,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
         self.theme_state = "light"
         self.font_size = DEFAULT_FONT_SIZE
 
-    def theme_changed_cb(self, widget, theme_name):
+    def set_theme(self, theme_name):
         self.theme_state = theme_name
         for i in range(0, self.get_n_pages()):
             page = self.get_nth_page(i)
@@ -64,7 +64,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
             else:
                 children[0].get_children()[0].set_theme(theme_name)
 
-    def font_changed_cb(self, widget, size):
+    def set_font_size(self, size):
         self.font_size = size
         for i in range(0, self.get_n_pages()):
             page = self.get_nth_page(i)
@@ -73,6 +73,18 @@ class GtkSourceview2Editor(Gtk.Notebook):
                 children[1].get_children()[0].set_font_size(size)
             else:
                 children[0].get_children()[0].set_font_size(size)
+
+    def theme_changed_cb(self, widget, theme_name):
+        self.set_theme(theme_name)
+
+    def font_changed_cb(self, widget, size):
+        self.set_font_size(size)
+
+    def get_theme(self):
+        return self.theme_state
+
+    def get_font_size(self):
+        return self.font_size
 
     def _page_removed_cb(self, __notebook, page, n):
         try:

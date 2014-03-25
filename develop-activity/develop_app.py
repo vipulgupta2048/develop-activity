@@ -63,6 +63,9 @@ SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
 #CAP_ICONS = {False: "use-caps", True: "ignore-caps"}
 #REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
 
+_config_file_path = os.path.join(activity.get_activity_root(), 'data',
+                           'config.json')
+
 
 class DevelopActivity(activity.Activity):
     """Develop Activity as specified in activity.info"""
@@ -100,6 +103,7 @@ class DevelopActivity(activity.Activity):
         view_toolbar.connect('font-size-changed',
                              self.editor.font_changed_cb)
         toolbarbox.toolbar.insert(view_btn, -1)
+        self.view_toolbar = view_toolbar
 
         edit_btn = ToolbarButton()
         edit_btn.props.page = DevelopEditToolbar(self)
@@ -272,6 +276,7 @@ class DevelopActivity(activity.Activity):
 
         # Show hidden stuff
         self._show_hidden_ui()
+        self._load_config()
 
     def __welcome_show_alert_cb(self, welcome_page, message):
         self._show_alert(message)
@@ -455,6 +460,7 @@ class DevelopActivity(activity.Activity):
         self.metadata['source'] = self.activity_dir
         self._set_dirty(False)
         self.save_unchanged = False
+        self._store_config()
 
     def read_file(self, file_path):
         self.activity_dir = self.metadata['source']
@@ -475,6 +481,21 @@ class DevelopActivity(activity.Activity):
         self._show_hidden_ui()
 
         self._set_dirty(False)
+
+        self._load_config()
+
+    def _store_config(self):
+        theme = self.editor.get_theme()
+        font_size = self.editor.get_font_size()
+
+        with open(_config_file_path, "w") as f:
+            f.write(json.dumps((theme, font_size)))
+
+    def _load_config(self):
+        with open(_config_file_path, "r") as f:
+            theme, font_size = json.loads(f.read())
+            self.view_toolbar.set_theme(theme)
+            self.view_toolbar.set_font_size(font_size)
 
     def _set_dirty(self, dirty):
         logging.debug("Setting dirty to %s; activity_dir is %s" %
