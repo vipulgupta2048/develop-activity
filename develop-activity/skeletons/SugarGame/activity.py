@@ -12,7 +12,7 @@ from sugar.activity.widgets import StopButton
 
 import game
 
-class HelloWorld(activity.Activity):
+class HelloWorldActivity(activity.Activity):
 
     def __init__(self, handle):
         activity.Activity.__init__(self, handle)
@@ -51,3 +51,7 @@ class HelloWorld(activity.Activity):
 
         self.set_toolbar_box(toolbar_box)
         toolbar_box.show_all()
+
+
+
+
