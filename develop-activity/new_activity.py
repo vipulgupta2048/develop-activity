@@ -68,7 +68,8 @@ def create_activity(name, base_path, skeleton):
     # create activity.info file
     activity_info_path = os.path.join(activity_path, 'activity.info')
     with open(activity_info_path, 'w') as activity_info_file:
-        activity_info_file.write(activity_info_template(name,
-                                                        (skeleton == 'Web')))
+        activity_info_file.write(
+            activity_info_template(name,
+                                   (skeleton == 'Web (sugar >= 0.100)')))
 
     return path
