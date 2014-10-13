@@ -390,8 +390,8 @@ class DevelopActivity(activity.Activity):
                                                 builder.config.version),
             'icon-color': icon_color,
             'mime_type': 'application/vnd.olpc-sugar',
-            'activity': self.get_bundle_id(),
-            'activity_id': self.get_id(),
+            'activity': '',
+            'activity_id': '',
             'share-scope': activity.SCOPE_PRIVATE,
             'preview': '',
             'source': self.activity_dir, }
