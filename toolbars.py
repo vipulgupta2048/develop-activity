@@ -8,7 +8,7 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
-#,
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -40,9 +40,9 @@ from sourceview_editor import FONT_CHANGE_STEP, DEFAULT_FONT_SIZE
 class DevelopViewToolbar(Gtk.Toolbar):
     __gsignals__ = {
         'theme-changed': (GObject.SIGNAL_RUN_FIRST, None,
-                         (str,)),
+                          (str,)),
         'font-size-changed': (GObject.SIGNAL_RUN_FIRST, None,
-                             (int,)),
+                              (int,)),
     }
 
     def __init__(self, _activity):
@@ -170,10 +170,10 @@ class DevelopSearchToolbar(Gtk.Toolbar):
             use_regex=False,
             ignore_caps=True,
             replace_all=False,
-            #defaults to avoid creating
-            #a new SearchOptions object for normal searches
-            #should never be changed, just make a copy like:
-            #SearchOptions(self.s_opts, forward=False)
+            # defaults to avoid creating
+            # a new SearchOptions object for normal searches
+            # should never be changed, just make a copy like:
+            # SearchOptions(self.s_opts, forward=False)
             forward=True,
             stay=False)
 
@@ -306,7 +306,7 @@ class DevelopSearchToolbar(Gtk.Toolbar):
         else:
             entry.delete_text(0, 0)
             entry.set_position(-1)
-            #for some reason, grab_focus doesn't work otherwise
+            # for some reason, grab_focus doesn't work otherwise
 
     def _replace_or_go_to_replace_entry_cb(self):
         if self.safe_to_replace:
@@ -319,8 +319,8 @@ class DevelopSearchToolbar(Gtk.Toolbar):
         self._search_entry.set_icon_from_name(
             iconentry.ICON_ENTRY_PRIMARY,
             SEARCH_ICONS[self.s_opts.use_regex][self.s_opts.where])
-        #self._settings.set_icon(CAP_ICONS[self.s_opts.ignore_caps])
-        #self._replace_button.set_icon(REPLACE_ICONS[self.s_opts.replace_all])
+        # self._settings.set_icon(CAP_ICONS[self.s_opts.ignore_caps])
+        # self._replace_button.set_icon(REPLACE_ICONS[self.s_opts.replace_all])
         self._reset_replace_sensitivity()
 
     def _reset_replace_sensitivity(self):
@@ -346,12 +346,12 @@ class DevelopSearchToolbar(Gtk.Toolbar):
         self.s_opts.replace_all = option  # IGNORE:W0201
         if option and self.s_opts.where == S_WHERE.multifile:
             self.s_opts.where = S_WHERE.file  # for safety:
-            #do not replace all in multifile except explicitly
+            # do not replace all in multifile except explicitly
         self._reset_search_icons()
 
     def _changed_cb(self, _buffer):
         self._reset_replace_sensitivity()
-        #if self.s_opts.where == S_WHERE.selection:
+        # if self.s_opts.where == S_WHERE.selection:
         #    self._set_where_options(None, S_WHERE.file)
 
     def _settings_cb(self, button):
@@ -383,11 +383,11 @@ class DevelopSearchToolbar(Gtk.Toolbar):
             self._findprev.set_sensitive(True)
             self._findnext.set_sensitive(True)
             if not self.s_opts.use_regex:
-                #do not do partial searches for regex
+                # do not do partial searches for regex
                 if self._activity.editor.find_next(text):
-                    #no multifile, or focus gets grabbed
+                    # no multifile, or focus gets grabbed
                     pass
-                    #self._replace_button.set_sensitive(True)
+                    # self._replace_button.set_sensitive(True)
 
     def _replace_entry_changed_cb(self, entry):
         if self._replace_entry.props.text:
@@ -398,14 +398,14 @@ class DevelopSearchToolbar(Gtk.Toolbar):
         if ftext:
             if self._activity.editor.find_next(ftext, direction='backward'):
                 pass
-                #self._replace_button.set_sensitive(True)
+                # self._replace_button.set_sensitive(True)
 
     def _findnext_cb(self, button=None):
         ftext = self._search_entry.props.text
         if ftext:
             if self._activity.editor.find_next(ftext, direction='forward'):
                 pass
-                #self._replace_button.set_sensitive(True)
+                # self._replace_button.set_sensitive(True)
 
     # bad paul! this function was copied from sugar's activity.py via Write
     def _add_widget(self, widget, expand=False):

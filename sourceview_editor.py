@@ -223,7 +223,7 @@ class GtkSourceview2Editor(Gtk.Notebook):
                 found = self.find_next(ftext, page=page)
                 return (replaced, found)
             else:
-                #for replace-in-selection, leave selection unmodified
+                # for replace-in-selection, leave selection unmodified
                 return (replaced, replaced)
 
     def find_next(self, ftext, page=None, direction='current'):
@@ -426,7 +426,7 @@ class GtkSourceview2Page(GtkSource.View):
                 results = [results[0]]
             else:
                 results.reverse()  # replace right-to-left so that
-                                #unreplaced indexes remain valid.
+                # unreplaced indexes remain valid.
             self.text_buffer.begin_user_action()
             for start, end, match in results:
                 start = self.text_buffer.get_iter_at_offset(start)

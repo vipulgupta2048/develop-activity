@@ -60,11 +60,11 @@ SEARCH_ICONS = {False: {S_WHERE.selection: "search-in-selection",
                        S_WHERE.file: "regex",
                        S_WHERE.multifile: "multi-regex",
                        }}
-#CAP_ICONS = {False: "use-caps", True: "ignore-caps"}
-#REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
+# CAP_ICONS = {False: "use-caps", True: "ignore-caps"}
+# REPLACE_ICONS = {False: "replace-and-find", True: "multi-replace"}
 
 _config_file_path = os.path.join(activity.get_activity_root(), 'data',
-                           'config.json')
+                                 'config.json')
 
 
 class DevelopActivity(activity.Activity):
@@ -183,11 +183,11 @@ class DevelopActivity(activity.Activity):
         # Main layout.
         hbox = Gtk.HPaned()
 
-        #The treeview and selected pane reflect each other.
+        # The treeview and selected pane reflect each other.
         self.numb = False
 
-        #Wait to save until first change, but save an unchanged
-        #backup copy when that happens.
+        # Wait to save until first change, but save an unchanged
+        # backup copy when that happens.
         self.save_unchanged = False
 
         # The sidebar
@@ -352,8 +352,8 @@ class DevelopActivity(activity.Activity):
         """User selected an item in the treeview. Load it.
         """
         if self.numb:
-            #Choosing in the notebook selects in the list, and vice versa.
-            #Avoid infinite recursion.
+            # Choosing in the notebook selects in the list, and vice versa.
+            # Avoid infinite recursion.
             return
         if path and not os.path.isdir(path):
             self.numb = True
@@ -365,7 +365,7 @@ class DevelopActivity(activity.Activity):
             return
 
         if os.path.isdir(path):
-            #do not try to open folders
+            # do not try to open folders
             return
 
         # Set buffer and scroll down
@@ -375,7 +375,7 @@ class DevelopActivity(activity.Activity):
         self.editor.load_log_file(path, log_files_viewer)
 
     def save_bundle(self, btn):
-        #create bundle
+        # create bundle
         builder = XOPackager(Builder(Config(self.activity_dir, '/tmp')))
         builder.package()
         logging.error('Packaging %s', builder.package_path)
@@ -417,7 +417,7 @@ class DevelopActivity(activity.Activity):
         metadata = {
             'title': self.metadata['title'],
             'title_set_by_user': '1',
-            #'suggested_filename': '%s-%s.xo' % (builder.config.bundle_name,
+            # 'suggested_filename': '%s-%s.xo' % (builder.config.bundle_name,
             #                                    builder.config.version),
             'icon-color': icon_color,
             'mime_type': 'application/develop-session',
@@ -506,7 +506,7 @@ class DevelopActivity(activity.Activity):
 
     def __editor_tab_changed_cb(self, editor, new_full_path):
         if self.numb:
-            #avoid infinite recursion
+            # avoid infinite recursion
             return
         self.numb = True
         self.activity_tree_view.select_by_file_path(new_full_path)
@@ -526,7 +526,7 @@ class DevelopActivity(activity.Activity):
         alert.props.title = _('Create new file')
         alert.props.msg = _('Select the name of the file')
 
-        #HACK
+        # HACK
         alert._hbox.remove(alert._buttons_box)
         alert.entry = Gtk.Entry()
         alert._hbox.pack_start(alert.entry, True, True, 0)
