@@ -7,6 +7,8 @@ define(["webL10n",
         "sugar-web/graphics/activitypalette"], function (
     l10n, shortcut, bus, env, datastore, icon, activitypalette) {
 
+    'use strict';
+
     var datastoreObject = null;
 
     var activity = {};
@@ -16,19 +18,30 @@ define(["webL10n",
 
         l10n.start();
 
-        function onPause() {
-            activity.write(function () {});
+        function sendPauseEvent() {
+            var pauseEvent = new CustomEvent(
+                "activityPause", {
+                    cancelable: true
+                });
+            window.dispatchEvent(pauseEvent);
         }
+        bus.onNotification("activity.pause", sendPauseEvent);
 
-        function onStop() {
-            function onDataStored(error, result) {
-                activity.close(function () {});
+        // An activity that handles 'activityStop' can also call
+        // event.preventDefault() to prevent the close, and explicitly
+        // call activity.close() after storing.
+
+        function sendStopEvent() {
+            var stopEvent = new CustomEvent(
+                "activityStop", {
+                    cancelable: true
+                });
+            var result = window.dispatchEvent(stopEvent);
+            if (result) {
+                activity.close();
             }
-            activity.write(onDataStored);
         }
-
-        bus.onNotification("activity.pause", onPause);
-        bus.onNotification("activity.stop", onStop);
+        bus.onNotification("activity.stop", sendStopEvent);
 
         datastoreObject = new datastore.DatastoreObject();
 
@@ -40,14 +53,16 @@ define(["webL10n",
         // Colorize the activity icon.
         activity.getXOColor(function (error, colors) {
             icon.colorize(activityButton, colors);
-            invokerElem =
+            var invokerElem =
                 document.querySelector("#activity-palette .palette-invoker");
             icon.colorize(invokerElem, colors);
         });
 
         // Make the activity stop with the stop button.
         var stopButton = document.getElementById("stop-button");
-        stopButton.addEventListener('click', onStop);
+        stopButton.addEventListener('click', function (e) {
+            sendStopEvent();
+        });
 
         shortcut.add("Ctrl", "Q", this.close);
 
@@ -90,24 +105,59 @@ define(["webL10n",
         bus.sendMessage("activity.get_xo_color", [], onResponseReceived);
     };
 
-    // Activities should override this function in order to store
-    // data.
-    activity.write = function (callback) {
-        setTimeout(function () {
-            callback(null);
-        }, 0);
-    };
-
     activity.close = function (callback) {
         function onResponseReceived(error, result) {
             if (error === null) {
                 callback(null);
             } else {
-                console.log("activity.close called");
+                callback(error, null);
             }
         }
 
         bus.sendMessage("activity.close", [], onResponseReceived);
+    };
+
+    activity.showObjectChooser = function (callback) {
+        function onResponseReceived(error, result) {
+            if (error === null) {
+                callback(null, result[0]);
+            } else {
+                callback(error, null);
+            }
+        }
+
+        bus.sendMessage("activity.show_object_chooser", [], onResponseReceived);
+    };
+
+    activity.showAlert = function (title, message, btnLabel, btnCallback) {
+        if (btnLabel == null) {
+            btnLabel = 'Ok';
+        }
+
+        var fragment = document.createDocumentFragment();
+        var div = document.createElement('div');
+        div.className = 'alert';
+        div.id = 'activity-alert';
+        div.innerHTML = '<p><b>' + title + '</b><br/>' + message + '</p>' +
+            '<p class="button-box">' +
+            '<button id="actvity-alert-btn" class="icon">' +
+            '<span class="ok"></span>' +
+            btnLabel + '</button></p>';
+        fragment.appendChild(div);
+
+        document.body.appendChild(fragment.cloneNode(true));
+
+        var btn = document.getElementById("actvity-alert-btn");
+        btn.addEventListener('click', function (e) {
+            var alertNode = document.getElementById("activity-alert");
+            if (alertNode.parentNode) {
+                alertNode.parentNode.removeChild(alertNode);
+            }
+            if (btnCallback != null) {
+                btnCallback();
+            }
+        });
+
     };
 
     return activity;
