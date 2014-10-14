@@ -192,13 +192,13 @@ class GtkSourceview2Editor(Gtk.Notebook):
     def copy(self):
         page = self._get_page()
         if page:
-            clip = Gtk.Clipboard()
+            clip = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
             page.get_buffer().copy_clipboard(clip)
 
     def paste(self):
         page = self._get_page()
         if page:
-            clip = Gtk.Clipboard()
+            clip = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
             text = clip.wait_for_text()
             page.get_buffer().insert_at_cursor(text)
 
