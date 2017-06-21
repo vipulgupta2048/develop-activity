@@ -19,6 +19,8 @@ import os.path
 import json
 from gettext import gettext as _
 
+import gi
+gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
