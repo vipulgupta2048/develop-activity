@@ -6,5 +6,5 @@ icon = activity-develop
 activity_version = 43
 mime_types = application/vnd.olpc-sugar;x/application/vnd.olpc-sugar;application/vnd.oasis.opendocument.text
 show_launcher = yes
-update_url = http://wiki.laptop.org/go/Develop
+url = http://wiki.laptop.org/go/Develop
 license = GPLv2
