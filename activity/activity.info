@@ -1,7 +1,7 @@
 [Activity]
 name = Develop
 bundle_id = org.laptop.Develop
-license = GPLv2+
+license = GPLv2+;GPLv3+;MIT;Apache
 exec = sugar-activity develop_app.DevelopActivity -s
 icon = activity-develop
 activity_version = 43
